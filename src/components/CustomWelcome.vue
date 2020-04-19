@@ -1,17 +1,18 @@
 <template>
     <startup-layout ref="layout"
-                    class="kiwi-welcome-simple"
+                    class="kiwi-welcome-asl kiwi-welcome-asl-section \
+                    kiwi-welcome-asl-section-connection"
     >
         <template v-if="startupOptions.altComponent" v-slot:connection>
             <component :is="startupOptions.altComponent" @close="onAltClose" />
         </template>
         <template v-else-if="!network || network.state === 'disconnected'" v-slot:connection>
-            <form class="u-form u-form--big kiwi-welcome-simple-form" @submit.prevent="formSubmit">
+            <form class="u-form u-form--big kiwi-welcome-asl-form" @submit.prevent="formSubmit">
                 <h2 v-html="greetingText"/>
-                <div v-if="errorMessage" class="kiwi-welcome-simple-error">{{ errorMessage }}</div>
+                <div v-if="errorMessage" class="kiwi-welcome-asl-error">{{ errorMessage }}</div>
                 <div
                     v-else-if="network && (network.last_error || network.state_error)"
-                    class="kiwi-welcome-simple-error"
+                    class="kiwi-welcome-asl-error"
                 >
                     We couldn't connect to the server :(
                     <span>
@@ -19,71 +20,73 @@
                     </span>
                 </div>
 
-                <input-text v-model="nick" :label="$t('nick')" type="text" />
+                <div class="kiwi-welcome-asl-group nick">
+                    <span class="kiwi-welcome-asl-picto"><i class="fa fa-user"></i></span>
+                    <input v-model="nick" class="kiwi-welcome-asl-nick"
+                           :placeholder="$t('nick')" type="text" />
+                </div>
 
-                <div v-if="showPass && toggablePass" class="kiwi-welcome-simple-input-container">
+                <div v-if="showPass && toggablePass" class="kiwi-welcome-asl-group pass">
                     <label
-                        class="kiwi-welcome-simple-have-password"
+                        class="kiwi-welcome-asl-have-password"
                     >
                         <input v-model="show_password_box" type="checkbox" >
-                        <span> {{ $t('password_have') }} </span>
+                        <span class="kiwi-welcome-asl-have-password">
+                            {{ $t('password_have') }} </span>
                     </label>
                 </div>
 
                 <div v-if="showPass && (show_password_box || !toggablePass)"
-                     class="kiwi-welcome-simple-input-container"
+                     class="kiwi-welcome-asl-group pass"
                 >
-                    <input-text
-                        v-model="password"
-                        v-focus
-                        :show-plain-text="true"
-                        :label="$t('password')"
-                        type="password"
+                    <span class="kiwi-welcome-asl-picto"><i class="fa fa-key"></i></span>
+                    <input v-model="password"
+                           v-focus
+                           :show-plain-text="true"
+                           type="password"
                     />
                 </div>
-                <div class="kiwi-welcome-simple-asl-container">
-                    <div class="kiwi-welcome-simple-age-sex">
-                        <input-text
-                            v-model="age"
-                            :label="$t('plugin-asl:age')"
-                            class="kiwi-welcome-simple-age"
-                            type="number"
-                        />
-                        <div class="kiwi-welcome-simple-sex">
-                            <label>{{ $t('plugin-asl:sex') }}</label>
-                            <select v-model="sex">
-                                <option :value="null" selected disabled>
-                                    {{ $t('plugin-asl:select') }}
-                                </option>
-                                <option
-                                    v-for="(value, name) in sexes"
-                                    :key="'sexes-'+name"
-                                    :value="value.chars[0]"
-                                    :style="{ 'color': sexes[name].colour }"
-                                >{{
-                                    name[0] === '_' ?
-                                        $t('plugin-asl:' + name.substr(1)) :
-                                        name
-                                }}</option>
-                            </select>
+                <div class="kiwi-welcome-asl-asl-container">
+                    <div class="kiwi-welcome-asl-group age">
+                        <span class="kiwi-welcome-asl-picto">
+                            <i class="fa fa-info-circle"></i></span>
+                        <input type="number" class="kiwi-welcome-asl-age"
+                               v-model="age" min="16" max="99"
+                               :placeholder="$t('plugin-asl:age')"
+                        /><div class="age-text">&nbsp;&nbsp;years old</div>
+                    </div>
+                    <div class="kiwi-welcome-asl-group gender">
+                        <span class="kiwi-welcome-asl-picto">
+                            <i class="fa fa-transgender" />
+                        </span>
+                        <div class="kiwi-welcome-asl-group-genders">
+                            <input type="radio" id="gender_m" value="M" v-model="sex">
+                            <label class="gender_m" for="gender_m">
+                                {{$t('plugin-asl:male')}}</label>
+                            <input type="radio" id="gender_f" value="F" v-model="sex">
+                            <label class="gender_f" for="gender_f">
+                                {{$t('plugin-asl:female')}}</label>
+                            <input type="radio" id="gender_u" value="U" v-model="sex">
+                            <label class="gender_u" for="gender_u">
+                                {{$t('plugin-asl:other')}}</label>
                         </div>
                     </div>
-                    <input-text
-                        v-model="location"
-                        :label="$t('plugin-asl:location')"
-                    />
-                    <input-text
-                        v-if="showRealname"
-                        v-model="realname"
-                        :label="$t('whois_realname')"
-                    />
+                    <div class="kiwi-welcome-asl-group location">
+                        <span class="kiwi-welcome-asl-picto">
+                            <i class="fa fa-map-marker"></i>
+                        </span>
+                        <input type="text" v-model="location" class="kiwi-welcome-asl-location"
+                               :placeholder="$t('plugin-asl:location')" />
+                        <input type="text" v-if="showRealname" v-model="realname"
+                               :label="$t('whois_realname')" />
+                    </div>
                 </div>
-
-                <div v-if="showChannel" class="kiwi-welcome-simple-input-container">
-                    <input-text
-                        v-model="channel"
-                        :label="$t('channel')"
-                    />
+                <div v-if="showChannel" class="kiwi-welcome-asl-input-container">
+                    <div class="kiwi-welcome-asl-group channel">
+                        <span class="kiwi-welcome-asl-picto"><i class="fa fa-slack"></i></span>
+                        <input type="text" v-model="channel" :placeholder="$t('channel')"
+                               class="kiwi-welcome-asl-channel" />
+                    </div>
                 </div>
 
                 <captcha
@@ -92,7 +95,7 @@
 
                 <button
                     :disabled="!readyToStart"
-                    class="u-button u-button-primary u-submit kiwi-welcome-simple-start"
+                    class="u-button u-button-primary u-submit kiwi-welcome-asl-start"
                     type="submit"
                     v-html="buttonText"
                 />
@@ -103,6 +106,12 @@
         <template v-else v-slot:connection>
             <i class="fa fa-spin fa-spinner" aria-hidden="true"/>
         </template>
+        <div class="kiwi-welcome-asl-section kiwi-welcome-asl-section-info"
+             :style="backgroundStyle">
+            <div class="kiwi-welcome-asl-section-info-content">
+                <div>Hello world this is the detail</div>
+            </div>
+        </div>
     </startup-layout>
 </template>
 
@@ -465,108 +474,417 @@ export default {
 <style>
 
 /* Containers */
-form.kiwi-welcome-simple-form {
-    width: 70%;
-    padding: 0 20px;
-}
 
-@media (max-width: 1025px) {
-    form.kiwi-welcome-simple-form {
-        width: 100%;
-    }
+/* Tweak */
+.u-form input[type="radio"] {
+    float: none;
+    position: relative;
+    top: -3px;
 }
-
-form.kiwi-welcome-simple-form h2 {
-    margin: 0 0 40px 0;
-    padding: 0;
-    cursor: default;
-    font-weight: 600;
-    font-size: 2.2em;
+.u-form--big .u-input-text-plaintext {
+    line-height: normal;
+    top: 9px;
+}
+/* Fallback EuropNet */
+.kiwi-welcome-asl {
+    height: 100%;
     text-align: center;
-    line-height: 1.2em;
+    background-size: 0;
+    background-position: bottom;
 }
 
-.kiwi-welcome-simple-error {
+.kiwi-welcome-asl h2 {
+    font-size: 1.7em;
+    text-align: center;
+    padding: 0;
+    margin: 0.5em 0 1em 0;
+}
+
+.kiwi-welcome-asl-section {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    box-sizing: border-box;
+    transition: right 0.3s, left 0.3s;
+    overflow-y: auto;
+}
+
+.kiwi-welcome-asl-section-connection {
+    position: relative;
+    min-height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.kiwi-welcome-asl-form {
+    background-color: #fff;
+    border-radius: 0.5em;
+    padding: 1em;
+    border: 1px solid #ececec;
+}
+
+/** Right side */
+.kiwi-welcome-asl-section-info {
+    right: 0;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100%;
+    background-size: cover;
+    background-position: bottom;
+    border-left: 5px solid #428BCA;
+}
+
+.kiwi-welcome-asl-section-info-content {
+    background: rgba(255, 255, 255, 0.74);
+    margin: 2em;
+    color: #1b1b1b;
+    font-size: 1.5em;
+    padding: 2em;
+    line-height: 1.6em;
+}
+
+/** Left side */
+.kiwi-welcome-asl-error {
     text-align: center;
     margin: 1em 0;
     padding: 0.3em;
 }
 
-.kiwi-welcome-simple-error span {
+.kiwi-welcome-asl-error span {
     display: block;
     font-style: italic;
 }
 
-.kiwi-welcome-simple-input-container {
-    width: 100%;
-    height: auto;
-    position: relative;
-    margin: 0 0 20px 0;
+.kiwi-welcome-asl-section-connection label {
+    text-align: left;
+    display: inline-block;
 }
 
-.kiwi-welcome-simple-input-container:last-of-type {
-    margin: 20px 0 40px 0;
+.kiwi-welcome-asl-section-connection .u-form .u-input,
+.u-form--big input[type="text"],
+.kiwi-welcome-asl-group input[type="text"],
+.kiwi-welcome-asl-group input[type="number"],
+.kiwi-welcome-asl-group-genders {
+    width: 80%;
+    height: 24px;
+    font-size: 1em;
+    padding-left: 0.5em;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    color: #555;
+}
+.kiwi-welcome-asl-group input[type="number"],
+.kiwi-welcome-asl-group-genders {
+    padding: 0.21em 1em;
 }
 
-.kiwi-welcome-simple-age-sex {
-    height: auto;
-    position: relative;
-    margin: 0;
+span.kiwi-welcome-asl-picto,
+.kiwi-welcome-asl-section-connection .u-form .u-input,
+.kiwi-welcome-asl-section-connection .u-form--big input[type="text"],
+.kiwi-welcome-asl-group input[type="text"],
+.kiwi-welcome-asl-group input[type="number"],
+.kiwi-welcome-asl-group-genders {
+    border: 1px solid;
+    border-color: #ccc;
+    border-radius: 4px;
+}
+
+.kiwi-welcome-asl-section-connection .u-form .u-input,
+.kiwi-welcome-asl-section-connection .u-form--big input[type="text"],
+.kiwi-welcome-asl-group input[type="text"],
+.kiwi-welcome-asl-group input[type="number"],
+.kiwi-welcome-asl-group div {
+    border-radius: 0 4px 4px 0;
+}
+.kiwi-welcome-asl-section-connection .u-form .u-input,
+.kiwi-welcome-asl-section-connection .u-form--big input[type="text"],
+.kiwi-welcome-asl-group input[type="text"],
+.kiwi-welcome-asl-group div {
+    width: 85%%;
+}
+
+.kiwi-welcome-asl .kiwi-welcome-asl-have-password input[type="text"],
+.kiwi-welcome-asl-have-password {
+    font-size: 0.8em;
+    margin: 0.8em 0;
+}
+
+.kiwi-welcome-asl-have-password {
+    margin-top: 0;
+}
+
+.kiwi-welcome-asl-group {
     display: flex;
+    width: 85%;
+    height: 2em;
+    line-height: 1;
+    margin: 0 0 8px 0;
 }
 
-.kiwi-welcome-simple-age {
+.kiwi-welcome-asl-nick {
+    font-weight: bold;
+}
+
+.kiwi-welcome-asl-group-genders {
     display: inline-block;
-    width: 50%;
+    font-size: 1em;
+    width: 280px;
+    padding: 0;
+    padding-left: 0.5em;
+    padding-top: 6px;
 }
-
-.kiwi-welcome-simple-sex {
-    display: inline-block;
-    margin-left: 5px;
-    width: 50%;
-}
-
-.u-form .kiwi-welcome-simple-sex select {
-    border-radius: 5px;
-    color: var(--brand-input-fg);
-    background-color: var(--brand-default-bg);
-    font-size: inherit;
-    overflow: hidden;
-    padding: 14px 14px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    box-sizing: border-box;
+.kiwi-welcome-asl-group.gender {
     width: 100%;
 }
-
-.u-form .kiwi-welcome-simple-sex select:focus {
-    outline: none;
-    border-color: var(--brand-primary);
+.kiwi-welcome-asl-group.gender .kiwi-welcome-asl-picto .fa-transgender {
+    font-weight: bolder;
+}
+.kiwi-welcome-asl-section-connection .u-form .u-input, .kiwi-welcome-asl-group input {
+    -webkit-transition: border-color ease-in-out 0.15s, -webkit-box-shadow ease-in-out 0.15s;
+    -o-transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
+    transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
 }
 
-.u-form .kiwi-welcome-simple-sex select option {
-    background-color: var(--brand-default-bg);
+.kiwi-welcome-asl-form input {
+    padding: 0.5em;
 }
 
-.kiwi-welcome-simple-form .u-submit {
-    width: 100%;
-    height: 50px;
-    font-size: 1.3em;
+.kiwi-welcome-asl-group input:focus {
+    border-color: #66afe9;
+    outline: 0;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(102, 175, 233, 0.6);
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(102, 175, 233, 0.6);
 }
 
-.kiwi-welcome-simple-start {
+span.kiwi-welcome-asl-picto {
+    display: inline-block;
+    width: 40px;
+    height: 25px;
+    font-size: 1.2em;
+    padding-top: 5px;
+    color: #555;
+    text-align: center;
+    background-color: #eee;
+    border-right: none;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.kiwi-welcome-asl-group input[type="number"].kiwi-welcome-asl-age {
+    width: 4em;
+}
+
+.kiwi-welcome-asl-group .age-text {
+    margin: 8px 0;
+    width: 100px;
+}
+
+.kiwi-welcome-asl-group-genders label {
+    margin: 0 10px 0 -5px;
+    position: relative;
+    top: -10px;
+    font-size: 1em;
+}
+
+.kiwi-welcome-asl-group-genders .gender_m {
+    color: #208bfc;
+    font-weight: bold;
+}
+
+.kiwi-welcome-asl-group-genders .gender_f {
+    color: #f0f;
+    font-weight: bold;
+}
+
+.kiwi-welcome-asl-group-genders .gender_u {
+    color: #999;
+    font-weight: bold;
+}
+
+.kiwi-welcome-asl-group i.fa-slack {
+    -ms-transform: rotate(19deg);
+    -webkit-transform: rotate(19deg);
+    transform: rotate(19deg);
+}
+
+.kiwi-welcome-asl-start {
     font-size: 1.1em;
     cursor: pointer;
 }
 
-.kiwi-welcome-simple-start[disabled] {
+.kiwi-welcome-asl-start[disabled] {
     cursor: not-allowed;
-    opacity: 0.65;
 }
 
-/* Make the preloader icon larger */
-.kiwi-welcome-simple .fa-spinner {
-    font-size: 6em;
+.kiwi-welcome-asl-form .u-submit {
+    width: 100%;
+    line-height: 50px;
+    padding: 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 400;
+    text-shadow: none;
+    margin: 0;
+    transition: all 0.2s;
+    border: none;
+    background-color: #428BCA;
+}
+.kiwi-welcome-asl-form .u-submit:hover {
+    background-color: #3071a9;
 }
 
+/** Closing - the wiping away of the screen **/
+.kiwi-welcome-asl--closing .kiwi-welcome-asl-section-connection {
+    left: -50%;
+}
+
+.kiwi-welcome-asl--closing .kiwi-welcome-asl-section-info {
+    right: -50%;
+}
+
+.kiwi-welcome-asl .help {
+    position: absolute;
+    bottom: 0.2em;
+    font-size: 0.8em;
+    color: #666;
+    width: 50%;
+    text-align: center;
+}
+
+.kiwi-welcome-asl .help a {
+    text-decoration: underline;
+    color: #666;
+}
+
+.kiwi-welcome-asl .help a:hover {
+    color: #a9d87a;
+}
+
+/* Styling the preloader */
+.kiwi-welcome-asl .fa-spinner {
+    position: absolute;
+    top: 50%;
+    z-index: 999;
+    font-size: 100px;
+    margin-top: -0.5em;
+    left: 50%;
+    margin-left: -40px;
+}
+
+/** Smaller screen... **/
+@media screen and (max-width: 1025px) {
+    .kiwi-welcome-asl {
+        font-size: 0.9em;
+        position: relative;
+        min-height: 100%;
+    }
+
+    .kiwi-welcome-asl-section-connection {
+        width: 100%;
+        min-height: 400px;
+    }
+
+    .kiwi-welcome-asl-section-info-content {
+        margin: 1em;
+    }
+
+    .kiwi-welcome-asl-form {
+        left: auto;
+        margin: 20px auto 20px auto;
+        z-index: 100;
+        position: relative;
+        top: auto;
+        align-self: flex-start;
+    }
+
+    .kiwi-welcome-asl p.help {
+        position: absolute;
+        bottom: 20px;
+        width: 100%;
+        color: #fff;
+        z-index: 100;
+    }
+
+    .kiwi-welcome-asl p.help a {
+        color: #fff;
+    }
+
+    .kiwi-welcome-asl-section-info {
+        position: static;
+        width: 100%;
+        border: none;
+        min-height: 0;
+    }
+
+    .fa-spinner {
+        position: absolute;
+        left: 48%;
+        top: 50%;
+        margin-top: -50px;
+        color: #fff;
+    }
+
+    .kiwi-welcome-asl-section .kiwi-welcome-asl-section-connection {
+        position: static;
+    }
+}
+
+/** Even smaller screen.. probably phones **/
+@media screen and (max-width: 750px) {
+    .kiwi-welcome-asl {
+        font-size: 0.9em;
+        overflow-y: auto;
+    }
+
+    .kiwi-welcome-asl-section-info-content {
+        margin: 0.5em;
+    }
+
+    /** Closing - the wiping away of the screen **/
+    .kiwi-welcome-asl--closing .kiwi-welcome-asl-section-connection {
+        left: -100%;
+    }
+
+    .kiwi-welcome-asl--closing .kiwi-welcome-asl-section-info {
+        left: -100%;
+    }
+}
+
+@media screen and (max-width: 400px) {
+    .kiwi-welcome-asl-form {
+        width: 90%;
+    }
+}
+
+/** Background /border switching between screen sizes **/
+.kiwi-welcome-asl--no-bg .kiwi-welcome-asl-section-info {
+    background-color: rgb(51, 51, 51);
+}
+
+@media screen and (max-width: 850px) {
+    /* Apply some flex so that the info panel fills the rest of the bottom screen */
+    .kiwi-welcome-asl {
+        background-size: cover;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .kiwi-welcome-asl-section {
+        overflow-y: visible;
+    }
+
+    .kiwi-welcome-asl-section-info {
+        background-size: 0;
+        border-left: none;
+        flex: 1 0;
+        display: block;
+    }
+
+    .kiwi-welcome-asl--no-bg .kiwi-welcome-asl-section-info {
+        border-top: 5px solid #428BCA;
+    }
+}
 </style>

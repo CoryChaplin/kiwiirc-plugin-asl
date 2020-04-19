@@ -4,6 +4,14 @@
             {{ $t('user_you') }}
         </span>
         <div class="kiwi-userbox-header">
+            <i v-if="user.asl && user.asl.s.substr(0, 2) === '_m'"
+               v-bind:style="{ color: user.getColour() }"
+               class="fa fa-male kiwi-userbox-icon" aria-hidden="true"></i>
+            <i v-else-if="user.asl && user.asl.s.substr(0, 2) === '_f'"
+               v-bind:style="{ color: user.getColour() }"
+               class="fa fa-female kiwi-userbox-icon" aria-hidden="true"></i>
+            <i v-else v-bind:style="{ color: user.getColour() }"
+               class="fa fa-user kiwi-userbox-icon" aria-hidden="true"></i>
             <h3>
                 <away-status-indicator :network="network" :user="user"/>
                 <span :style="{'color': user.getColour()}">{{ user.nick }}</span>
@@ -19,12 +27,10 @@
             </div>
             <div v-else-if="user.asl">
                 <div v-if="user.asl.a">
-                    <span class="kiwi-userbox-basicinfo-title">{{ $t('plugin-asl:age') }}</span>
-                    <span class="kiwi-userbox-basicinfo-data">{{ user.asl.a }}</span>
+                    <span><b>{{ $t('plugin-asl:age') }}: </b>{{ user.asl.a }}</span>
                 </div>
                 <div v-if="user.asl.s">
-                    <span class="kiwi-userbox-basicinfo-title">{{ $t('plugin-asl:sex') }}</span>
-                    <span class="kiwi-userbox-basicinfo-data">
+                    <span><b>{{ $t('plugin-asl:sex') }}: </b>
                         {{
                             user.asl.s[0] === '_' ?
                                 $t('plugin-asl:' + user.asl.s.substr(1)) :
@@ -33,10 +39,7 @@
                     </span>
                 </div>
                 <div v-if="user.asl.l">
-                    <span class="kiwi-userbox-basicinfo-title">
-                        {{ $t('plugin-asl:location') }}
-                    </span>
-                    <span class="kiwi-userbox-basicinfo-data">{{ user.asl.l }}</span>
+                    <span><b>{{ $t('plugin-asl:location') }}: </b>{{ user.asl.l }}</span>
                 </div>
             </div>
             <div v-if="user.aslRealname">
@@ -444,12 +447,14 @@ export default {
 }
 
 .kiwi-userbox-header h3 {
-    width: 100%;
+    margin: 0 0 0 40px;
     padding: 0;
-    cursor: default;
-    display: inline-block;
 }
-
+.kiwi-userbox-icon {
+    font-size: 2.8em;
+    margin-right: 0.3em;
+    position: absolute;
+}
 .kiwi-userbox-modestring {
     font-weight: normal;
     font-size: 0.8em;
@@ -461,9 +466,9 @@ export default {
 }
 
 .kiwi-userbox-usermask {
-    width: 100%;
-    opacity: 0.6;
-    cursor: default;
+    display: block;
+    margin: 0 0 0 40px;
+    font-size: 0.9em;
 }
 
 .kiwi-userbox-basicinfo {
