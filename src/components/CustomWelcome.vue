@@ -511,7 +511,6 @@ export default {
     top: 0;
     bottom: 0;
     box-sizing: border-box;
-    transition: right 0.3s, left 0.3s;
     overflow-y: auto;
 }
 
