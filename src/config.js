@@ -77,14 +77,21 @@ export function setDefaults() {
         kiwi.state.pluginASL.selectedSexes[sex] = true;
         sexesRegex += sexes[sex].chars;
     }
+
     kiwi.state.pluginASL.gecosTypes = [];
     kiwi.state.pluginASL.gecosTypes.push({
         regex: new RegExp('\\[(\\d+)\\/([' + sexesRegex + '])(\\/(.*))?\\](\\s*(.+))?'),
+        male: sexesRegex.substr(0,1),
+        female: sexesRegex.substr(1,1),
+        other: sexesRegex.substr(2,1),
         build: '[%asl] %r',
         separator: '/',
     });
     kiwi.state.pluginASL.gecosTypes.push({
         regex: new RegExp('(\\d+)\\s+([' + sexesRegex + '])(\\s+(.*))?'),
+        male: sexesRegex.substr(0,1),
+        female: sexesRegex.substr(1,1),
+        other: sexesRegex.substr(2,1),
         build: '%asl',
         separator: ' ',
     });

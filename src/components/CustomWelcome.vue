@@ -329,14 +329,20 @@ export default {
     },
     methods: {
         buildGecos() {
-            if (!this.age || !this.sex) {
+            if (!this.age && !this.sex && !this.location) {
                 return '';
             }
 
             let gecosId = kiwi.state.getSetting('settings.plugin-asl.gecosType');
             let gecosType = kiwi.state.pluginASL.gecosTypes[gecosId - 1];
             let gecos = gecosType.build;
-            let asl = [this.age, this.sex];
+            let asl = [];
+            if (this.age) {
+                asl.push(this.age);
+            }
+            if (this.sex) {
+                asl.push(this.sex);
+            }
             if (this.location) {
                 asl.push(this.location);
             }

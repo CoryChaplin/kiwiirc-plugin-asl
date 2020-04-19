@@ -2,18 +2,54 @@
 
 export function parseGecos(gecos) {
     let types = kiwi.state.pluginASL.gecosTypes;
-    for (let i = 0; i < types.length; i++) {
-        let result = gecos.match(types[i].regex);
-        if (result) {
+    let gecosType = kiwi.state.getSetting('settings.plugin-asl.gecosType') - 1;
+
+    let sex = types[gecosType].other;
+    let tempGecos;
+    let location = '';
+    let age = '';
+
+    // Test male
+    let tempGecosMale = gecos.split(sexRegexThis(types[gecosType].male));
+    if (tempGecosMale.length > 1) {
+        sex = types[gecosType].male;
+        tempGecos = tempGecosMale;
+    } else {
+        // Test female
+        let tempGecosFemale = gecos.split(sexRegexThis(types[gecosType].female));
+        if (tempGecosFemale.length > 1) {
+            sex = types[gecosType].female;
+            tempGecos = tempGecosFemale;
+        } else {
+            tempGecos = gecos.split(sexRegexThis(types[gecosType].other));
+        }
+    }
+    if (tempGecos.length > 1) {
+        location = tempGecos[1];
+    }
+
+    if (tempGecos[0] !== undefined && tempGecos[0].match(/[0-9]/)) {
+        age = tempGecos[0];
+    }
+
+    if (tempGecos.length > 0) {
+        if (age === '' && sex === types[gecosType].other && location === '') {
             return {
                 asl: {
-                    a: result[1],
-                    s: getSex(result[2]),
-                    l: result[4],
+                    a: age,
+                    s: getSex(sex),
+                    l: location,
                 },
-                realname: result[6] ? result[6].trim() : '',
+                realname: gecos,
             };
         }
+        return {
+            asl: {
+                a: age,
+                s: getSex(sex),
+                l: location,
+            },
+        };
     }
     return {
         asl: null,
@@ -43,4 +79,11 @@ function getSex(sexChar) {
         }
     }
     return null;
+}
+
+function sexRegexThis(string) {
+    let sexRegexString = '^' + string + ' | ' + string + '$|^' + string + '$| ' + string + ' ';
+    let regex = new RegExp(sexRegexString, 'gi');
+
+    return regex;
 }
