@@ -620,10 +620,6 @@ export default {
         padding-left: 10px;
     }
 
-    .kiwi-userbox .kiwi-userbox-header i {
-        display: none;
-    }
-
     .kiwi-userbox .kiwi-userbox-basicinfo {
         padding: 10px 10px;
         margin-bottom: 20px;
