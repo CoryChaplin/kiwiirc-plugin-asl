@@ -80,7 +80,7 @@ export function setDefaults() {
 
     kiwi.state.pluginASL.gecosTypes = [];
     kiwi.state.pluginASL.gecosTypes.push({
-        regex: new RegExp('\\[(\\d+)\\/([' + sexesRegex + '])(\\/(.*))?\\](\\s*(.+))?'),
+        regex: new RegExp('\\[(\\d+|\\*)\\/([' + sexesRegex + '*])(\\/(.*?|\\*))?\\](\\s*(.+))?'),
         male: sexesRegex.substr(0,1),
         female: sexesRegex.substr(1,1),
         other: sexesRegex.substr(2,1),
