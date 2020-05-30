@@ -46,10 +46,16 @@
                 <span class="kiwi-userbox-basicinfo-title">{{ $t('whois_realname') }}:</span>
                 <span class="kiwi-userbox-basicinfo-data" v-html="formattedRealname" />
             </div>
+            <div>
+                <b>{{ $t('plugin-asl:common_channels') }}:</b>
+                <span @click="onChannelsClick($event)"
+                      v-html="linkifyCommonChannels"
+                />
+            </div>
         </div>
 
         <p class="kiwi-userbox-actions">
-            <a v-if="!isSelf" class="kiwi-userbox-action" @click="openQuery">
+            <a v-if="!isSelf && !buffer.isQuery()" class="kiwi-userbox-action" @click="openQuery">
                 <i class="fa fa-comment-o" aria-hidden="true" />
                 {{ $t('send_a_message') }}
             </a>
@@ -57,15 +63,61 @@
                 <i class="fa fa-question-circle" aria-hidden="true" />
                 {{ $t('more_information') }}
             </a>
+            <a v-if="!isSelf && buffer.isQuery()"
+               class="kiwi-userbox-action"
+               @click="toggleReportUser"
+            >
+                <i class="fa fa-exclamation-circle" aria-hidden="true" />
+                {{ $t('plugin-asl:report') }}
+            </a>
         </p>
-
+        <div v-if="buffer.isQuery() && report_user_display"
+             class="kiwi-userbox-basicinfo kiwi-messagelist-message-notice">
+            <form
+                class="kiwi-userbox-report"
+                @submit.prevent="submitReportForm"
+            >
+                <div
+                    class="kiwi-userbox-report-inputwrap"
+                ><b>{{ user.nick }}</b> <span v-html="$t('plugin-asl:report_intro')" />
+                    <select
+                        v-model="report_reasons"
+                    >
+                        <option :value="$t('plugin-asl:report_reason_choose')" selected disabled>
+                            {{ $t('plugin-asl:report_reason_choose') }}
+                        </option>
+                        <option value="Insultes">
+                            {{ $t('plugin-asl:report_reason_insults') }}
+                        </option>
+                        <option value="Insultes">
+                            {{ $t('plugin-asl:report_reason_proposal') }}
+                        </option>
+                        <option value="Insultes">
+                            {{ $t('plugin-asl:report_reason_harassment') }}
+                        </option>
+                        <option value="Insultes">
+                            {{ $t('plugin-asl:report_reason_ads') }}
+                        </option>
+                        <option value="Insultes">
+                            {{ $t('plugin-asl:report_reason_prostitution') }}
+                        </option>
+                        <option value="Insultes">
+                            {{ $t('plugin-asl:report_reason_money') }}
+                        </option>
+                        <option value="Insultes">
+                            {{ $t('plugin-asl:report_reason_minor') }}
+                        </option>
+                    </select>
+                    <button type="submit">{{ $t('plugin-asl:report_send') }}</button>
+                </div>
+            </form>
+        </div>
         <form v-if="!isSelf" class="u-form kiwi-userbox-ignoreuser">
             <label>
                 <input v-model="user.ignore" type="checkbox">
                 <span> {{ $t('ignore_user') }} </span>
             </label>
         </form>
-
         <div
             v-if="whoisRequested"
             :class="[whoisLoading?'kiwi-userbox-whois--loading':'']"
@@ -182,6 +234,8 @@ export default {
         return {
             whoisRequested: false,
             whoisLoading: false,
+            report_user_display: false,
+            report_reasons: '',
         };
     },
     computed: {
@@ -305,6 +359,23 @@ export default {
             }
             return channels.join(' ');
         },
+        commonChannels: function commonChannels() {
+            let networkId = kiwi.state.getActiveNetwork().id;
+            let channels = [];
+            kiwi.state.getBuffersWithUser(networkId, this.user.nick).forEach((buffer) => {
+                if (buffer.name.substr(0, 1) === '#') {
+                    channels.push(buffer.name);
+                }
+            });
+            return channels;
+        },
+        linkifyCommonChannels: function linkifyCommonChannels() {
+            let channels = [];
+            this.commonChannels.forEach((channel) => {
+                channels.push(TextFormatting.linkifyChannels(channel));
+            });
+            return channels.join(', ');
+        },
         isSelf() {
             return this.user === this.network.currentUser();
         },
@@ -341,6 +412,7 @@ export default {
                 let network = this.buffer.getNetwork();
                 this.$state.addBuffer(this.buffer.networkid, channelName);
                 network.ircClient.join(channelName);
+                this.$state.setActiveBuffer(network.id, channelName);
             }
         },
         updateWhoisData: function updateWhoisData() {
@@ -349,6 +421,24 @@ export default {
             this.network.ircClient.whois(this.user.nick, () => {
                 this.whoisLoading = false;
             });
+        },
+        toggleReportUser: function toggleReportUser() {
+            this.report_user_display = !this.report_user_display;
+        },
+        submitReportForm: function submitReportForm() {
+            let nickname = this.user.nick;
+            let network = kiwi.state.getActiveNetwork();
+            let target = 'Elephantman';
+            let msg = TextFormatting.t('plugin-asl:report_msg_intro') + nickname + ' - ' +
+                TextFormatting.t('plugin-asl:report_channels') + ': ' + this.commonChannels.join(', ') + ' - ' +
+                TextFormatting.t('plugin-asl:report_reason') + ': ' + this.report_reasons;
+            network.ircClient.say(target, msg);
+            kiwi.state.addMessage(kiwi.state.getActiveBuffer(),
+                {
+                    nick: TextFormatting.t('plugin-asl:system_message'),
+                    message: TextFormatting.t('plugin-asl:report_confirm'),
+                    type: 'notice',
+                });
         },
         kickUser: function kickUser() {
             let reason = this.$state.setting('buffers.default_kick_reason');
@@ -618,6 +708,9 @@ export default {
 
     .kiwi-userbox .kiwi-userbox-header {
         padding-left: 10px;
+    }
+    .kiwi-userbox .kiwi-userbox-header i {
+        display: block;
     }
 
     .kiwi-userbox .kiwi-userbox-basicinfo {

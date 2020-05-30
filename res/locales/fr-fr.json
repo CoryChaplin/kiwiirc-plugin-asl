@@ -1,5 +1,5 @@
 {
-    "age": "Âge",
+    "age": "Age",
     "sex": "Sexe",
     "location": "Ville",
     "info": "Info",
@@ -7,5 +7,23 @@
     "male": "Homme",
     "female": "Femme",
     "other": "Autre",
-    "select": "Choisir"
+    "select": "Choisir",
+    "search": "Rechercher",
+    "common_channels": "Salon(s) commun(s)",
+    "report": "Signaler un abus",
+    "report_intro": "ne respecte pas les <a href='http://www.europnet.org/fr/rules.html' target='_blank'>règles</a> ?<br />Expliquez-nous le problème et nous interviendrons dans les plus brefs délais.<br />Merci !<br />",
+    "report_reason_choose": "Choisissez un motif",
+    "report_reason_insults": "Insultes",
+    "report_reason_proposal": "Proposition indécente",
+    "report_reason_harassment": "Harcèlement",
+    "report_reason_ads": "Publicité non sollicitée",
+    "report_reason_prostitution": "Prostitution",
+    "report_reason_money": "Demande d'envoi d'argent",
+    "report_reason_minor": "Mineur sur salon non adapté",
+    "report_send": "Envoyer le signalement",
+    "report_msg_intro": "Signalement d'abus. Pseudo: ",
+    "report_channels": "Salon(s)",
+    "report_reason": "Motif",
+    "report_confirm": "Votre signalement a bien été transmis aux modérateurs.\nMerci, et bon chat !",
+    "system_message": "Message automatique"
 }
