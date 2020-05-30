@@ -72,6 +72,7 @@ note: the variables starting with _ are treated as translation keys
         "location": "location",
         "realname": "realname",
     },
+    "reportChannel": "#abuse",
 },
 ```
 

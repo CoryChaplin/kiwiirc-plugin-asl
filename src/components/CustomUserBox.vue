@@ -83,29 +83,12 @@
                     <select
                         v-model="report_reasons"
                     >
-                        <option :value="$t('plugin-asl:report_reason_choose')" selected disabled>
-                            {{ $t('plugin-asl:report_reason_choose') }}
-                        </option>
-                        <option value="Insultes">
-                            {{ $t('plugin-asl:report_reason_insults') }}
-                        </option>
-                        <option value="Insultes">
-                            {{ $t('plugin-asl:report_reason_proposal') }}
-                        </option>
-                        <option value="Insultes">
-                            {{ $t('plugin-asl:report_reason_harassment') }}
-                        </option>
-                        <option value="Insultes">
-                            {{ $t('plugin-asl:report_reason_ads') }}
-                        </option>
-                        <option value="Insultes">
-                            {{ $t('plugin-asl:report_reason_prostitution') }}
-                        </option>
-                        <option value="Insultes">
-                            {{ $t('plugin-asl:report_reason_money') }}
-                        </option>
-                        <option value="Insultes">
-                            {{ $t('plugin-asl:report_reason_minor') }}
+                        <option
+                            v-for="reason in reportReasons"
+                            :key="reason.key"
+                            :value="reason.label"
+                        >
+                            {{ reason.label }}
                         </option>
                     </select>
                     <button type="submit">{{ $t('plugin-asl:report_send') }}</button>
@@ -376,6 +359,18 @@ export default {
             });
             return channels.join(', ');
         },
+        reportReasons: function reportReasons() {
+            let reportReasonList = [
+                { key: 'insults', label: TextFormatting.t('plugin-asl:report_reason_insults') },
+                { key: 'proposal', label:  TextFormatting.t('plugin-asl:report_reason_proposal') },
+                { key: 'harasment', label:  TextFormatting.t('plugin-asl:report_reason_harassment') },
+                { key: 'ads', label:  TextFormatting.t('plugin-asl:report_reason_ads') },
+                { key: 'prostitution', label:  TextFormatting.t('plugin-asl:report_reason_prostitution') },
+                { key: 'money', label:  TextFormatting.t('plugin-asl:report_reason_money') },
+                { key: 'minor', label: TextFormatting.t('plugin-asl:report_reason_minor') },
+            ];
+            return reportReasonList;
+        },
         isSelf() {
             return this.user === this.network.currentUser();
         },
@@ -428,7 +423,7 @@ export default {
         submitReportForm: function submitReportForm() {
             let nickname = this.user.nick;
             let network = kiwi.state.getActiveNetwork();
-            let target = 'Elephantman';
+            let target = kiwi.state.getSetting('settings.plugin-asl.reportChannel');
             let msg = TextFormatting.t('plugin-asl:report_msg_intro') + nickname + ' - ' +
                 TextFormatting.t('plugin-asl:report_channels') + ': ' + this.commonChannels.join(', ') + ' - ' +
                 TextFormatting.t('plugin-asl:report_reason') + ': ' + this.report_reasons;

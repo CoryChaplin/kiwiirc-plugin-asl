@@ -62,6 +62,9 @@ export function setDefaults() {
         realname: 'realname',
     });
 
+    // Abuse report channel
+    setSettingDefault('plugin-asl.reportChannel', '#abuse');
+
     // Set internal defaults
     kiwi.state.pluginASL = {};
 
