@@ -1,6 +1,5 @@
 import CustomWelcome from './components/CustomWelcome.vue';
 import CustomUserBox from './components/CustomUserBox.vue';
-import CustomNicklistUser from './components/CustomNicklistUser.vue';
 import UserBrowser from './components/UserBrowser.vue';
 import UserBrowserButton from './components/UserBrowserButton.vue';
 import Locales from './libs/locales.js';
@@ -19,7 +18,6 @@ kiwi.plugin('asl', (kiwi) => {
     // add the custom welcome screen and replace userbox
     kiwi.addStartup('plugin-asl', CustomWelcome);
     kiwi.replaceModule('components/UserBox', CustomUserBox);
-    kiwi.replaceModule('components/NicklistUser', CustomNicklistUser);
 
     // show the user browser if its enabled
     if (kiwi.state.getSetting('settings.plugin-asl.showUserBrowser')) {
