@@ -124,6 +124,7 @@ export default {
     white-space: nowrap;
     display: flex;
     align-items: center;
+    z-index: 1;
 }
 
 .kiwi-nicklist--avatars .kiwi-nicklist-user {
@@ -193,12 +194,15 @@ export default {
     top: 0;
     white-space: normal;
     width: 200px;
-    right: -9em;
+    right: -15em;
+    z-index: 5;
 }
 
 .kiwi-nicklist-user:hover {
     cursor: pointer;
     transition: all 0.2s;
+    position: relative;
+    z-index: 2;
 }
 
 .kiwi-nicklist-user:hover .kiwi-userbox-tooltip {
@@ -206,6 +210,7 @@ export default {
     right: 1em;
     transition: all 0.2s;
     transition-delay: 0.1s;
+    z-index: 9999;
 }
 
 .kiwi-nicklist-user .kiwi-userbox-tooltipNick {
