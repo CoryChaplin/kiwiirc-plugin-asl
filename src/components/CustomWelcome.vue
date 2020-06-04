@@ -839,7 +839,7 @@ span.kiwi-welcome-asl-picto {
         left: 48%;
         top: 50%;
         margin-top: -50px;
-        color: #fff;
+        color: #999;
     }
 
     .kiwi-welcome-asl-section .kiwi-welcome-asl-section-connection {
