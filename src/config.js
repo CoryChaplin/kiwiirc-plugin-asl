@@ -58,8 +58,11 @@ export function setDefaults() {
     setSettingDefault('plugin-asl.queryKeys', {
         age: 'age',
         sex: 'sex',
+        sexe: 'sexe',
         location: 'location',
+        ville: 'ville',
         realname: 'realname',
+        channel: 'channel',
     });
 
     // Abuse report channel

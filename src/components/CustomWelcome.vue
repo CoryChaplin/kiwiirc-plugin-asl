@@ -321,11 +321,22 @@ export default {
             bouncer.enable(options.server, options.port, options.tls, options.direct, options.path);
         }
 
+        // Support for legacy EuropNet query strings. Decided to override prior params.
+        if (Misc.queryStringVal(queryKeys.sexe)) {
+            this.sex = Misc.queryStringVal(queryKeys.sexe);
+        }
+        if (Misc.queryStringVal(queryKeys.ville)) {
+            this.location = Misc.queryStringVal(queryKeys.ville);
+        }
+        if (Misc.queryStringVal(queryKeys.channel)) {
+            this.channel = '#' + Misc.queryStringVal(queryKeys.channel).replace(/,/g, ',#');
+        }
+        // End legacy params
+
         if (
             options.autoConnect &&
             this.nick &&
-            (typeof Misc.queryStringVal('chatnow') !== 'undefined' &&
-                Misc.queryStringVal('chatnow') === '1') &&
+            (Misc.queryStringVal('chatnow') && Misc.queryStringVal('chatnow') === '1') &&
             (this.channel || this.connectWithoutChannel)
         ) {
             this.startUp();
