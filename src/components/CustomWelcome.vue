@@ -324,7 +324,8 @@ export default {
         if (
             options.autoConnect &&
             this.nick &&
-            (this.channel || this.connectWithoutChannel)
+            (this.channel || this.connectWithoutChannel) &&
+            (typeof Misc.queryStringVal('chatnow') !== undefined && Misc.queryStringVal('chatnow') == 1)
         ) {
             this.startUp();
         }
