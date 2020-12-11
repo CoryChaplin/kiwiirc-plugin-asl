@@ -89,7 +89,7 @@ const methods = {
         }
         if (asl.a) {
             out.push(parts.age.replace('%a', asl.a));
-            asl.l ? out.push('ans, ') : out.push('ans');
+            // asl.l ? out.push('ans, ') : out.push('ans');
         }
         if (asl.l) {
             out.push(parts.location.replace('%l', asl.l));
