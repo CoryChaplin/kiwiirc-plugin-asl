@@ -200,7 +200,7 @@ export default {
 .kiwi-nicklist-user-tooltip {
     visibility: hidden;
     position: absolute;
-    top: -120px;
+    top: -105px;
     left: 0;
     z-index: 10;
     background: #fff;
