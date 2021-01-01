@@ -10,7 +10,9 @@
         ]"
         :data-nick="(props.user.nick||'').toLowerCase()"
         class="kiwi-nicklist-user"
-        @click="props.nicklist.openUserbox(props.user)"
+        @mouseover="props.m().toggleTooltip($event)"
+        @mouseout="props.m().toggleTooltip($event)"
+        @click="props.nicklist.openUserbox(props.user); props.m().toggleTooltip($event)"
     >
         <div v-if="props.m().shouldShowAvatars()" class="kiwi-avatar-container">
             <component
@@ -33,10 +35,6 @@
                 :user="props.user"
                 :toggle="false"
             />
-        </div>
-        <div v-if="props.user.asl" class="kiwi-nicklist-user-tooltip">
-            <div class="kiwi-tooltipNick">{{ props.user.nick }}</div>
-            <div class="kiwi-tooltipInfo" v-html="props.m().aslString(props.user.asl)" />
         </div>
         <span class="kiwi-nicklist-user-prefix">
             {{ props.nicklist.userModePrefix(props.user) }}
@@ -95,6 +93,36 @@ const methods = {
             out.push(parts.location.replace('%l', asl.l));
         }
         return out.join(parts.separator);
+    },
+    toggleTooltip(event) {
+        let props = this.props;
+        let tooltip;
+
+        if (props.user.asl === undefined) return;
+
+        // Create parent div
+        if (!document.querySelector('.kiwi-nicklist-user-tooltip')) {
+            tooltip = document.createElement('div');
+            tooltip.setAttribute('class', 'kiwi-nicklist-user-tooltip');
+            document.querySelector('.kiwi-wrap').appendChild(tooltip);
+        } else {
+            tooltip = document.querySelector('.kiwi-nicklist-user-tooltip');
+        }
+
+        if (event.type === 'mouseover') {
+            // Don't go below bottom of the screen
+            let topOffset = (event.clientY + 150 > window.innerHeight) ?
+                window.innerHeight - 150 : event.clientY;
+
+            tooltip.setAttribute('style', 'right:' +
+                document.querySelector('.kiwi-nicklist').offsetWidth +
+                'px; visibility: visible; opacity: 1; top: ' + topOffset + 'px;');
+            tooltip.innerHTML += '<div class="kiwi-tooltipNick">' + props.user.nick +
+                '</div><div class="kiwi-tooltipInfo">' + props.m().aslString(props.user.asl) + '</div>';
+        } else {
+            tooltip.setAttribute('style', '');
+            tooltip.innerHTML = '';
+        }
     },
 };
 
@@ -199,18 +227,17 @@ export default {
 
 .kiwi-nicklist-user-tooltip {
     visibility: hidden;
-    position: absolute;
-    top: -105px;
-    left: 0;
+    opacity: 0;
+    position: fixed;
     z-index: 10;
     background: #fff;
     padding: 1px;
     border-radius: 6px;
     border: 1px solid rgba(0, 0, 0, 0.2);
     box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
-    opacity: 0;
     transition: opacity 0.3s;
-    width: calc(100% - 10px);
+    width: 200px;
+    top: 0;
     -webkit-box-orient: vertical;
     -webkit-box-direction: normal;
     -ms-flex-direction: column;
