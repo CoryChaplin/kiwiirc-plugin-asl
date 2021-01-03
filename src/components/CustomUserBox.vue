@@ -348,7 +348,7 @@ export default {
         commonChannels: function commonChannels() {
             let networkId = kiwi.state.getActiveNetwork().id;
             let channels = [];
-            kiwi.state.getBuffersWithUser(networkId, this.user.nick).forEach((buffer) => {
+            this.$state.getBuffersWithUser(networkId, this.user.nick).forEach((buffer) => {
                 if (buffer.name.substr(0, 1) === '#') {
                     channels.push(buffer.name);
                 }
@@ -425,13 +425,13 @@ export default {
         },
         submitReportForm: function submitReportForm() {
             let nickname = this.user.nick;
-            let network = kiwi.state.getActiveNetwork();
-            let target = kiwi.state.getSetting('settings.plugin-asl.reportChannel');
+            let network = this.$state.getActiveNetwork();
+            let target = this.$state.getSetting('settings.plugin-asl.reportChannel');
             let msg = TextFormatting.t('plugin-asl:report_msg_intro') + nickname + ' - ' +
                 TextFormatting.t('plugin-asl:report_channels') + ': ' + this.commonChannels.join(', ') + ' - ' +
                 TextFormatting.t('plugin-asl:report_reason') + ': ' + this.report_reasons;
             network.ircClient.say(target, msg);
-            kiwi.state.addMessage(kiwi.state.getActiveBuffer(),
+            this.$state.addMessage(this.$state.getActiveBuffer(),
                 {
                     nick: TextFormatting.t('plugin-asl:system_message'),
                     message: TextFormatting.t('plugin-asl:report_confirm'),
