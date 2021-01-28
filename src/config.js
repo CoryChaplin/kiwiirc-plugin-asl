@@ -68,6 +68,9 @@ export function setDefaults() {
     // Abuse report channel
     setSettingDefault('plugin-asl.reportChannel', '#abuse');
 
+    // Display all users in common channels UserBrowser
+    setSettingDefault('plugin-asl.browseAllUsers', false);
+
     // Set internal defaults
     kiwi.state.pluginASL = {};
 

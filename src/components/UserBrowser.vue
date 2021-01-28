@@ -79,7 +79,10 @@ export default {
     computed: {
         filteredUsers() {
             let filter = this.filter.toLowerCase();
-            return _.filter(this.buffer.users, (user) => {
+            let users = kiwi.state.getSetting('settings.plugin-asl.browseAllUsers') ?
+                kiwi.state.getActiveNetwork().users : this.buffer.users;
+
+            return _.filter(users, (user) => {
                 if (!user.asl) {
                     return false;
                 }
