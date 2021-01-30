@@ -82,7 +82,7 @@ export default {
             let users = kiwi.state.getSetting('settings.plugin-asl.browseAllUsers') ?
                 kiwi.state.getActiveNetwork().users : this.buffer.users;
 
-            return _.filter(users, (user) => {
+            users = _.filter(users, (user) => {
                 if (!user.asl) {
                     return false;
                 }
@@ -125,6 +125,8 @@ export default {
 
                 return false;
             });
+
+            return _.sortBy(users, (user) => user.nick);
         },
     },
     created() {
