@@ -1,6 +1,6 @@
 <template>
     <div class="plugin-asl-userbrowser-container">
-        <div>
+        <div class="plugin-asl-userbrowser-filters">
             <div
                 v-for="(value, name) in sexes"
                 :key="'sexes-'+name"
@@ -17,27 +17,36 @@
                     {{ name[0] === '_' ? $t('plugin-asl:' + name.substr(1)) : name }}
                 </label>
             </div>
-            <select
-                v-model="age"
-                class="plugin-asl-userbrowser-ages"
-                @change="updateSelectedAgeRange()"
-            >
-                <option
-                    v-for="ageRange in ageRanges"
-                    :key="'agerange-'+ageRange.value"
-                    :value="ageRange.value"
+            <div class="plugin-asl-userbrowser-label plugin-asl-userbrowser-age">
+                &nbsp;&nbsp;{{ $t('plugin-asl:age') }} <select
+                    v-model="age"
+                    class="u-form"
+                    @change="updateSelectedAgeRange()"
                 >
-                    {{
-                        ageRange.name[0] === '_' ?
-                            $t('plugin-asl:' + ageRange.name.substr(1)) :
-                            ageRange.name
-                    }}
-                </option>
-            </select>
-        </div>
-        <div class="plugin-asl-userbrowser-filter u-form">
-            <input v-model="filter" class="u.input" type="text" @change="updateUserFilter()">
-            <i v-if="filter !== ''" class="fa fa-undo" aria-hidden="true" @click="filter = ''"/>
+                    <option
+                        v-for="ageRange in ageRanges"
+                        :key="'agerange-'+ageRange.value"
+                        :value="ageRange.value"
+                    >
+                        {{
+                            ageRange.name[0] === '_' ?
+                                $t('plugin-asl:' + ageRange.name.substr(1)) :
+                                ageRange.name
+                        }}
+                    </option>
+                </select>
+            </div>
+            <div class="plugin-asl-userbrowser-search">
+                {{ $t('plugin-asl:search') }}
+                <input
+                    v-model="filter"
+                    class="u-form"
+                    type="text"
+                    :placeholder="$t('nick')"
+                    @change="updateUserFilter()"
+                >
+                <i v-if="filter !== ''" class="fa fa-undo" aria-hidden="true" @click="filter = ''"/>
+            </div>
         </div>
         <div class="plugin-asl-userbrowser-users">
             <table class="plugin-asl-userbrowser-users-table">
@@ -166,10 +175,41 @@ export default {
     flex-direction: column;
 }
 
+.plugin-asl-userbrowser-container .u-form {
+    background-color: #fff;
+    height: 25px;
+}
+
+.plugin-asl-userbrowser-age select {
+    width: 110px;
+}
+
+.plugin-asl-userbrowser-search {
+    margin-top: 10px;
+}
+
+.plugin-asl-userbrowser-search input {
+    border-width: 1px;
+    border-radius: 3px;
+    width: 200px;
+}
+
+.plugin-asl-userbrowser-filters {
+    background-color: #dbdbdb;
+    border: 1px solid #c4c4c4;
+    border-radius: 5px;
+    margin: 10px;
+    padding: 0.5em;
+}
+
+.plugin-asl-userbrowser-label {
+    display: inline-block;
+    margin-left: 10px;
+}
+
 .plugin-asl-userbrowser-sexes {
     display: inline-block;
     font-weight: bold;
-    margin: 4px;
 }
 
 .plugin-asl-userbrowser-sexes input,
@@ -177,11 +217,7 @@ export default {
     vertical-align: middle;
 }
 
-.plugin-asl-userbrowser-ages {
-    margin: 4px;
-}
-
-.plugin-asl-userbrowser-filter {
+.plugin-asl-userbrowser-search {
     margin-left: 7px;
     width: 100%;
 }
