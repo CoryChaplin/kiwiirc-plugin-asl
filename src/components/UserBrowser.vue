@@ -47,6 +47,16 @@
                 >
                 <i v-if="filter !== ''" class="fa fa-undo" aria-hidden="true" @click="filter = ''"/>
             </div>
+            <div class="plugin-asl-userbrowser-scope">
+                Liste globale <label class="switch">
+                    <input
+                        type="checkbox"
+                        @change="toggleScope($event)"
+                        :checked="globalScope"
+                    >
+                    <span class="slider round" />
+                </label>
+            </div>
         </div>
         <div class="plugin-asl-userbrowser-users">
             <table class="plugin-asl-userbrowser-users-table">
@@ -83,13 +93,19 @@ export default {
             ageRanges: [],
             age: '',
             filter: '',
+            globalScope: kiwi.state.getSetting('settings.plugin-asl.browseAllUsers'),
         };
     },
     computed: {
         filteredUsers() {
             let filter = this.filter.toLowerCase();
-            let users = kiwi.state.getSetting('settings.plugin-asl.browseAllUsers') ?
-                kiwi.state.getActiveNetwork().users : this.buffer.users;
+            let users;
+
+            if (this.globalScope) {
+                users = kiwi.state.getActiveNetwork().users;
+            } else {
+                users = this.buffer.users;
+            }
 
             users = _.filter(users, (user) => {
                 if (!user.asl) {
@@ -158,6 +174,9 @@ export default {
             this.selectedSexes[name] = event.target.checked;
             kiwi.state.pluginASL.selectedSexes = this.selectedSexes;
         },
+        toggleScope(event) {
+            this.globalScope = event.target.checked;
+        },
         updateSelectedAgeRange() {
             kiwi.state.pluginASL.selectedAgeRange = this.age;
         },
@@ -186,12 +205,14 @@ export default {
 
 .plugin-asl-userbrowser-search {
     margin-top: 10px;
+    margin-left: 7px;
+    display: inline-block;
 }
 
 .plugin-asl-userbrowser-search input {
     border-width: 1px;
     border-radius: 3px;
-    width: 200px;
+    width: 160px;
 }
 
 .plugin-asl-userbrowser-filters {
@@ -215,11 +236,6 @@ export default {
 .plugin-asl-userbrowser-sexes input,
 .plugin-asl-userbrowser-sexes label {
     vertical-align: middle;
-}
-
-.plugin-asl-userbrowser-search {
-    margin-left: 7px;
-    width: 100%;
 }
 
 .plugin-asl-userbrowser-filter i {
@@ -253,5 +269,70 @@ export default {
 
 .plugin-asl-userbrowser-users-age {
     text-align: center;
+}
+
+.plugin-asl-userbrowser-scope {
+    display: inline-block;
+    margin-left: 10px;
+}
+
+.plugin-asl-userbrowser-scope .switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 24px;
+}
+
+.plugin-asl-userbrowser-scope .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.plugin-asl-userbrowser-scope .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: 0.4s;
+    transition: 0.4s;
+}
+
+.plugin-asl-userbrowser-scope .slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 4px;
+    bottom: 3px;
+    background-color: white;
+    -webkit-transition: 0.4s;
+    transition: 0.4s;
+}
+
+.plugin-asl-userbrowser-scope input:checked + .slider {
+    background-color: #428bca;
+}
+
+.plugin-asl-userbrowser-scope input:focus + .slider {
+    box-shadow: 0 0 1px #428bca;
+}
+
+.plugin-asl-userbrowser-scope input:checked + .slider:before {
+    -webkit-transform: translateX(14px);
+    -ms-transform: translateX(14px);
+    transform: translateX(14px);
+}
+
+/* Rounded sliders */
+.plugin-asl-userbrowser-scope .slider.round {
+    border-radius: 24px;
+}
+
+.plugin-asl-userbrowser-scope .slider.round:before {
+    border-radius: 50%;
 }
 </style>
