@@ -18,7 +18,7 @@
                 </label>
             </div>
             <div class="plugin-asl-userbrowser-label plugin-asl-userbrowser-age">
-                &nbsp;&nbsp;{{ $t('plugin-asl:age') }} <select
+                {{ $t('plugin-asl:age') }} <select
                     v-model="age"
                     class="u-form"
                     @change="updateSelectedAgeRange()"
@@ -48,7 +48,7 @@
                 <i v-if="filter !== ''" class="fa fa-undo" aria-hidden="true" @click="filter = ''"/>
             </div>
             <div class="plugin-asl-userbrowser-scope">
-                Liste globale <label class="switch">
+                {{ $t('plugin-asl:global_list') }} <label class="switch">
                     <input
                         type="checkbox"
                         @change="toggleScope($event)"
@@ -201,11 +201,11 @@ export default {
 
 .plugin-asl-userbrowser-age select {
     width: 110px;
+    margin: 10px 0 0 7px;
 }
 
 .plugin-asl-userbrowser-search {
-    margin-top: 10px;
-    margin-left: 7px;
+    margin: 10px 0 0 7px;
     display: inline-block;
 }
 
@@ -225,7 +225,7 @@ export default {
 
 .plugin-asl-userbrowser-label {
     display: inline-block;
-    margin-left: 10px;
+    margin: 10px 0 0 7px;
 }
 
 .plugin-asl-userbrowser-sexes {
@@ -273,7 +273,7 @@ export default {
 
 .plugin-asl-userbrowser-scope {
     display: inline-block;
-    margin-left: 10px;
+    margin: 10px 0 0 7px;
 }
 
 .plugin-asl-userbrowser-scope .switch {
