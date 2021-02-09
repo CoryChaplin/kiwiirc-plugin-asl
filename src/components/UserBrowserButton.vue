@@ -2,6 +2,8 @@
     <div :class="[active ? 'kiwi-header-option--active': '']" class="kiwi-header-option">
         <a @click.prevent="toggleUserBrowser">
             <i :class="icon" class="fa" aria-hidden="true"/>
+            <span class="kiwi-header-user-browser-span">Chatteurs</span>
+            <!-- {{ $t('plugin-asl:user_button_label') }} -->
         </a>
     </div>
 </template>
@@ -36,3 +38,9 @@ export default {
     },
 };
 </script>
+
+<style>
+.kiwi-header-user-browser-span {
+    font-size: 1.28em;
+}
+</style>
