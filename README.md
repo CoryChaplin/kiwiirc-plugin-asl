@@ -73,6 +73,8 @@ note: the variables starting with _ are treated as translation keys
         "realname": "realname",
     },
     "reportChannel": "#abuse",
+    "browseAllUsers": true,
+    "userBrowserIcon": "fa-heart",
 },
 ```
 
