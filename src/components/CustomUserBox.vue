@@ -95,6 +95,12 @@
                 </div>
             </form>
         </div>
+        <div v-if="report_confirmation"
+             class="kiwi-userbox-basicinfo kiwi-messagelist-message-notice">
+            <div>
+                {{ $t('plugin-asl:report_confirm') }}
+            </div>
+        </div>
         <form v-if="!isSelf" class="u-form kiwi-userbox-ignoreuser">
             <label>
                 <input v-model="user.ignore" type="checkbox">
@@ -218,6 +224,7 @@ export default {
             whoisRequested: false,
             whoisLoading: false,
             report_user_display: false,
+            report_confirmation: false,
             report_reasons: '',
         };
     },
@@ -431,6 +438,8 @@ export default {
                 TextFormatting.t('plugin-asl:report_channels') + ': ' + this.commonChannels.join(', ') + ' - ' +
                 TextFormatting.t('plugin-asl:report_reason') + ': ' + this.report_reasons;
             network.ircClient.say(target, msg);
+            this.report_user_display = false;
+            this.report_confirmation = true;
             this.$state.addMessage(this.$state.getActiveBuffer(),
                 {
                     nick: TextFormatting.t('plugin-asl:system_message'),
