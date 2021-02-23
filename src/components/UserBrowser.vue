@@ -61,15 +61,22 @@
         <div class="plugin-asl-userbrowser-users">
             <table class="plugin-asl-userbrowser-users-table">
                 <tr>
-                    <th style="width: 35%; text-align: left;">{{ $t('nick') }}</th>
-                    <th style="width: 15%;">{{ $t('plugin-asl:age') }}</th>
-                    <th style="width: 50%; text-align: left;">{{ $t('plugin-asl:location') }}</th>
+                    <th style="width: 35%; text-align: left;">
+                        <a class="plugin-asl-userbrowser-nick">{{ $t('nick') }}</a>
+                    </th>
+                    <th style="width: 15%;">
+                        <a class="plugin-asl-userbrowser-age">{{ $t('plugin-asl:age') }}</a>
+                    </th>
+                    <th style="width: 50%; text-align: left;">
+                        <a class="plugin-asl-userbrowser-location">
+                            {{ $t('plugin-asl:location') }}</a>
+                    </th>
                 </tr>
                 <tr v-for="user in filteredUsers" :key="'users-'+user.nick">
                     <td
                         :style="{ 'color': user.colour }"
                         class="plugin-asl-userbrowser-users-nick"
-                        @click.stop="openUserbox(user);"
+                        @click.stop="openQuery(user);"
                     >{{ user.nick }}</td>
                     <td class="plugin-asl-userbrowser-users-age">{{ user.asl.a || '&nbsp;' }}</td>
                     <td>{{ user.asl.l || '&nbsp;' }}</td>
@@ -169,6 +176,14 @@ export default {
             kiwi.state.$emit('userbox.show', user, {
                 buffer: this.buffer,
             });
+        },
+        openQuery(user) {
+            console.log(user, this.network.id);
+            let buffer = kiwi.state.addBuffer(this.network.id, user.nick);
+            kiwi.state.setActiveBuffer(this.network.id, buffer.name);
+            if (kiwi.state.ui.is_narrow) {
+                kiwi.state.$emit('userbox.hide');
+            }
         },
         toggleSex(event, name) {
             this.selectedSexes[name] = event.target.checked;
