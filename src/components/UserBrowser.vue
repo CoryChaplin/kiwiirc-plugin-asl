@@ -178,7 +178,6 @@ export default {
             });
         },
         openQuery(user) {
-            console.log(user, this.network.id);
             let buffer = kiwi.state.addBuffer(this.network.id, user.nick);
             kiwi.state.setActiveBuffer(this.network.id, buffer.name);
             if (kiwi.state.ui.is_narrow) {
