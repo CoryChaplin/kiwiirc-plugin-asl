@@ -6,12 +6,15 @@
         <div class="kiwi-userbox-header">
             <i v-if="user.asl && user.asl.s.substr(0, 2) === '_m'"
                v-bind:style="{ color: user.getColour() }"
-               class="fa fa-male kiwi-userbox-icon" aria-hidden="true"></i>
+               class="fa fa-male kiwi-userbox-icon" aria-hidden="true"
+            />
             <i v-else-if="user.asl && user.asl.s.substr(0, 2) === '_f'"
                v-bind:style="{ color: user.getColour() }"
-               class="fa fa-female kiwi-userbox-icon" aria-hidden="true"></i>
+               class="fa fa-female kiwi-userbox-icon" aria-hidden="true"
+            />
             <i v-else v-bind:style="{ color: user.getColour() }"
-               class="fa fa-user kiwi-userbox-icon" aria-hidden="true"></i>
+               class="fa fa-user kiwi-userbox-icon" aria-hidden="true"
+            />
             <h3>
                 <away-status-indicator :network="network" :user="user" />
                 <span :style="{'color': user.getColour()}">{{ user.nick }}</span>
@@ -22,7 +25,7 @@
 
         <div class="kiwi-userbox-basicinfo">
             <div v-if="user.asl && singleLine">
-                <span class="kiwi-userbox-basicinfo-title">{{ $t('plugin-asl:info') }}</span>
+                <span class="kiwi-userbox-basicinfo-title">{{ $t('plugin-asl:info') }}:</span>
                 <span class="kiwi-userbox-basicinfo-data">{{ aslString }}</span>
             </div>
             <div v-else-if="user.asl">
@@ -54,7 +57,7 @@
             </div>
         </div>
 
-        <p class="kiwi-userbox-actions">
+        <div class="kiwi-userbox-actions">
             <a v-if="!isSelf && !buffer.isQuery()" class="kiwi-userbox-action" @click="openQuery">
                 <i class="fa fa-comment-o" aria-hidden="true" />
                 {{ $t('send_a_message') }}
@@ -70,7 +73,7 @@
                 <i class="fa fa-exclamation-circle" aria-hidden="true" />
                 {{ $t('plugin-asl:report') }}
             </a>
-        </p>
+        </div>
         <div v-if="buffer.isQuery() && report_user_display"
              class="kiwi-userbox-basicinfo kiwi-messagelist-message-notice">
             <form
@@ -101,6 +104,22 @@
                 {{ $t('plugin-asl:report_confirm') }}
             </div>
         </div>
+        <div class="kiwi-userbox-actions kiwi-userbox-plugin-actions">
+            <div
+                v-for="plugin in pluginUiButtonElements"
+                :key="plugin.id"
+                v-rawElement="{
+                    el: plugin.el,
+                    props: {
+                        kiwi: {
+                            user: user,
+                            userbox: self,
+                        }
+                    }
+                }"
+            />
+        </div>
+
         <form v-if="!isSelf" class="u-form kiwi-userbox-ignoreuser">
             <label>
                 <input v-model="user.ignore" type="checkbox">
@@ -169,6 +188,7 @@
                 </label>
                 <label v-if="isUserOnBuffer">
                     <button
+                        type="button"
                         class="u-button u-button-secondary
                                kiwi-userbox-opaction-kick kiwi-userbox-opaction"
                         @click="kickUser"
@@ -179,6 +199,7 @@
                 </label>
                 <label>
                     <button
+                        type="button"
                         class="u-button u-button-secondary
                                kiwi-userbox-opaction-ban kiwi-userbox-opaction"
                         @click="banUser"
@@ -189,6 +210,7 @@
                 </label>
                 <label v-if="isUserOnBuffer">
                     <button
+                        type="button"
                         class="u-button u-button-secondary
                                kiwi-userbox-opaction-kickban kiwi-userbox-opaction"
                         @click="kickbanUser"
@@ -207,33 +229,39 @@
 /* global kiwi:true */
 
 import * as ipRegex from 'ip-regex';
+import * as config from '../config.js';
 
 let TextFormatting = kiwi.require('helpers/TextFormatting');
 let IrcdDiffs = kiwi.require('helpers/IrcdDiffs');
+let GlobalApi = kiwi.require('libs/GlobalApi');
 let toHtml = kiwi.require('libs/renderers/Html');
 let parseMessage = kiwi.require('libs/MessageParser');
+let Avatar = kiwi.require('components/Avatar');
 let AwayStatusIndicator = kiwi.require('components/AwayStatusIndicator');
 
 export default {
     components: {
+        Avatar,
         AwayStatusIndicator,
     },
     props: ['buffer', 'network', 'user'],
     data: function data() {
         return {
+            self: this,
             whoisRequested: false,
             whoisLoading: false,
             report_user_display: false,
             report_confirmation: false,
             report_reasons: '',
+            pluginUiButtonElements: GlobalApi.singleton().userboxButtonPlugins,
         };
     },
     computed: {
         singleLine() {
-            return kiwi.state.getSetting('settings.plugin-asl.singleLineUserbox');
+            return config.getSetting('singleLineUserbox');
         },
         aslString() {
-            let parts = kiwi.state.getSetting('settings.plugin-asl.singleLineString');
+            let parts = config.getSetting('singleLineString');
             let out = [];
             if (this.user.asl.a) {
                 out.push(parts.age.replace('%a', this.user.asl.a));
@@ -261,16 +289,6 @@ export default {
                 v: 'Voice',
             };
 
-            if (!IrcdDiffs.isAChannelModeAdmin(this.network)) {
-                delete knownPrefix.a;
-            }
-            if (!IrcdDiffs.isQChannelModeOwner(this.network)) {
-                delete knownPrefix.q;
-            }
-            if (!IrcdDiffs.supportsHalfOp(this.network)) {
-                delete knownPrefix.h;
-            }
-
             prefixes.forEach((prefix) => {
                 let mode = prefix.mode;
                 if (knownPrefix[mode]) {
@@ -289,6 +307,9 @@ export default {
             }
 
             return this.buffer.isUserAnOp(this.buffer.getNetwork().nick);
+        },
+        realname() {
+            return (this.user.realname || '').trim();
         },
         formattedRealname() {
             let blocks = parseMessage(this.user.aslRealname || '', { extras: false });
@@ -372,11 +393,11 @@ export default {
         reportReasons: function reportReasons() {
             let reportReasonList = [
                 { key: 'insults', label: TextFormatting.t('plugin-asl:report_reason_insults') },
-                { key: 'proposal', label:  TextFormatting.t('plugin-asl:report_reason_proposal') },
-                { key: 'harasment', label:  TextFormatting.t('plugin-asl:report_reason_harassment') },
-                { key: 'ads', label:  TextFormatting.t('plugin-asl:report_reason_ads') },
-                { key: 'prostitution', label:  TextFormatting.t('plugin-asl:report_reason_prostitution') },
-                { key: 'money', label:  TextFormatting.t('plugin-asl:report_reason_money') },
+                { key: 'proposal', label: TextFormatting.t('plugin-asl:report_reason_proposal') },
+                { key: 'harasment', label: TextFormatting.t('plugin-asl:report_reason_harassment') },
+                { key: 'ads', label: TextFormatting.t('plugin-asl:report_reason_ads') },
+                { key: 'prostitution', label: TextFormatting.t('plugin-asl:report_reason_prostitution') },
+                { key: 'money', label: TextFormatting.t('plugin-asl:report_reason_money') },
                 { key: 'minor', label: TextFormatting.t('plugin-asl:report_reason_minor') },
             ];
             return reportReasonList;
@@ -540,21 +561,65 @@ export default {
 .kiwi-userbox-header {
     position: relative;
     padding: 0.5em 1em;
-    overflow: hidden;
+    box-sizing: border-box;
+    display: flex;
 }
 
 .kiwi-userbox-header h3 {
     margin: 0 0 0 40px;
     padding: 0;
 }
+
+.kiwi-userbox-avatar {
+    position: relative;
+    margin: 1em;
+    width: 100px;
+    height: 100px;
+    flex-shrink: 0;
+}
+
+.kiwi-userbox-avatar .kiwi-avatar-inner {
+    font-size: 3em;
+    border-width: 3px;
+}
+
+.kiwi-userbox-avatar .kiwi-awaystatusindicator {
+    width: 16px;
+    height: 16px;
+    top: 4px;
+    right: 2px;
+    position: absolute;
+}
+
+.kiwi-userbox-userinfo {
+    box-sizing: border-box;
+    margin-top: 1.2em;
+    flex-grow: 1;
+}
+
+.kiwi-userbox-nick {
+    font-weight: 800;
+    font-size: 1.4em;
+}
+
 .kiwi-userbox-icon {
     font-size: 2.8em;
     margin-right: 0.3em;
     position: absolute;
 }
+
 .kiwi-userbox-modestring {
     font-weight: normal;
     font-size: 0.8em;
+    margin-left: 6px;
+}
+
+.kiwi-userbox-usermask {
+    display: block;
+    opacity: 0.6;
+    cursor: default;
+    word-break: break-all;
+    padding-left: 1px;
 }
 
 .fa-user.kiwi-userbox-icon {
@@ -594,7 +659,6 @@ export default {
 
 .kiwi-userbox-basicinfo-data {
     margin-bottom: 1em;
-    font-weight: normal;
     font-weight: 100;
     opacity: 1;
 }
@@ -604,7 +668,13 @@ export default {
     padding: 1em;
     text-align: center;
     margin: 0;
+    user-select: none;
     box-sizing: border-box;
+
+    /* using display flex here to prevent spaces making things uneven */
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
 
     .kiwi-userbox-action {
         display: inline-block;
@@ -616,6 +686,10 @@ export default {
         border-radius: 3px;
     }
 
+    .kiwi-userbox-action:empty {
+        display: none;
+    }
+
     label {
         display: block;
         cursor: pointer;
@@ -625,6 +699,10 @@ export default {
             width: auto;
         }
     }
+}
+
+.kiwi-userbox-plugin-actions {
+    padding: 0;
 }
 
 .kiwi-userbox-opactions {
@@ -694,6 +772,10 @@ export default {
     justify-content: center;
 }
 
+.kiwi-userbox-ignoreuser label {
+    margin: 0 0 1em 0;
+}
+
 .kiwi-userbox-ignoreuser span {
     /* This fixes a vertical align issue between the checkbox and span */
     float: right;
@@ -716,6 +798,7 @@ export default {
     .kiwi-userbox .kiwi-userbox-header {
         padding-left: 10px;
     }
+
     .kiwi-userbox .kiwi-userbox-header i {
         display: block;
     }
@@ -729,6 +812,10 @@ export default {
         padding: 0;
         width: 100%;
         box-sizing: border-box;
+    }
+
+    .kiwi-userbox-plugin-actions {
+        padding: 0;
     }
 
     .kiwi-userbox-actions .kiwi-userbox-action {

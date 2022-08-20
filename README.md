@@ -42,7 +42,7 @@ note: the variables starting with _ are treated as translation keys
 
 ```
 "plugin-asl" : {
-    "localesPath": "static/plugins/plugin-asl/locales",
+    "localesPath": "/static/plugins/plugin-asl/locales",
     "gecosType": 1,
     "showRealname": false,
     "showUserBrowser": true,
@@ -54,6 +54,10 @@ note: the variables starting with _ are treated as translation keys
         "sex": "%s",
         "location": "%l",
         "separator": " ",
+    },
+    "allowedAge": {
+        "min": 18,
+        "max": 99
     },
     "ageRanges": [
         { "name": "_all", "value": "all" },
@@ -75,6 +79,11 @@ note: the variables starting with _ are treated as translation keys
     "reportChannel": "#abuse",
     "browseAllUsers": true,
     "userBrowserIcon": "fa-heart",
+    "requiredFields": [
+        "age",
+        "sex",
+        "location",
+    ],
 },
 ```
 

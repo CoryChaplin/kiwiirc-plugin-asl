@@ -17,7 +17,8 @@
                     <span v-if="!network.last_error && network.state_error">
                         {{ $t('network_noconnect') }}
                     </span>
-                    <span>
+                    <span v-if="errorMessage">{{ errorMessage }}</span>
+                    <span v-if="network.last_error || network.state_error">
                         {{ network.last_error || readableStateError(network.state_error) }}
                     </span>
                 </div>
@@ -104,6 +105,7 @@
                 />
                 <button
                     v-else
+                    type="button"
                     class="u-button u-button-primary u-submit kiwi-welcome-simple-start"
                     disabled
                 >
@@ -121,9 +123,9 @@
 /* global _:true */
 /* global kiwi:true */
 
+import * as config from '../config.js';
 import * as utils from '../libs/utils.js';
 
-let state = kiwi.state;
 let Misc = kiwi.require('helpers/Misc');
 let Logger = kiwi.require('libs/Logger');
 let BouncerProvider = kiwi.require('libs/BouncerProvider');
@@ -152,54 +154,87 @@ export default {
             connectWithoutChannel: false,
             showPlainText: false,
             captchaReady: false,
-            age: null,
+            ageInt: null,
             sex: null,
             location: '',
             realname: '',
         };
     },
     computed: {
+        age: {
+            get() {
+                return this.ageInt;
+            },
+            set(val) {
+                if (!val) {
+                    this.ageInt = null;
+                    return;
+                }
+                this.ageInt = parseInt(val, 10) || null;
+            },
+        },
+        allowedAge() {
+            return config.getSetting('allowedAge');
+        },
         sexes() {
-            return kiwi.state.getSetting('settings.plugin-asl.sexes');
+            return config.getSetting('sexes');
         },
         showRealname() {
-            let showRealname = this.$state.getSetting('settings.plugin-asl.showRealname');
-            let gecosType = this.$state.getSetting('settings.plugin-asl.gecosType');
+            let showRealname = config.getSetting('showRealname');
+            let gecosType = config.getSetting('gecosType');
             return showRealname && gecosType === 1;
+        },
+        requiredFields() {
+            return this.$state.getSetting('settings.plugin-asl.requiredFields');
+        },
+        isAgeValid() {
+            if (this.requiredFields.includes('age') && !this.ageInt) {
+                return false;
+            }
+            return (
+                !this.ageInt ||
+                (this.ageInt >= this.allowedAge.min && this.ageInt <= this.allowedAge.max)
+            );
+        },
+        isSexValid() {
+            return !(this.requiredFields.includes('sex') && !this.sex);
+        },
+        isLocationValid() {
+            return !(this.requiredFields.includes('location') && !this.location);
+        },
+        isRealnameValid() {
+            return !(this.requiredFields.includes('realname') && !this.realname);
+        },
+        aslReady() {
+            return (
+                this.isAgeValid &&
+                this.isSexValid &&
+                this.isLocationValid &&
+                this.isRealnameValid
+            );
         },
         startupOptions() {
             return this.$state.settings.startupOptions;
         },
         greetingText: function greetingText() {
-            let greeting = state.settings.startupOptions.greetingText;
+            let greeting = this.$state.settings.startupOptions.greetingText;
             return typeof greeting === 'string' ?
                 greeting :
                 this.$t('start_greeting');
         },
         footerText: function footerText() {
-            let footer = state.settings.startupOptions.footerText;
+            let footer = this.$state.settings.startupOptions.footerText;
             return typeof footer === 'string' ?
                 footer :
                 '';
         },
         buttonText: function buttonText() {
-            let greeting = state.settings.startupOptions.buttonText;
+            let greeting = this.$state.settings.startupOptions.buttonText;
             return typeof greeting === 'string' ?
                 greeting :
                 this.$t('start_button');
         },
-        readyToStart: function readyToStart() {
-            let ready = !!this.nick;
-
-            if (!this.connectWithoutChannel && !this.channel) {
-                ready = false;
-            }
-
-            // If toggling the password is is disabled, assume it is required
-            if (!this.toggablePass && !this.password) {
-                ready = false;
-            }
-
+        isNickValid() {
             let nickPatternStr = this.$state.setting('startupOptions.nick_format');
             let nickPattern = '';
             if (!nickPatternStr) {
@@ -231,36 +266,83 @@ export default {
                 }
             }
 
-            if (!this.nick.match(nickPattern)) {
+            return this.nick.match(nickPattern);
+        },
+        readyToStart: function readyToStart() {
+            let ready = !!this.nick;
+
+            if (!this.connectWithoutChannel && !this.channel) {
+                ready = false;
+            }
+
+            // Make sure the channel name starts with a common channel prefix
+            if (!this.connectWithoutChannel) {
+                let bufferObjs = Misc.extractBuffers(this.channel);
+                bufferObjs.forEach((bufferObj) => {
+                    if ('#&'.indexOf(bufferObj.name[0]) === -1) {
+                        ready = false;
+                    }
+                });
+            }
+
+            // If toggling the password is is disabled, assume it is required
+            if (!this.toggablePass && !this.password) {
+                ready = false;
+            }
+
+            if (!this.isNickValid) {
+                ready = false;
+            }
+
+            if (!this.aslReady) {
                 ready = false;
             }
 
             return ready;
         },
     },
+    watch: {
+        show_password_box(newVal) {
+            if (newVal === false) {
+                // clear the password when show password is unchecked
+                this.password = '';
+            }
+        },
+    },
     created: function created() {
         let options = this.startupOptions;
+        let connectOptions = this.connectOptions();
 
         // Take some settings from a previous network if available
         let previousNet = null;
-        if (options.server.trim()) {
-            previousNet = state.getNetworkFromAddress(options.server.trim());
+        if (connectOptions.hostname.trim()) {
+            previousNet = this.$state.getNetworkFromAddress(connectOptions.hostname.trim());
         }
 
-        if (Misc.queryStringVal('nick')) {
-            this.nick = Misc.queryStringVal('nick');
-        } else if (previousNet && previousNet.connection.nick) {
+        if (previousNet && previousNet.connection.nick) {
             this.nick = previousNet.connection.nick;
+        } else if (Misc.queryStringVal('nick')) {
+            this.nick = Misc.queryStringVal('nick');
         } else {
             this.nick = options.nick;
         }
+        this.nick = this.processNickRandomNumber(this.nick || '');
+
+        if (options.password) {
+            this.password = options.password;
+        } else if (previousNet && previousNet.password) {
+            this.password = previousNet.password;
+            this.show_password_box = true;
+        } else {
+            this.password = '';
+        }
 
         let parsedGecos = null;
-        if (previousNet && previousNet.gecos) {
+        if (config.getSetting('welcomeUsesLocalStorage') && previousNet && previousNet.gecos) {
             parsedGecos = utils.parseGecos(previousNet.gecos);
         }
 
-        let queryKeys = kiwi.state.getSetting('settings.plugin-asl.queryKeys');
+        let queryKeys = config.getSetting('queryKeys');
         if (Misc.queryStringVal(queryKeys.age)) {
             this.age = Misc.queryStringVal(queryKeys.age);
         } else if (typeof options.age !== 'undefined') {
@@ -293,8 +375,6 @@ export default {
             this.realname = parsedGecos.realname;
         }
 
-        this.nick = this.processNickRandomNumber(this.nick || '');
-        this.password = options.password || '';
         this.channel = decodeURIComponent(window.location.hash) || options.channel || '';
         this.showChannel = typeof options.showChannel === 'boolean' ?
             options.showChannel :
@@ -318,7 +398,13 @@ export default {
             this.connectWithoutChannel = true;
 
             let bouncer = new BouncerProvider(this.$state);
-            bouncer.enable(options.server, options.port, options.tls, options.direct, options.path);
+            bouncer.enable(
+                connectOptions.hostname,
+                connectOptions.port,
+                connectOptions.tls,
+                connectOptions.direct,
+                connectOptions.direct_path
+            );
         }
 
         // Support for legacy EuropNet query strings. Decided to override prior params.
@@ -347,8 +433,8 @@ export default {
             if (!this.age && !this.sex && !this.location) {
                 return '';
             }
-            let gecosId = kiwi.state.getSetting('settings.plugin-asl.gecosType');
-            let gecosType = kiwi.state.pluginASL.gecosTypes[gecosId - 1];
+            let gecosId = config.getSetting('gecosType');
+            let gecosType = this.$state.pluginASL.gecosTypes[gecosId - 1];
             let gecos = gecosType.build;
             let asl = [];
             if (this.age) {
@@ -395,32 +481,26 @@ export default {
         startUp: function startUp() {
             this.errorMessage = '';
 
-            let options = Object.assign({}, state.settings.startupOptions);
-
-            // If a server isn't specified in the config, set some defaults
-            // The webircgateway will have a default network set and will connect
-            // there instead. This just removes the requirement of specifying the same
-            // irc network address in both the server-side and client side configs
-            options.server = options.server || 'default';
-            options.port = options.port || 6667;
-
-            let netAddress = _.trim(options.server);
+            let options = Object.assign({}, this.$state.settings.startupOptions);
+            let connectOptions = this.connectOptions();
+            let netAddress = _.trim(connectOptions.hostname);
 
             // Check if we have this network already
-            let net = this.network || state.getNetworkFromAddress(netAddress);
+            let net = this.network || this.$state.getNetworkFromAddress(netAddress);
 
             let password = this.password;
 
             // If the network doesn't already exist, add a new one
-            net = net || state.addNetwork('Network', this.nick, {
+            net = net || this.$state.addNetwork('Network', this.nick, {
                 server: netAddress,
-                port: options.port,
-                tls: options.tls,
+                port: connectOptions.port,
+                tls: connectOptions.tls,
                 password: password,
                 encoding: _.trim(options.encoding),
-                direct: !!options.direct,
-                path: options.direct_path || '',
+                direct: connectOptions.direct,
+                path: connectOptions.direct_path || '',
                 gecos: options.gecos,
+                username: options.username,
             });
 
             // Clear the server buffer in case it already existed and contains messages relating to
@@ -455,11 +535,11 @@ export default {
             let hasSwitchedActiveBuffer = false;
             let bufferObjs = Misc.extractBuffers(this.channel);
             bufferObjs.forEach((bufferObj) => {
-                let newBuffer = state.addBuffer(net.id, bufferObj.name);
+                let newBuffer = this.$state.addBuffer(net.id, bufferObj.name);
                 newBuffer.enabled = true;
 
                 if (newBuffer && !hasSwitchedActiveBuffer) {
-                    state.setActiveBuffer(net.id, newBuffer.name);
+                    this.$state.setActiveBuffer(net.id, newBuffer.name);
                     hasSwitchedActiveBuffer = true;
                 }
 
@@ -470,7 +550,7 @@ export default {
 
             // switch to server buffer if no channels are joined
             if (!options.bouncer && !hasSwitchedActiveBuffer) {
-                state.setActiveBuffer(net.id, net.serverBuffer().name);
+                this.$state.setActiveBuffer(net.id, net.serverBuffer().name);
             }
 
             net.ircClient.connect();
@@ -479,13 +559,22 @@ export default {
                     this.$refs.layout.close();
                 }
                 net.ircClient.off('registered', onRegistered);
+                net.ircClient.off('irc error', onError);
+                net.ircClient.off('close', onClosed);
+            };
+            let onError = (event) => {
+                this.errorMessage = event.reason;
+                net.ircClient.off('registered', onRegistered);
+                net.ircClient.off('irc error', onError);
                 net.ircClient.off('close', onClosed);
             };
             let onClosed = () => {
                 net.ircClient.off('registered', onRegistered);
+                net.ircClient.off('irc error', onError);
                 net.ircClient.off('close', onClosed);
             };
             net.ircClient.once('registered', onRegistered);
+            net.ircClient.once('irc error', onError);
             net.ircClient.once('close', onClosed);
         },
         processNickRandomNumber: function processNickRandomNumber(nick) {
@@ -496,6 +585,27 @@ export default {
         handleCaptcha(isReady) {
             this.captchaReady = isReady;
         },
+        connectOptions() {
+            let options = Object.assign({}, this.$state.settings.startupOptions);
+            let connectOptions = Misc.connectionInfoFromConfig(options);
+
+            // If a server isn't specified in the config, set some defaults
+            // The webircgateway will have a default network set and will connect
+            // there instead. This just removes the requirement of specifying the same
+            // irc network address in both the server-side and client side configs
+            connectOptions.hostname = connectOptions.hostname || 'default';
+            if (!connectOptions.port && connectOptions.direct) {
+                connectOptions.port = connectOptions.tls ?
+                    443 :
+                    80;
+            } else if (!connectOptions.port && !connectOptions.direct) {
+                connectOptions.port = connectOptions.tls ?
+                    6697 :
+                    6667;
+            }
+
+            return connectOptions;
+        },
     },
 };
 </script>
@@ -503,6 +613,10 @@ export default {
 <style>
 
 /* Containers */
+form.kiwi-welcome-simple-form {
+    width: 70%;
+    padding: 20px;
+}
 
 /* Tweak */
 .u-form input[type="radio"] {
@@ -517,6 +631,27 @@ export default {
 /* Fallback EuropNet */
 .kiwi-welcome-asl {
     height: 100%;
+}
+@media (max-width: 850px) {
+    form.kiwi-welcome-simple-form {
+        background: var(--brand-default-bg);
+        border-radius: 5px;
+        box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.2);
+    }
+}
+
+@media (max-width: 600px) {
+    form.kiwi-welcome-simple-form {
+        max-width: 350px;
+    }
+}
+
+form.kiwi-welcome-simple-form h2 {
+    margin: 0 0 40px 0;
+    padding: 0;
+    cursor: default;
+    font-weight: 600;
+    font-size: 2.2em;
     text-align: center;
     background-size: 0;
     background-position: bottom;
@@ -584,6 +719,11 @@ export default {
 .kiwi-welcome-asl-error span {
     display: block;
     font-style: italic;
+    margin-bottom: 8px;
+}
+
+.kiwi-welcome-simple-error span:last-of-type {
+    margin-bottom: 0;
 }
 
 .kiwi-welcome-asl-section-connection label {
@@ -685,6 +825,17 @@ span.kiwi-welcome-asl-picto,
     outline: 0;
     -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(102, 175, 233, 0.6);
     box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(102, 175, 233, 0.6);
+}
+
+.kiwi-input-invalid.u-input-text input.u-input,
+select.kiwi-input-invalid {
+    border-color: var(--brand-error);
+}
+
+.kiwi-welcome-simple-form .u-submit {
+    width: 100%;
+    height: 50px;
+    font-size: 1.3em;
 }
 
 span.kiwi-welcome-asl-picto {

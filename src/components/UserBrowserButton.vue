@@ -12,6 +12,7 @@
 
 /* global kiwi:true */
 
+import * as config from '../config.js';
 import UserBrowser from './UserBrowser.vue';
 
 export default {
@@ -22,7 +23,7 @@ export default {
     },
     computed: {
         icon() {
-            return kiwi.state.getSetting('settings.plugin-asl.userBrowserIcon');
+            return config.getSetting('userBrowserIcon');
         },
     },
     created() {

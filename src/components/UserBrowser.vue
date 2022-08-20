@@ -4,7 +4,6 @@
             <div
                 v-for="(value, name) in sexes"
                 :key="'sexes-'+name"
-                :style="{ 'color': sexes[name].colour }"
                 class="plugin-asl-userbrowser-sexes"
             >
                 <input
@@ -13,7 +12,7 @@
                     type="checkbox"
                     @change="toggleSex($event, name)"
                 >
-                <label :for="'asl-'+name">
+                <label :for="'asl-'+name" :style="{ 'color': sexes[name].colour }">
                     {{ name[0] === '_' ? $t('plugin-asl:' + name.substr(1)) : name }}
                 </label>
             </div>
@@ -89,7 +88,8 @@
 <script>
 
 /* global _:true */
-/* global kiwi:true */
+
+import * as config from '../config.js';
 
 export default {
     props: ['network', 'buffer', 'sidebarState'],
@@ -100,7 +100,7 @@ export default {
             ageRanges: [],
             age: '',
             filter: '',
-            globalScope: kiwi.state.getSetting('settings.plugin-asl.browseAllUsers'),
+            globalScope: config.getSetting('browseAllUsers'),
         };
     },
     computed: {
@@ -109,7 +109,7 @@ export default {
             let users;
 
             if (this.globalScope) {
-                users = kiwi.state.getActiveNetwork().users;
+                users = this.$state.getActiveNetwork().users;
             } else {
                 users = this.buffer.users;
             }
@@ -162,18 +162,18 @@ export default {
         },
     },
     created() {
-        this.sexes = kiwi.state.setting('plugin-asl.sexes');
-        this.ageRanges = kiwi.state.setting('plugin-asl.ageRanges');
-        this.age = kiwi.state.pluginASL.selectedAgeRange;
-        this.selectedSexes = kiwi.state.pluginASL.selectedSexes;
-        this.filter = kiwi.state.pluginASL.userFilter;
+        this.sexes = config.setting('sexes');
+        this.ageRanges = config.setting('ageRanges');
+        this.age = this.$state.pluginASL.selectedAgeRange;
+        this.selectedSexes = this.$state.pluginASL.selectedSexes;
+        this.filter = this.$state.pluginASL.userFilter;
     },
     beforeDestroy() {
-        kiwi.state.$emit('plugin-asl.userbrowser.close');
+        this.$state.$emit('plugin-asl.userbrowser.close');
     },
     methods: {
         openUserbox(user) {
-            kiwi.state.$emit('userbox.show', user, {
+            this.$state.$emit('userbox.show', user, {
                 buffer: this.buffer,
             });
         },
@@ -186,16 +186,16 @@ export default {
         },
         toggleSex(event, name) {
             this.selectedSexes[name] = event.target.checked;
-            kiwi.state.pluginASL.selectedSexes = this.selectedSexes;
+            this.$state.pluginASL.selectedSexes = this.selectedSexes;
         },
         toggleScope(event) {
             this.globalScope = event.target.checked;
         },
         updateSelectedAgeRange() {
-            kiwi.state.pluginASL.selectedAgeRange = this.age;
+            this.$state.pluginASL.selectedAgeRange = this.age;
         },
         updateUserFilter() {
-            kiwi.state.pluginASL.userFilter = this.filter;
+            this.$state.pluginASL.userFilter = this.filter;
         },
     },
 };
@@ -245,11 +245,26 @@ export default {
 .plugin-asl-userbrowser-sexes {
     display: inline-block;
     font-weight: bold;
+    margin: 4px 4px 4px 10px;
 }
 
 .plugin-asl-userbrowser-sexes input,
 .plugin-asl-userbrowser-sexes label {
     vertical-align: middle;
+    display: inline-block;
+}
+
+.plugin-asl-userbrowser-ages {
+    margin: 4px;
+}
+
+.plugin-asl-userbrowser-filter {
+    margin-left: 10px;
+    width: 100%;
+}
+
+.plugin-asl-userbrowser-filter input {
+    width: 300px;
 }
 
 .plugin-asl-userbrowser-filter i {
