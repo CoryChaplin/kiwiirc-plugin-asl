@@ -16,7 +16,6 @@
                class="fa fa-user kiwi-userbox-icon" aria-hidden="true"
             />
             <h3>
-                <away-status-indicator :network="network" :user="user" />
                 <span :style="{'color': user.getColour()}">{{ user.nick }}</span>
                 <span v-if="userMode" class="kiwi-userbox-modestring">+{{ userMode }}</span>
             </h3>
@@ -563,6 +562,7 @@ export default {
     padding: 0.5em 1em;
     box-sizing: border-box;
     display: flex;
+    flex-direction: column;
 }
 
 .kiwi-userbox-header h3 {
@@ -608,6 +608,11 @@ export default {
     position: absolute;
 }
 
+.fa-user.kiwi-userbox-icon {
+  display: inline-block;
+  font-size: 2em;
+}
+
 .kiwi-userbox-modestring {
     font-weight: normal;
     font-size: 0.8em;
@@ -616,21 +621,13 @@ export default {
 
 .kiwi-userbox-usermask {
     display: block;
-    opacity: 0.6;
-    cursor: default;
-    word-break: break-all;
-    padding-left: 1px;
+    margin: 0 0 0 40px;
+    font-size: 0.9em;
 }
 
 .fa-user.kiwi-userbox-icon {
     display: inline-block;
     font-size: 2em;
-}
-
-.kiwi-userbox-usermask {
-    display: block;
-    margin: 0 0 0 40px;
-    font-size: 0.9em;
 }
 
 .kiwi-userbox-basicinfo {
