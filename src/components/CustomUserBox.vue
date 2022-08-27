@@ -121,7 +121,7 @@
 
         <form v-if="!isSelf" class="u-form kiwi-userbox-ignoreuser">
             <label>
-                <input v-model="user.ignore" type="checkbox">
+                <input v-model="user.ignore" type="checkbox" @click="toggleIgnore">
                 <span> {{ $t('ignore_user') }} </span>
             </label>
         </form>
@@ -530,6 +530,14 @@ export default {
             let reason = this.$state.setting('buffers.default_kick_reason');
             this.network.ircClient.raw('MODE', this.buffer.name, '+b', banMask);
             this.network.ircClient.raw('KICK', this.buffer.name, this.user.nick, reason);
+        },
+        toggleIgnore: function() {
+            if (this.user.ignore) {
+                this.network.ignored_list.pop(this.user.nick);
+            } else {
+                this.network.ignored_list.push(this.user.nick);
+            }
+            this.user.ignore = !this.user.ignore;
         },
     },
 };
