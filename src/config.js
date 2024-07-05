@@ -4,13 +4,16 @@
 const basePath = getBasePath();
 const configBase = 'plugin-asl';
 
-const defaultConfig = {
+export const defaultConfig = {
     // Where the web browser can find the locale json files
-    localesPath: basePath + 'plugin-asl/locales',
+    localesPath: basePath + 'plugin-asl/locales/{{lng}}.json',
 
     // Type 1 "[a/s/l?] realname?"
     // Type 2 "a s l?"
     gecosType: 1,
+
+    // If should show location input box on welcome screen
+    showLocation: true,
 
     // If should show realname input box on welcome screen
     showRealname: false,
@@ -20,6 +23,9 @@ const defaultConfig = {
 
     // What icon to use for User Browser
     userBrowserIcon: 'fa-heart',
+
+    // Should the userbrowser show users from all channels
+    userBrowserGlobal: false,
 
     // What colour to use if user did not provide sex
     // 'default' is css default colour
@@ -58,13 +64,14 @@ const defaultConfig = {
     ],
 
     // Sex selection and parsing
+    // names starting with underscore (_) will be treated as translation strings
     // chars is for matching against gecos (can contain multiple)
     // the first char will be used in gecos creation
-    sexes: {
-        _male: { chars: 'M', colour: '#00F' },
-        _female: { chars: 'F', colour: '#F0F' },
-        _other: { chars: 'O', colour: '#0F0' },
-    },
+    sexes: [
+        { name: '_male', chars: 'M', colour: '#2980b9' },
+        { name: '_female', chars: 'F', colour: '#a72566' },
+        { name: '_other', chars: 'O', colour: '#3aa725' },
+    ],
 
     // Keys used to get asl from query string
     queryKeys: {
@@ -82,19 +89,8 @@ const defaultConfig = {
     welcomeUsesLocalStorage: true,
 };
 
-export function setDefaults() {
-    let walkConfig = (obj, _target) => {
-        _.each(obj, (val, key) => {
-            let target = [..._target, key];
-            let targetName = target.join('.');
-            if (typeof val === 'object' && !_.isArray(val)) {
-                walkConfig(val, target);
-            } else if (typeof getSetting(targetName) === 'undefined') {
-                setSetting(targetName, val);
-            }
-        });
-    };
-    walkConfig(defaultConfig, []);
+export function setDefaults(kiwi) {
+    kiwi.setConfigDefaults(configBase, defaultConfig);
 
     // Set internal defaults
     const pluginASL = kiwi.state.pluginASL = Object.create(null);
@@ -102,14 +98,20 @@ export function setDefaults() {
     const ageRanges = getSetting('ageRanges');
     pluginASL.selectedAgeRange = ageRanges[0].value;
 
-    const sexes = getSetting('sexes');
-    const sexesKeys = Object.keys(sexes);
+    let sexes = getSetting('sexes');
+    if (typeof sexes !== 'object' || !_.isArray(sexes)) {
+        // eslint-disable-next-line no-console
+        console.error('sexes config option has changed to an array please update your config');
+        // eslint-disable-next-line no-console
+        console.error('see here: https://github.com/ItsOnlyBinary/kiwiirc-plugin-asl#configuration');
+        sexes = defaultConfig.sexes;
+    }
     pluginASL.selectedSexes = {};
     let sexesRegex = '';
-    for (let i = 0; i < sexesKeys.length; i++) {
-        let sex = sexesKeys[i];
-        pluginASL.selectedSexes[sex] = true;
-        sexesRegex += sexes[sex].chars;
+    for (let i = 0; i < sexes.length; i++) {
+        let sex = sexes[i];
+        sexesRegex += sex.chars;
+        pluginASL.selectedSexes[sex.name] = true;
     }
 
     pluginASL.gecosTypes = [];
@@ -122,6 +124,11 @@ export function setDefaults() {
         regex: new RegExp('(\\d+)\\s+([' + sexesRegex + '])(\\s+(.*))?'),
         build: '%asl',
         separator: ' ',
+    });
+    pluginASL.gecosTypes.push({
+        regex: new RegExp('(\\d+|\\*)\\s?\\/\\s?([' + sexesRegex + '*])(\\s?\\/\\s?(.*?|\\*))?'),
+        build: '%asl',
+        separator: '/',
     });
 
     pluginASL.userFilter = '';
