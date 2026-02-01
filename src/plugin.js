@@ -1,7 +1,6 @@
 import CustomWelcome from './components/CustomWelcome.vue';
 import CustomUserBox from './components/CustomUserBox.vue';
 import CustomNicklistUser from './components/CustomNicklistUser.vue';
-import UserBrowser from './components/UserBrowser.vue';
 import UserBrowserButton from './components/UserBrowserButton.vue';
 import Locales from './libs/locales.js';
 import * as config from './config.js';

@@ -50,8 +50,8 @@
                 {{ $t('plugin-asl:global_list') }} <label class="switch">
                     <input
                         type="checkbox"
-                        @change="toggleScope($event)"
                         :checked="globalScope"
+                        @change="toggleScope($event)"
                     >
                     <span class="slider round" />
                 </label>
@@ -127,6 +127,7 @@ export default {
             }
 
             users = _.filter(users, (user) => {
+                console.log('Filtering');
                 if (!user.asl) {
                     return false;
                 }
