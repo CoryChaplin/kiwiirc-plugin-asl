@@ -127,7 +127,6 @@ export default {
             }
 
             users = _.filter(users, (user) => {
-                console.log('Filtering');
                 if (!user.asl) {
                     return false;
                 }
