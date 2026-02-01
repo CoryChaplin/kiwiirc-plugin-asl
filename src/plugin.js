@@ -58,8 +58,8 @@ kiwi.plugin('asl', (kiwi) => {
     function updateUser(net, user) {
         let userObj = kiwi.state.getUser(net.id, user.nick) || kiwi.state.addUser(net, user);
         let parsedGecos = utils.parseGecos(user.realname);
-        userObj.asl = parsedGecos.asl;
-        userObj.aslRealname = parsedGecos.realname;
-        userObj.colour = utils.getColour(userObj.asl);
+        kiwi.Vue.set(userObj, 'asl', parsedGecos.asl);
+        kiwi.Vue.set(userObj, 'aslRealname', parsedGecos.realname);
+        kiwi.Vue.set(userObj, 'colour', utils.getColour(userObj.asl));
     }
 });

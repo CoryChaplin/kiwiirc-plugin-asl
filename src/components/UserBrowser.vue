@@ -58,7 +58,13 @@
             </div>
         </div>
         <div class="plugin-asl-userbrowser-users">
-            <table class="plugin-asl-userbrowser-users-table">
+            <div
+                v-if="!globalScope && !buffer.joined"
+                class="plugin-asl-userbrowser-parted"
+            >
+                {{ $t('plugin-asl:channel_parted') }}
+            </div>
+            <table v-else class="plugin-asl-userbrowser-users-table">
                 <tr>
                     <th style="width: 35%; text-align: left;">
                         <a class="plugin-asl-userbrowser-nick">{{ $t('nick') }}</a>
@@ -88,6 +94,7 @@
 <script>
 
 /* global _:true */
+/* global kiwi:true */
 
 import * as config from '../config.js';
 
@@ -101,10 +108,15 @@ export default {
             age: '',
             filter: '',
             globalScope: config.getSetting('browseAllUsers'),
+            usersTick: 0,
         };
     },
     computed: {
         filteredUsers() {
+            // Force dependency on usersTick to trigger recalculation
+            // when IRC events occur (join/part/quit/kick of self or others)
+            // eslint-disable-next-line no-unused-vars
+            let tick = this.usersTick;
             let filter = this.filter.toLowerCase();
             let users;
 
@@ -161,7 +173,51 @@ export default {
             return _.sortBy(users, (user) => user.nick);
         },
     },
+    watch: {
+        'buffer.joined'() {
+            // Delay to ensure Kiwi has fully updated network.users after part/kick
+            setTimeout(() => {
+                this.usersTick++;
+            }, 500);
+        },
+        globalScope() {
+            // Force refresh when switching between local/global view
+            this.$nextTick(() => {
+                this.usersTick++;
+            });
+        },
+    },
     created() {
+        let onUpdate = (event, net) => {
+            if (this.network && net && this.network.id !== net.id) {
+                return;
+            }
+            // Delay to ensure Kiwi has fully updated its user lists
+            setTimeout(() => {
+                this.usersTick++;
+            }, 500);
+        };
+
+        if (typeof kiwi !== 'undefined') {
+            kiwi.on('irc.join', onUpdate);
+            kiwi.on('irc.part', onUpdate);
+            kiwi.on('irc.quit', onUpdate);
+            kiwi.on('irc.kick', onUpdate);
+            kiwi.on('irc.nick', onUpdate);
+            kiwi.on('irc.wholist', onUpdate);
+            kiwi.on('irc.names', onUpdate);
+
+            this.$once('hook:beforeDestroy', () => {
+                kiwi.off('irc.join', onUpdate);
+                kiwi.off('irc.part', onUpdate);
+                kiwi.off('irc.quit', onUpdate);
+                kiwi.off('irc.kick', onUpdate);
+                kiwi.off('irc.nick', onUpdate);
+                kiwi.off('irc.wholist', onUpdate);
+                kiwi.off('irc.names', onUpdate);
+            });
+        }
+
         this.sexes = config.setting('sexes');
         this.ageRanges = config.setting('ageRanges');
         this.age = this.$state.pluginASL.selectedAgeRange;
@@ -178,10 +234,10 @@ export default {
             });
         },
         openQuery(user) {
-            let buffer = kiwi.state.addBuffer(this.network.id, user.nick);
-            kiwi.state.setActiveBuffer(this.network.id, buffer.name);
-            if (kiwi.state.ui.is_narrow) {
-                kiwi.state.$emit('userbox.hide');
+            let buffer = this.$state.addBuffer(this.network.id, user.nick);
+            this.$state.setActiveBuffer(this.network.id, buffer.name);
+            if (this.$state.ui.is_narrow) {
+                this.$state.$emit('userbox.hide');
             }
         },
         toggleSex(event, name) {
@@ -363,5 +419,10 @@ export default {
 
 .plugin-asl-userbrowser-scope .slider.round:before {
     border-radius: 50%;
+}
+
+.plugin-asl-userbrowser-parted {
+    text-align: center;
+    margin-top: 1em;
 }
 </style>

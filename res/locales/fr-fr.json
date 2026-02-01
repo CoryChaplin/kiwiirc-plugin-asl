@@ -11,6 +11,7 @@
     "search": "Rechercher",
     "user_button_label": "Chatteurs",
     "global_list": "Liste globale",
+    "channel_parted": "Vous avez quitté ce salon.",
     "common_channels": "Salon(s) commun(s)",
     "report": "Signaler un abus",
     "report_intro": "ne respecte pas les <a href='http://www.europnet.org/fr/rules.html' target='_blank'>règles</a> ?<br />Expliquez-nous le problème et nous interviendrons dans les plus brefs délais.<br />Merci !<br />",

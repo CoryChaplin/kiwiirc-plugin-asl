@@ -11,6 +11,7 @@
     "search": "Search",
     "user_button_label": "Chatteurs",
     "global_list": "Global list",
+    "channel_parted": "You have left this channel.",
     "common_channels": "Common channel(s)",
     "report": "Report an abuse",
     "report_intro": "isn't respecting the <a href='http://www.europnet.org/en/rules.html' target='_blank'>rules</a> ? <br />Explain us the problem and we'll deal with it as soon as possible.<br />Thank you !<br />",
