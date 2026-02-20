@@ -584,22 +584,26 @@ export default {
             }
 
             net.ircClient.connect();
+            let cleanup = () => {
+                net.ircClient.off('registered', onRegistered);
+                net.ircClient.off('close', onClosed);
+                net.ircClient.off('irc error', onError);
+                net.ircClient.off('sasl failed', onSaslFailed);
+            };
             let onRegistered = () => {
                 if (this.$refs.layout) {
                     this.$refs.layout.close();
                 }
-                net.ircClient.off('registered', onRegistered);
-                net.ircClient.off('close', onClosed);
-                net.ircClient.off('irc error', onError);
+                cleanup();
             };
+            let saslMessage = null;
             let onClosed = () => {
-                let lastError = this.network.last_error;
-                if (lastError && !this.connectErrors.includes(lastError)) {
-                    this.connectErrors.push(lastError);
+                // Prefer specific SASL server message over generic localized error
+                let errorToShow = saslMessage || this.network.last_error;
+                if (errorToShow && !this.connectErrors.includes(errorToShow)) {
+                    this.connectErrors.push(errorToShow);
                 }
-                net.ircClient.off('registered', onRegistered);
-                net.ircClient.off('close', onClosed);
-                net.ircClient.off('irc error', onError);
+                cleanup();
             };
             let onError = (event) => {
                 if (!event.reason || this.connectErrors.includes(event.reason)) {
@@ -607,9 +611,13 @@ export default {
                 }
                 this.connectErrors.push(event.reason);
             };
+            let onSaslFailed = (event) => {
+                saslMessage = (event && event.message) || 'SASL authentication failed';
+            };
             net.ircClient.once('registered', onRegistered);
             net.ircClient.once('close', onClosed);
             net.ircClient.on('irc error', onError);
+            net.ircClient.on('sasl failed', onSaslFailed);
         },
         processNickRandomNumber: function processNickRandomNumber(nick) {
             // Replace ? with a random number
