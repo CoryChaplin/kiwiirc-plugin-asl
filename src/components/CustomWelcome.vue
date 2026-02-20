@@ -26,6 +26,7 @@
                     <span class="kiwi-welcome-asl-picto"><i class="fa fa-user" /></span>
                     <input v-model="nick" class="kiwi-welcome-asl-nick"
                            :placeholder="$t('nick')" type="text"
+                           @input="nick = nick.replace(/\s/g, '')"
                     >
                 </div>
 
