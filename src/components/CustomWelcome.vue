@@ -408,7 +408,21 @@ export default {
             this.realname = parsedGecos.realname;
         }
 
-        this.channel = decodeURIComponent(window.location.hash) || options.channel || '';
+        let persistedChannels = '';
+        if (previousNet) {
+            let channels = previousNet.buffers
+                .filter((b) => b.isChannel())
+                .map((b) => b.name);
+            if (channels.length) {
+                persistedChannels = channels.join(',');
+            }
+        }
+        let hashChannel = decodeURIComponent(window.location.hash)
+            .replace(/^#/, '');
+        this.channel = (hashChannel ? '#' + hashChannel : '')
+            || persistedChannels
+            || options.channel
+            || '';
         this.showChannel = typeof options.showChannel === 'boolean' ?
             options.showChannel :
             true;
@@ -580,6 +594,16 @@ export default {
             // Only switch to the first channel we join if multiple are being joined
             let hasSwitchedActiveBuffer = false;
             let bufferObjs = Misc.extractBuffers(this.channel);
+
+            // Disable previously enabled channels that user removed
+            let channelNames = bufferObjs.map((b) => b.name.toLowerCase());
+            net.buffers.forEach((buffer) => {
+                if (buffer.isChannel() && buffer.enabled
+                    && !channelNames.includes(buffer.name.toLowerCase())) {
+                    buffer.enabled = false;
+                }
+            });
+
             bufferObjs.forEach((bufferObj) => {
                 let newBuffer = this.$state.addBuffer(net.id, bufferObj.name);
                 newBuffer.enabled = true;
