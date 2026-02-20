@@ -27,6 +27,7 @@
                     <input v-model="nick" class="kiwi-welcome-asl-nick"
                            :placeholder="$t('nick')" type="text"
                            @input="nick = nick.replace(/\s/g, '')"
+                           @focus="nickFocus"
                     >
                 </div>
 
@@ -351,8 +352,6 @@ export default {
             this.nick = Misc.queryStringVal('nick');
         } else if (previousNet && previousNet.connection.nick) {
             this.nick = previousNet.connection.nick;
-        } else {
-            this.nick = options.nick;
         }
         this.nick = this.processNickRandomNumber(this.nick || '');
 
@@ -506,6 +505,10 @@ export default {
         },
         readableStateError(err) {
             return Misc.networkErrorMessage(err);
+        },
+        nickFocus(event) {
+            let el = event.target;
+            el.setSelectionRange(el.value.length, el.value.length);
         },
         formSubmit: function formSubmit() {
             if (this.termsAutoAccept && this.termsContent) {
