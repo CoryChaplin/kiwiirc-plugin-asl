@@ -560,6 +560,12 @@ export default {
                 net.password = password;
             }
 
+            // Default to 'U' sex if no ASL fields are filled
+            // to prevent fallback to default kiwiirc.com realname
+            if (!this.age && !this.sex && !this.location) {
+                this.sex = 'U';
+            }
+
             let gecos = this.buildGecos();
             if (gecos) {
                 net.gecos = gecos;
