@@ -96,7 +96,7 @@
                 </div>
 
                 <div v-if="termsContent" class="kiwi-welcome-asl-terms">
-                    <div>
+                    <div v-if="!termsAutoAccept">
                         <input v-model="termsAccepted" type="checkbox">
                     </div>
                     <div class="kiwi-welcome-asl-terms-content" v-html="termsContent" />
@@ -254,6 +254,9 @@ export default {
                 terms :
                 '';
         },
+        termsAutoAccept() {
+            return !!this.$state.settings.startupOptions.termsAutoAccept;
+        },
         isNickValid() {
             let nickPatternStr = this.$state.setting('startupOptions.nick_format');
             let nickPattern = '';
@@ -314,7 +317,7 @@ export default {
                 ready = false;
             }
 
-            if (this.termsContent && !this.termsAccepted) {
+            if (this.termsContent && !this.termsAccepted && !this.termsAutoAccept) {
                 ready = false;
             }
 
@@ -504,6 +507,9 @@ export default {
             return Misc.networkErrorMessage(err);
         },
         formSubmit: function formSubmit() {
+            if (this.termsAutoAccept && this.termsContent) {
+                this.termsAccepted = true;
+            }
             if (this.readyToStart) {
                 this.startUp();
             }
