@@ -9,24 +9,24 @@
         <template v-else v-slot:connection>
             <form class="u-form u-form--big kiwi-welcome-asl-form" @submit.prevent="formSubmit">
                 <h2 v-html="greetingText" />
-                <div v-if="errorMessage" class="kiwi-welcome-asl-error">{{ errorMessage }}</div>
                 <div
-                    v-else-if="network && (network.last_error || network.state_error)"
+                    v-if="network && (connectErrors.length > 0 || network.state_error)"
                     class="kiwi-welcome-asl-error"
                 >
-                    <span v-if="!network.last_error && network.state_error">
-                        {{ $t('network_noconnect') }}
-                    </span>
-                    <span v-if="errorMessage">{{ errorMessage }}</span>
-                    <span v-if="network.last_error || network.state_error">
-                        {{ network.last_error || readableStateError(network.state_error) }}
-                    </span>
+                    <template v-if="connectErrors.length > 0">
+                        <span v-for="err in connectErrors" :key="err">{{ err }}</span>
+                    </template>
+                    <template v-else>
+                        <span>{{ $t('network_noconnect') }}</span>
+                        <span>{{ readableStateError(network.state_error) }}</span>
+                    </template>
                 </div>
 
                 <div class="kiwi-welcome-asl-group nick">
-                    <span class="kiwi-welcome-asl-picto"><i class="fa fa-user"></i></span>
+                    <span class="kiwi-welcome-asl-picto"><i class="fa fa-user" /></span>
                     <input v-model="nick" class="kiwi-welcome-asl-nick"
-                           :placeholder="$t('nick')" type="text" />
+                           :placeholder="$t('nick')" type="text"
+                    >
                 </div>
 
                 <div v-if="showPass && toggablePass" class="kiwi-welcome-asl-group pass">
@@ -42,54 +42,64 @@
                 <div v-if="showPass && (show_password_box || !toggablePass)"
                      class="kiwi-welcome-asl-group pass"
                 >
-                    <span class="kiwi-welcome-asl-picto"><i class="fa fa-key"></i></span>
+                    <span class="kiwi-welcome-asl-picto"><i class="fa fa-key" /></span>
                     <input v-model="password"
                            v-focus
                            :show-plain-text="true"
                            type="password"
-                    />
+                    >
                 </div>
                 <div class="kiwi-welcome-asl-asl-container">
                     <div class="kiwi-welcome-asl-group age">
                         <span class="kiwi-welcome-asl-picto">
-                            <i class="fa fa-info-circle"></i></span>
-                        <input type="number" class="kiwi-welcome-asl-age"
-                               v-model="age" min="16" max="99"
+                            <i class="fa fa-info-circle" /></span>
+                        <input v-model="age" type="number" class="kiwi-welcome-asl-age"
+                               min="16" max="99"
                                :placeholder="$t('plugin-asl:age')"
-                        /><div class="age-text">&nbsp;&nbsp;years old</div>
+                        ><div class="age-text">&nbsp;&nbsp;years old</div>
                     </div>
                     <div class="kiwi-welcome-asl-group gender">
                         <span class="kiwi-welcome-asl-picto">
                             <i class="fa fa-transgender" />
                         </span>
                         <div class="kiwi-welcome-asl-group-genders">
-                            <input type="radio" id="gender_m" value="M" v-model="sex">
+                            <input id="gender_m" v-model="sex" value="M" type="radio">
                             <label class="gender_m" for="gender_m">
-                                {{$t('plugin-asl:male')}}</label>
-                            <input type="radio" id="gender_f" value="F" v-model="sex">
+                                {{ $t('plugin-asl:male') }}</label>
+                            <input id="gender_f" v-model="sex" value="F" type="radio">
                             <label class="gender_f" for="gender_f">
-                                {{$t('plugin-asl:female')}}</label>
-                            <input type="radio" id="gender_u" value="U" v-model="sex">
+                                {{ $t('plugin-asl:female') }}</label>
+                            <input id="gender_u" v-model="sex" value="U" type="radio">
                             <label class="gender_u" for="gender_u">
-                                {{$t('plugin-asl:other')}}</label>
+                                {{ $t('plugin-asl:other') }}</label>
                         </div>
                     </div>
-                    <div class="kiwi-welcome-asl-group location">
+                    <div v-if="showLocation" class="kiwi-welcome-asl-group location">
                         <span class="kiwi-welcome-asl-picto">
-                            <i class="fa fa-map-marker"></i>
+                            <i class="fa fa-map-marker" />
                         </span>
-                        <input type="text" v-model="location" class="kiwi-welcome-asl-location"
-                               :placeholder="$t('plugin-asl:location')" />
-                        <input type="text" v-if="showRealname" v-model="realname"
-                               :label="$t('whois_realname')" />
+                        <input v-model="location" class="kiwi-welcome-asl-location" type="text"
+                               :placeholder="$t('plugin-asl:location')"
+                        >
+                        <input v-if="showRealname" v-model="realname" type="text"
+                               :label="$t('whois_realname')"
+                        >
                     </div>
                 </div>
                 <div v-if="showChannel" class="kiwi-welcome-asl-input-container">
                     <div class="kiwi-welcome-asl-group channel">
-                        <span class="kiwi-welcome-asl-picto"><i class="fa fa-slack"></i></span>
-                        <input type="text" v-model="channel" :placeholder="$t('channel')"
-                               class="kiwi-welcome-asl-channel" />
+                        <span class="kiwi-welcome-asl-picto"><i class="fa fa-slack" /></span>
+                        <input v-model="channel" :placeholder="$t('channel')" type="text"
+                               class="kiwi-welcome-asl-channel"
+                        >
                     </div>
+                </div>
+
+                <div v-if="termsContent" class="kiwi-welcome-asl-terms">
+                    <div>
+                        <input v-model="termsAccepted" type="checkbox">
+                    </div>
+                    <div class="kiwi-welcome-asl-terms-content" v-html="termsContent" />
                 </div>
 
                 <captcha
@@ -141,7 +151,7 @@ export default {
     },
     data: function data() {
         return {
-            errorMessage: '',
+            connectErrors: [],
             network: null,
             channel: '',
             nick: '',
@@ -154,6 +164,7 @@ export default {
             connectWithoutChannel: false,
             showPlainText: false,
             captchaReady: false,
+            termsAccepted: false,
             ageInt: null,
             sex: null,
             location: '',
@@ -178,6 +189,9 @@ export default {
         },
         sexes() {
             return config.getSetting('sexes');
+        },
+        showLocation() {
+            return config.getSetting('showLocation');
         },
         showRealname() {
             let showRealname = config.getSetting('showRealname');
@@ -233,6 +247,12 @@ export default {
             return typeof greeting === 'string' ?
                 greeting :
                 this.$t('start_button');
+        },
+        termsContent() {
+            let terms = this.$state.settings.startupOptions.termsContent;
+            return typeof terms === 'string' ?
+                terms :
+                '';
         },
         isNickValid() {
             let nickPatternStr = this.$state.setting('startupOptions.nick_format');
@@ -294,6 +314,10 @@ export default {
                 ready = false;
             }
 
+            if (this.termsContent && !this.termsAccepted) {
+                ready = false;
+            }
+
             if (!this.aslReady) {
                 ready = false;
             }
@@ -319,18 +343,24 @@ export default {
             previousNet = this.$state.getNetworkFromAddress(connectOptions.hostname.trim());
         }
 
-        if (previousNet && previousNet.connection.nick) {
-            this.nick = previousNet.connection.nick;
-        } else if (Misc.queryStringVal('nick')) {
+        if (Misc.queryStringVal('nick')) {
             this.nick = Misc.queryStringVal('nick');
+        } else if (previousNet && previousNet.connection.nick) {
+            this.nick = previousNet.connection.nick;
         } else {
             this.nick = options.nick;
         }
         this.nick = this.processNickRandomNumber(this.nick || '');
 
         if (options.password) {
+            // Don't use previousNet.password if we did not use previousNet.nick
             this.password = options.password;
-        } else if (previousNet && previousNet.password) {
+        } else if (
+            previousNet &&
+            previousNet.password && (
+                !Misc.queryStringVal('nick') || previousNet.connection.nick === Misc.queryStringVal('nick')
+            )
+        ) {
             this.password = previousNet.password;
             this.show_password_box = true;
         } else {
@@ -465,7 +495,7 @@ export default {
                 this.password = event.password;
             }
             if (event.error) {
-                this.errorMessage = event.error;
+                this.connectErrors.push(event.error);
             }
 
             this.$state.settings.startupOptions.altComponent = null;
@@ -479,7 +509,7 @@ export default {
             }
         },
         startUp: function startUp() {
-            this.errorMessage = '';
+            this.connectErrors = [];
 
             let options = Object.assign({}, this.$state.settings.startupOptions);
             let connectOptions = this.connectOptions();
@@ -559,23 +589,27 @@ export default {
                     this.$refs.layout.close();
                 }
                 net.ircClient.off('registered', onRegistered);
-                net.ircClient.off('irc error', onError);
                 net.ircClient.off('close', onClosed);
-            };
-            let onError = (event) => {
-                this.errorMessage = event.reason;
-                net.ircClient.off('registered', onRegistered);
                 net.ircClient.off('irc error', onError);
-                net.ircClient.off('close', onClosed);
             };
             let onClosed = () => {
+                let lastError = this.network.last_error;
+                if (lastError && !this.connectErrors.includes(lastError)) {
+                    this.connectErrors.push(lastError);
+                }
                 net.ircClient.off('registered', onRegistered);
-                net.ircClient.off('irc error', onError);
                 net.ircClient.off('close', onClosed);
+                net.ircClient.off('irc error', onError);
+            };
+            let onError = (event) => {
+                if (!event.reason || this.connectErrors.includes(event.reason)) {
+                    return;
+                }
+                this.connectErrors.push(event.reason);
             };
             net.ircClient.once('registered', onRegistered);
-            net.ircClient.once('irc error', onError);
             net.ircClient.once('close', onClosed);
+            net.ircClient.on('irc error', onError);
         },
         processNickRandomNumber: function processNickRandomNumber(nick) {
             // Replace ? with a random number
@@ -771,7 +805,7 @@ span.kiwi-welcome-asl-picto,
 .kiwi-welcome-asl-section-connection .u-form--big input[type="text"],
 .kiwi-welcome-asl-group input[type="text"],
 .kiwi-welcome-asl-group div {
-    width: 85%%;
+    width: 85%;
 }
 
 .kiwi-welcome-asl .kiwi-welcome-asl-have-password input[type="text"],
