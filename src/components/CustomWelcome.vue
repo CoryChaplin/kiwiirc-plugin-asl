@@ -417,12 +417,28 @@ export default {
                 persistedChannels = channels.join(',');
             }
         }
-        let hashChannel = decodeURIComponent(window.location.hash)
-            .replace(/^#/, '');
-        this.channel = (hashChannel ? '#' + hashChannel : '')
-            || persistedChannels
-            || options.channel
-            || '';
+        // Base: persisted buffers, then config fallback
+        this.channel = persistedChannels || options.channel || '';
+
+        // Collect extra channels from URL hash and query string — merge, don't override
+        let extraChannels = [];
+        let hashChannel = decodeURIComponent(window.location.hash).replace(/^#/, '');
+        if (hashChannel) {
+            extraChannels.push('#' + hashChannel);
+        }
+        if (Misc.queryStringVal(queryKeys.channel)) {
+            let qsChannels = ('#' + Misc.queryStringVal(queryKeys.channel).replace(/,/g, ',#')).split(',');
+            extraChannels.push(...qsChannels);
+        }
+        if (extraChannels.length) {
+            let existing = this.channel.split(',').map((c) => c.toLowerCase().trim()).filter(Boolean);
+            extraChannels.forEach((c) => {
+                if (c && !existing.includes(c.toLowerCase().trim())) {
+                    this.channel = this.channel ? this.channel + ',' + c : c;
+                    existing.push(c.toLowerCase().trim());
+                }
+            });
+        }
         this.showChannel = typeof options.showChannel === 'boolean' ?
             options.showChannel :
             true;
@@ -460,9 +476,6 @@ export default {
         }
         if (Misc.queryStringVal(queryKeys.ville)) {
             this.location = Misc.queryStringVal(queryKeys.ville);
-        }
-        if (Misc.queryStringVal(queryKeys.channel)) {
-            this.channel = '#' + Misc.queryStringVal(queryKeys.channel).replace(/,/g, ',#');
         }
         // End legacy params
 
