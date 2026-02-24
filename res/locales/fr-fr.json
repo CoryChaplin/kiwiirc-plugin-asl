@@ -28,5 +28,8 @@
     "report_channels": "Salon(s)",
     "report_reason": "Motif",
     "report_confirm": "Votre signalement a bien été transmis aux modérateurs.\nMerci, et bon chat !",
-    "system_message": "Message automatique"
+    "system_message": "Message automatique",
+    "topics_placeholder": "J'ai envie de...",
+    "channel_empty": "Aucun salon trouvé. Appuyez sur Entrée pour ajouter.",
+    "accept_terms": "Accepter les conditions"
 }

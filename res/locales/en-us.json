@@ -28,5 +28,8 @@
     "report_channels": "Channel(s)",
     "report_reason": "Reason",
     "report_confirm": "Your report has been transferred to our moderators.\nThank you and good chat !",
-    "system_message": "Automatic message"
+    "system_message": "Automatic message",
+    "topics_placeholder": "I feel like...",
+    "channel_empty": "No channel found. Press Enter to add.",
+    "accept_terms": "Accept Terms and Conditions"
 }

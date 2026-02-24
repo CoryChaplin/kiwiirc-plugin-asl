@@ -55,6 +55,8 @@
 </template>
 
 <script>
+
+/* global kiwi:true */
 /* 'kiwi public'; */
 
 let AwayStatusIndicator = kiwi.require('components/AwayStatusIndicator');

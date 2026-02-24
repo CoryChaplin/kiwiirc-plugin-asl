@@ -386,7 +386,7 @@ export default {
     transition: 0.4s;
 }
 
-.plugin-asl-userbrowser-scope .slider:before {
+.plugin-asl-userbrowser-scope .slider::before {
     position: absolute;
     content: "";
     height: 18px;
@@ -406,7 +406,7 @@ export default {
     box-shadow: 0 0 1px #428bca;
 }
 
-.plugin-asl-userbrowser-scope input:checked + .slider:before {
+.plugin-asl-userbrowser-scope input:checked + .slider::before {
     -webkit-transform: translateX(14px);
     -ms-transform: translateX(14px);
     transform: translateX(14px);
@@ -417,7 +417,7 @@ export default {
     border-radius: 24px;
 }
 
-.plugin-asl-userbrowser-scope .slider.round:before {
+.plugin-asl-userbrowser-scope .slider.round::before {
     border-radius: 50%;
 }
 

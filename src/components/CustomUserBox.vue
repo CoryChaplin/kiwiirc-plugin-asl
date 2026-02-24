@@ -5,14 +5,14 @@
         </span>
         <div class="kiwi-userbox-header">
             <i v-if="user.asl && user.asl.s.substr(0, 2) === '_m'"
-               v-bind:style="{ color: user.getColour() }"
+               :style="{ color: user.getColour() }"
                class="fa fa-male kiwi-userbox-icon" aria-hidden="true"
             />
             <i v-else-if="user.asl && user.asl.s.substr(0, 2) === '_f'"
-               v-bind:style="{ color: user.getColour() }"
+               :style="{ color: user.getColour() }"
                class="fa fa-female kiwi-userbox-icon" aria-hidden="true"
             />
-            <i v-else v-bind:style="{ color: user.getColour() }"
+            <i v-else :style="{ color: user.getColour() }"
                class="fa fa-user kiwi-userbox-icon" aria-hidden="true"
             />
             <h3>
@@ -74,7 +74,8 @@
             </a>
         </div>
         <div v-if="buffer.isQuery() && report_user_display"
-             class="kiwi-userbox-basicinfo kiwi-messagelist-message-notice">
+             class="kiwi-userbox-basicinfo kiwi-messagelist-message-notice"
+        >
             <form
                 class="kiwi-userbox-report"
                 @submit.prevent="submitReportForm"
@@ -98,7 +99,8 @@
             </form>
         </div>
         <div v-if="report_confirmation"
-             class="kiwi-userbox-basicinfo kiwi-messagelist-message-notice">
+             class="kiwi-userbox-basicinfo kiwi-messagelist-message-notice"
+        >
             <div>
                 {{ $t('plugin-asl:report_confirm') }}
             </div>
@@ -235,13 +237,9 @@ let IrcdDiffs = kiwi.require('helpers/IrcdDiffs');
 let GlobalApi = kiwi.require('libs/GlobalApi');
 let toHtml = kiwi.require('libs/renderers/Html');
 let parseMessage = kiwi.require('libs/MessageParser');
-let Avatar = kiwi.require('components/Avatar');
-let AwayStatusIndicator = kiwi.require('components/AwayStatusIndicator');
 
 export default {
     components: {
-        Avatar,
-        AwayStatusIndicator,
     },
     props: ['buffer', 'network', 'user'],
     data: function data() {
@@ -531,7 +529,7 @@ export default {
             this.network.ircClient.raw('MODE', this.buffer.name, '+b', banMask);
             this.network.ircClient.raw('KICK', this.buffer.name, this.user.nick, reason);
         },
-        toggleIgnore: function() {
+        toggleIgnore: function toggleIgnore() {
             if (this.user.ignore) {
                 this.network.ignored_list.pop(this.user.nick);
             } else {
@@ -617,8 +615,8 @@ export default {
 }
 
 .fa-user.kiwi-userbox-icon {
-  display: inline-block;
-  font-size: 2em;
+    display: inline-block;
+    font-size: 2em;
 }
 
 .kiwi-userbox-modestring {
@@ -631,11 +629,6 @@ export default {
     display: block;
     margin: 0 0 0 40px;
     font-size: 0.9em;
-}
-
-.fa-user.kiwi-userbox-icon {
-    display: inline-block;
-    font-size: 2em;
 }
 
 .kiwi-userbox-basicinfo {

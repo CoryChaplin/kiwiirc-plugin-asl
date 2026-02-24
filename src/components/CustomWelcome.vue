@@ -1,131 +1,273 @@
 <template>
     <startup-layout ref="layout"
-                    class="kiwi-welcome-asl kiwi-welcome-asl-section \
-                    kiwi-welcome-asl-section-connection"
+                    class="kiwi-welcome-asl kiwi-welcome-asl-section
+                           kiwi-welcome-asl-section-connection"
     >
         <template v-if="startupOptions.altComponent" v-slot:connection>
             <component :is="startupOptions.altComponent" @close="onAltClose" />
         </template>
         <template v-else v-slot:connection>
-            <form class="u-form u-form--big kiwi-welcome-asl-form" @submit.prevent="formSubmit">
-                <h2 v-html="greetingText" />
-                <div
-                    v-if="network && (connectErrors.length > 0 || network.state_error)"
-                    class="kiwi-welcome-asl-error"
-                >
-                    <template v-if="connectErrors.length > 0">
-                        <span v-for="err in connectErrors" :key="err">{{ err }}</span>
-                    </template>
-                    <template v-else>
-                        <span>{{ $t('network_noconnect') }}</span>
-                        <span>{{ readableStateError(network.state_error) }}</span>
-                    </template>
-                </div>
+            <div class="kiwi-welcome-overlay">
+                <!-- Background Bubbles -->
+                <div class="kiwi-welcome-bubble kiwi-welcome-bubble-1"/>
+                <div class="kiwi-welcome-bubble kiwi-welcome-bubble-2"/>
+                <div class="kiwi-welcome-bubble kiwi-welcome-bubble-3"/>
 
-                <div class="kiwi-welcome-asl-group nick">
-                    <span class="kiwi-welcome-asl-picto"><i class="fa fa-user" /></span>
-                    <input v-model="nick" class="kiwi-welcome-asl-nick"
-                           :placeholder="$t('nick')" type="text"
-                           @input="nick = nick.replace(/\s/g, '')"
-                           @focus="nickFocus"
-                    >
-                </div>
+                <div class="kiwi-welcome-card animate-zoom-in">
+                    <h1 class="kiwi-welcome-title" v-html="greetingText" />
 
-                <div v-if="showPass && toggablePass" class="kiwi-welcome-asl-group pass">
-                    <label
-                        class="kiwi-welcome-asl-have-password"
-                    >
-                        <input v-model="show_password_box" type="checkbox" >
-                        <span class="kiwi-welcome-asl-have-password">
-                            {{ $t('password_have') }} </span>
-                    </label>
-                </div>
-
-                <div v-if="showPass && (show_password_box || !toggablePass)"
-                     class="kiwi-welcome-asl-group pass"
-                >
-                    <span class="kiwi-welcome-asl-picto"><i class="fa fa-key" /></span>
-                    <input v-model="password"
-                           v-focus
-                           :show-plain-text="true"
-                           type="password"
-                    >
-                </div>
-                <div class="kiwi-welcome-asl-asl-container">
-                    <div class="kiwi-welcome-asl-group age">
-                        <span class="kiwi-welcome-asl-picto">
-                            <i class="fa fa-info-circle" /></span>
-                        <input v-model="age" type="number" class="kiwi-welcome-asl-age"
-                               min="16" max="99"
-                               :placeholder="$t('plugin-asl:age')"
-                        ><div class="age-text">&nbsp;&nbsp;years old</div>
-                    </div>
-                    <div class="kiwi-welcome-asl-group gender">
-                        <span class="kiwi-welcome-asl-picto">
-                            <i class="fa fa-transgender" />
-                        </span>
-                        <div class="kiwi-welcome-asl-group-genders">
-                            <input id="gender_m" v-model="sex" value="M" type="radio">
-                            <label class="gender_m" for="gender_m">
-                                {{ $t('plugin-asl:male') }}</label>
-                            <input id="gender_f" v-model="sex" value="F" type="radio">
-                            <label class="gender_f" for="gender_f">
-                                {{ $t('plugin-asl:female') }}</label>
-                            <input id="gender_u" v-model="sex" value="U" type="radio">
-                            <label class="gender_u" for="gender_u">
-                                {{ $t('plugin-asl:other') }}</label>
+                    <form class="kiwi-welcome-form" @submit.prevent="formSubmit">
+                        <!-- Errors -->
+                        <div v-if="network && (connectErrors.length > 0 || network.state_error)"
+                             class="kiwi-welcome-error"
+                        >
+                            <template v-if="connectErrors.length > 0">
+                                <span v-for="err in connectErrors" :key="err" class="block">
+                                    {{ readableStateError(err) }}
+                                </span>
+                            </template>
+                            <template v-else>
+                                <span class="block">{{ $t('network_noconnect') }}</span>
+                                <span class="block">
+                                    {{ readableStateError(network.state_error) }}
+                                </span>
+                            </template>
                         </div>
-                    </div>
-                    <div v-if="showLocation" class="kiwi-welcome-asl-group location">
-                        <span class="kiwi-welcome-asl-picto">
-                            <i class="fa fa-map-marker" />
-                        </span>
-                        <input v-model="location" class="kiwi-welcome-asl-location" type="text"
-                               :placeholder="$t('plugin-asl:location')"
+
+                        <!-- 1. Nick -->
+                        <div class="kiwi-input-wrapper">
+                            <div class="kiwi-input-icon">
+                                <i class="fa fa-user"/>
+                            </div>
+                            <input v-model="nick" type="text" required
+                                   :placeholder="$t('nick')"
+                                   class="kiwi-input"
+                                   @input="nick = nick.replace(/\s/g, '')"
+                                   @focus="nickFocus"
+                            >
+                        </div>
+
+                        <!-- 2. Password Toggle -->
+                        <div v-if="showPass && toggablePass" class="kiwi-toggle-wrapper">
+                            <label for="password-toggle" class="kiwi-toggle-label">
+                                {{ $t('password_have') }}
+                            </label>
+                            <button id="password-toggle" type="button"
+                                    :class="['kiwi-toggle', show_password_box ? 'active' : '']"
+                                    @click="show_password_box = !show_password_box"
+                            >
+                                <span :class="[
+                                    'kiwi-toggle-thumb',
+                                    show_password_box ? 'active' : ''
+                                ]"
+                                />
+                            </button>
+                        </div>
+
+                        <!-- Password Input -->
+                        <div v-if="showPass && (show_password_box || !toggablePass)"
+                             class="kiwi-input-wrapper animate-slide-down"
                         >
-                        <input v-if="showRealname" v-model="realname" type="text"
-                               :label="$t('whois_realname')"
+                            <div class="kiwi-input-icon">
+                                <i class="fa fa-key"/>
+                            </div>
+                            <input v-model="password" type="password"
+                                   :placeholder="$t('password')"
+                                   :class="[
+                                       'kiwi-input',
+                                       hasPasswordError ? 'kiwi-input-error' : ''
+                                   ]"
+                            >
+                        </div>
+
+                        <!-- 3. Age -->
+                        <div class="kiwi-input-wrapper">
+                            <div class="kiwi-input-icon">
+                                <i class="fa fa-calendar"/>
+                            </div>
+                            <input v-model="age" type="number" min="16" max="99"
+                                   :placeholder="$t('plugin-asl:age')"
+                                   class="kiwi-input"
+                            >
+                        </div>
+
+                        <!-- 4. Topics -->
+                        <div v-if="showTopics" ref="topicsContainer"
+                             class="kiwi-input-wrapper cursor-pointer"
                         >
-                    </div>
-                </div>
-                <div v-if="showChannel" class="kiwi-welcome-asl-input-container">
-                    <div class="kiwi-welcome-asl-group channel">
-                        <span class="kiwi-welcome-asl-picto"><i class="fa fa-slack" /></span>
-                        <input v-model="channel" :placeholder="$t('channel')" type="text"
-                               class="kiwi-welcome-asl-channel"
+                            <div class="kiwi-fake-input" @click="isTopicsOpen = !isTopicsOpen">
+                                <div class="kiwi-input-icon">
+                                    <i class="fa fa-heart"/>
+                                </div>
+                                <span :class="[
+                                    'truncate',
+                                    topics.length === 0 ? 'text-gray-400' : 'text-gray-900'
+                                ]"
+                                >
+                                    {{
+                                        topics.length === 0
+                                            ? $t('plugin-asl:topics_placeholder')
+                                            : topics.join(', ')
+                                    }}
+                                </span>
+                                <div class="kiwi-icon-right">
+                                    <i :class="[
+                                        'fa fa-chevron-down transform-transition',
+                                        isTopicsOpen ? 'rotate-180' : ''
+                                    ]"
+                                    />
+                                </div>
+                            </div>
+                            <div v-if="isTopicsOpen" class="kiwi-dropdown">
+                                <label v-for="option in loginDiscussionTopics" :key="option"
+                                       class="kiwi-dropdown-item"
+                                >
+                                    <input v-model="topics" type="checkbox" :value="option"
+                                           class="hidden"
+                                    >
+                                    <div :class="[
+                                        'kiwi-checkbox',
+                                        topics.includes(option) ? 'active' : ''
+                                    ]"
+                                    >
+                                        <i v-if="topics.includes(option)"
+                                           class="fa fa-check text-white text-xs"
+                                        />
+                                    </div>
+                                    <span class="text-sm">{{ option }}</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 5. Gender -->
+                        <div class="kiwi-gender-group">
+                            <button type="button"
+                                    :class="['kiwi-gender-btn', sex === 'M' ? 'active-m' : '']"
+                                    @click="sex = 'M'"
+                            >
+                                <i :class="[
+                                    'fa mr-1.5', sex === 'M' ? 'fa-check-circle' : 'fa-circle-o'
+                                ]"
+                                />
+                                <span>&nbsp;{{ $t('plugin-asl:male') }}</span>
+                            </button>
+                            <button type="button"
+                                    :class="['kiwi-gender-btn', sex === 'F' ? 'active-f' : '']"
+                                    @click="sex = 'F'"
+                            >
+                                <i :class="[
+                                    'fa mr-1.5', sex === 'F' ? 'fa-check-circle' : 'fa-circle-o'
+                                ]"
+                                />
+                                <span>&nbsp;{{ $t('plugin-asl:female') }}</span>
+                            </button>
+                            <button type="button"
+                                    :class="['kiwi-gender-btn', sex === 'U' ? 'active-u' : '']"
+                                    @click="sex = 'U'"
+                            >
+                                <i :class="[
+                                    'fa mr-1.5', sex === 'U' ? 'fa-check-circle' : 'fa-circle-o'
+                                ]"
+                                />
+                                <span>&nbsp;{{ $t('plugin-asl:other') }}</span>
+                            </button>
+                        </div>
+
+                        <!-- 6. Location -->
+                        <div v-if="showLocation" class="kiwi-input-wrapper">
+                            <div class="kiwi-input-icon">
+                                <i class="fa fa-map-marker"/>
+                            </div>
+                            <input v-model="location" type="text"
+                                   :placeholder="$t('plugin-asl:location')"
+                                   class="kiwi-input"
+                            >
+                        </div>
+                        <div v-if="showRealname" class="kiwi-input-wrapper"
+                             style="margin-top: 0.5rem;"
                         >
-                    </div>
+                            <input v-model="realname" type="text" class="kiwi-input"
+                                   :placeholder="$t('whois_realname')"
+                            >
+                        </div>
+
+                        <!-- 7. Channels -->
+                        <div v-if="showChannel" ref="channelsContainer"
+                             class="kiwi-input-wrapper"
+                        >
+                            <div class="kiwi-tags-input" @click="$refs.channelInput.focus()">
+                                <div class="kiwi-input-icon"
+                                     style="position: absolute; top: 0.5rem;"
+                                >
+                                    <i class="fa fa-hashtag"/>
+                                </div>
+                                <div class="kiwi-tags-list">
+                                    <span v-for="chan in channelsArray" :key="chan"
+                                          class="kiwi-tag"
+                                    >
+                                        {{ chan }}
+                                        <button type="button" class="kiwi-tag-close"
+                                                @click.stop="removeChannel(chan)"
+                                        >
+                                            <i class="fa fa-times"/>
+                                        </button>
+                                    </span>
+                                    <input ref="channelInput" v-model="channelSearch" type="text"
+
+                                           :placeholder="channelsArray.length === 0
+                                               ? $t('channels')
+                                               : ''"
+                                           class="kiwi-tag-input"
+                                           @focus="isChannelsOpen = true"
+                                           @keydown="onChannelKeyDown"
+                                    >
+                                </div>
+                            </div>
+                            <div v-if="isChannelsOpen && channelSearch.trim() !== ''"
+                                 class="kiwi-dropdown"
+                            >
+                                <template v-if="filteredChannels.length > 0">
+                                    <button v-for="chan in filteredChannels" :key="chan"
+                                            type="button"
+                                            class="kiwi-dropdown-item w-full text-left"
+                                            @click.stop="addChannel(chan)"
+                                    >
+                                        <i class="fa fa-hashtag text-gray-400 mr-2"/> {{ chan }}
+                                    </button>
+                                </template>
+                                <div v-else class="kiwi-dropdown-empty">
+                                    {{ $t('plugin-asl:channel_empty') }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Terms -->
+                        <div v-if="termsContent" class="kiwi-terms">
+                            <div v-if="!termsAutoAccept">
+                                <input id="terms" v-model="termsAccepted" type="checkbox">
+                                <label for="terms">{{ $t('plugin-asl:accept_terms') }}</label>
+                            </div>
+                            <div class="kiwi-terms-content" v-html="termsContent" />
+                        </div>
+
+                        <captcha :network="network" />
+
+                        <!-- Submit -->
+                        <div class="kiwi-submit-container">
+                            <button v-if="!network || network.state === 'disconnected'"
+                                    :disabled="!readyToStart"
+                                    type="submit"
+                                    class="kiwi-submit-btn"
+                                    v-html="buttonText"
+                            />
+                            <button v-else type="button" disabled class="kiwi-submit-btn disabled">
+                                <i class="fa fa-spin fa-spinner mr-2"/> {{ $t('logging_in') }}
+                            </button>
+                        </div>
+                        <div v-html="footerText" />
+                    </form>
                 </div>
-
-                <div v-if="termsContent" class="kiwi-welcome-asl-terms">
-                    <div v-if="!termsAutoAccept">
-                        <input v-model="termsAccepted" type="checkbox">
-                    </div>
-                    <div class="kiwi-welcome-asl-terms-content" v-html="termsContent" />
-                </div>
-
-                <captcha
-                    :network="network"
-                />
-
-                <button
-                    v-if="!network || network.state === 'disconnected'"
-                    :disabled="!readyToStart"
-                    class="u-button u-button-primary u-submit kiwi-welcome-asl-start"
-                    type="submit"
-                    v-html="buttonText"
-                />
-                <button
-                    v-else
-                    type="button"
-                    class="u-button u-button-primary u-submit kiwi-welcome-simple-start"
-                    disabled
-                >
-                    <i class="fa fa-spin fa-spinner" aria-hidden="true" />
-                </button>
-
-                <div v-html="footerText" />
-            </form>
+            </div>
         </template>
     </startup-layout>
 </template>
@@ -171,6 +313,10 @@ export default {
             sex: null,
             location: '',
             realname: '',
+            topics: [],
+            isTopicsOpen: false,
+            isChannelsOpen: false,
+            channelSearch: '',
         };
     },
     computed: {
@@ -199,6 +345,9 @@ export default {
             let showRealname = config.getSetting('showRealname');
             let gecosType = config.getSetting('gecosType');
             return showRealname && gecosType === 1;
+        },
+        showTopics() {
+            return config.getSetting('showTopics') !== false; // Default true if undefined
         },
         requiredFields() {
             return this.$state.getSetting('settings.plugin-asl.requiredFields');
@@ -293,6 +442,32 @@ export default {
 
             return this.nick.match(nickPattern);
         },
+        hasPasswordError() {
+            if (!this.network) return false;
+            let isSaslError = (err) => {
+                let msg = typeof err === 'string' ? err : Misc.networkErrorMessage(err);
+                return msg === 'SASL authentication failed';
+            };
+            let hasSaslError = this.network.state_error && isSaslError(this.network.state_error);
+            let hasConnectError = this.connectErrors.some((err) => isSaslError(err));
+            return hasSaslError || hasConnectError;
+        },
+        channelsArray() {
+            return this.channel.split(',').map((c) => c.trim()).filter(Boolean);
+        },
+        loginDiscussionTopics() {
+            return config.getSetting('loginDiscussionTopics') || [];
+        },
+        loginProposedChannels() {
+            return config.getSetting('loginProposedChannels') || [];
+        },
+        filteredChannels() {
+            let search = this.channelSearch.toLowerCase();
+            let cArr = this.channelsArray.map((c) => c.toLowerCase());
+            return this.loginProposedChannels.filter((c) => (
+                c.toLowerCase().includes(search) && !cArr.includes(c)
+            ));
+        },
         readyToStart: function readyToStart() {
             let ready = !!this.nick;
 
@@ -337,6 +512,12 @@ export default {
                 this.password = '';
             }
         },
+    },
+    mounted() {
+        document.addEventListener('mousedown', this.onDocumentClick);
+    },
+    beforeDestroy() {
+        document.removeEventListener('mousedown', this.onDocumentClick);
     },
     created: function created() {
         let options = this.startupOptions;
@@ -422,7 +603,12 @@ export default {
 
         // Collect extra channels from URL hash and query string — merge, don't override
         let extraChannels = [];
-        let hashChannel = decodeURIComponent(window.location.hash).replace(/^#/, '');
+        let hashChannel = '';
+        try {
+            hashChannel = decodeURIComponent(window.location.hash).replace(/^#/, '');
+        } catch (err) {
+            log.error('Invalid URL hash encoding:', err);
+        }
         if (hashChannel) {
             extraChannels.push('#' + hashChannel);
         }
@@ -531,11 +717,49 @@ export default {
             this.$state.settings.startupOptions.altComponent = null;
         },
         readableStateError(err) {
-            return Misc.networkErrorMessage(err);
+            let msg = typeof err === 'string' ? err : Misc.networkErrorMessage(err);
+            if (msg === 'SASL authentication failed') {
+                return this.$t('error_password_mismatch');
+            }
+            return msg || err;
         },
         nickFocus(event) {
             let el = event.target;
             el.setSelectionRange(el.value.length, el.value.length);
+        },
+
+        onChannelKeyDown(e) {
+            if (e.key === 'Enter' || e.key === ' ' || e.key === ',') {
+                e.preventDefault();
+                if (this.channelSearch.trim()) {
+                    this.addChannel(this.channelSearch);
+                }
+            }
+        },
+        onDocumentClick(e) {
+            let topicsEl = this.$refs.topicsContainer;
+            if (topicsEl && !topicsEl.contains(e.target)) {
+                this.isTopicsOpen = false;
+            }
+            let channelsEl = this.$refs.channelsContainer;
+            if (channelsEl && !channelsEl.contains(e.target)) {
+                this.isChannelsOpen = false;
+            }
+        },
+        addChannel(chanName) {
+            let chan = chanName.trim();
+            if (!chan) return;
+            if (!chan.startsWith('#')) chan = '#' + chan;
+            let current = this.channelsArray.slice();
+            if (!current.includes(chan)) {
+                current.push(chan);
+                this.channel = current.join(',');
+            }
+            this.channelSearch = '';
+            this.isChannelsOpen = false;
+        },
+        removeChannel(chanName) {
+            this.channel = this.channelsArray.filter((c) => c !== chanName).join(',');
         },
         formSubmit: function formSubmit() {
             if (this.termsAutoAccept && this.termsContent) {
@@ -707,458 +931,516 @@ export default {
 
 <style>
 
-/* Containers */
-form.kiwi-welcome-simple-form {
-    width: 70%;
-    padding: 20px;
+/* Utility classes */
+.text-white { color: #fff; }
+
+.truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mr-2 { margin-right: 0.5rem; }
+.mr-1\.5 { margin-right: 0.375rem; }
+.text-xs { font-size: 0.75rem; }
+.text-sm { font-size: 0.875rem; }
+.w-full { width: 100%; }
+
+.text-gray-400 {
+    color: var(--default-fg, #9ca3af);
+    opacity: 0.8;
 }
 
-/* Tweak */
-.u-form input[type="radio"] {
-    float: none;
+.text-gray-900 { color: var(--default-fg, #111827); }
+
+.kiwi-welcome-overlay {
+    min-height: 100%;
+    background-color: var(--default-bg, #f4f9ff);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     position: relative;
-    top: -3px;
-}
-.u-form--big .u-input-text-plaintext {
-    line-height: normal;
-    top: 9px;
-}
-/* Fallback EuropNet */
-.kiwi-welcome-asl {
-    height: 100%;
-}
-@media (max-width: 850px) {
-    form.kiwi-welcome-simple-form {
-        background: var(--brand-default-bg);
-        border-radius: 5px;
-        box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.2);
-    }
-}
-
-@media (max-width: 600px) {
-    form.kiwi-welcome-simple-form {
-        max-width: 350px;
-    }
-}
-
-form.kiwi-welcome-simple-form h2 {
-    margin: 0 0 40px 0;
-    padding: 0;
-    cursor: default;
-    font-weight: 600;
-    font-size: 2.2em;
-    text-align: center;
-    background-size: 0;
-    background-position: bottom;
-}
-
-.kiwi-welcome-asl h2 {
-    font-size: 1.7em;
-    text-align: center;
-    padding: 0;
-    margin: 0.5em 0 1em 0;
-}
-
-.kiwi-welcome-asl-section {
-    position: absolute;
-    top: 0;
-    bottom: 0;
+    overflow: hidden;
+    font-family: sans-serif;
+    padding: 1rem;
     box-sizing: border-box;
-    overflow-y: auto;
+    width: 100%;
+    border-radius: 1rem;
 }
 
-.kiwi-welcome-asl-section-connection {
-    position: relative;
-    min-height: 100%;
+/* Background Bubbles */
+.kiwi-welcome-bubble {
+    position: absolute;
+    border-radius: 9999px;
+    mix-blend-mode: multiply;
+    filter: blur(3rem);
+    opacity: 0.7;
+    animation: blob-anim 7s infinite alternate;
+}
+
+.kiwi-welcome-bubble-1 {
+    top: 5rem;
+    left: -10%;
+    width: 16rem;
+    height: 16rem;
+    background-color: #dbeafe; /* blue-100 */
+}
+
+.kiwi-welcome-bubble-2 {
+    top: 10rem;
+    right: -10%;
+    width: 18rem;
+    height: 18rem;
+    background-color: #cffafe; /* cyan-100 */
+    animation-delay: 2s;
+}
+
+.kiwi-welcome-bubble-3 {
+    bottom: 5rem;
+    left: 20%;
+    width: 20rem;
+    height: 20rem;
+    background-color: #eff6ff; /* blue-50 */
+    animation-delay: 4s;
+}
+
+@keyframes blob-anim {
+    0% { transform: scale(1) translate(0, 0); }
+    50% { transform: scale(1.05) translate(20px, -20px); }
+    100% { transform: scale(1) translate(-20px, 20px); }
+}
+
+.kiwi-welcome-card {
+    z-index: 10;
+    width: 100%;
+    max-width: 28rem;
+    margin: 0 auto;
     display: flex;
-    align-items: center;
+    flex-direction: column;
     justify-content: center;
 }
 
-.kiwi-welcome-asl-form {
-    background-color: #fff;
-    border-radius: 0.5em;
-    padding: 1em;
-    border: 1px solid #ececec;
+.animate-zoom-in {
+    animation: zoom-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/** Right side */
-.kiwi-welcome-asl-section-info {
-    right: 0;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100%;
-    background-size: cover;
-    background-position: bottom;
-    border-left: 5px solid #428BCA;
+@keyframes zoom-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
-.kiwi-welcome-asl-section-info-content {
-    background: rgba(255, 255, 255, 0.74);
-    margin: 2em;
-    color: #1b1b1b;
-    font-size: 1.5em;
-    padding: 2em;
-    line-height: 1.6em;
+.animate-slide-down {
+    animation: slide-down 0.2s ease-out;
 }
 
-/** Left side */
-.kiwi-welcome-asl-error {
+@keyframes slide-down {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.kiwi-welcome-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--brand-default, #004b87);
     text-align: center;
-    margin: 1em 0;
-    padding: 1em;
-}
-
-.kiwi-welcome-asl-error span {
-    display: block;
-    font-style: italic;
-    margin-bottom: 8px;
-}
-
-.kiwi-welcome-simple-error span:last-of-type {
-    margin-bottom: 0;
-}
-
-.kiwi-welcome-asl-section-connection label {
-    text-align: left;
-    display: inline-block;
-}
-
-.kiwi-welcome-asl-section-connection .u-form .u-input,
-.u-form--big input[type="text"],
-.kiwi-welcome-asl-group input[type="text"],
-.kiwi-welcome-asl-group input[type="number"],
-.kiwi-welcome-asl-group-genders {
-    width: 80%;
-    height: 24px;
-    font-size: 1em;
-    padding-left: 0.5em;
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-    color: #555;
-}
-.kiwi-welcome-asl-group input[type="number"],
-.kiwi-welcome-asl-group-genders {
-    padding: 0.21em 1em;
-}
-
-span.kiwi-welcome-asl-picto,
-.kiwi-welcome-asl-section-connection .u-form .u-input,
-.kiwi-welcome-asl-section-connection .u-form--big input[type="text"],
-.kiwi-welcome-asl-group input[type="text"],
-.kiwi-welcome-asl-group input[type="number"],
-.kiwi-welcome-asl-group-genders {
-    border: 1px solid;
-    border-color: #ccc;
-    border-radius: 4px;
-}
-
-.kiwi-welcome-asl-section-connection .u-form .u-input,
-.kiwi-welcome-asl-section-connection .u-form--big input[type="text"],
-.kiwi-welcome-asl-group input[type="text"],
-.kiwi-welcome-asl-group input[type="number"],
-.kiwi-welcome-asl-group div {
-    border-radius: 0 4px 4px 0;
-}
-.kiwi-welcome-asl-section-connection .u-form .u-input,
-.kiwi-welcome-asl-section-connection .u-form--big input[type="text"],
-.kiwi-welcome-asl-group input[type="text"],
-.kiwi-welcome-asl-group div {
-    width: 85%;
-}
-
-.kiwi-welcome-asl .kiwi-welcome-asl-have-password input[type="text"],
-.kiwi-welcome-asl-have-password {
-    font-size: 0.8em;
-    margin: 0.8em 0;
-}
-
-.kiwi-welcome-asl-have-password {
+    margin-bottom: 1rem;
     margin-top: 0;
 }
 
-.kiwi-welcome-asl-group {
+.kiwi-welcome-form {
     display: flex;
-    width: 85%;
-    height: 2em;
-    line-height: 1;
-    margin: 0 0 8px 0;
+    flex-direction: column;
+    gap: 0.625rem;
 }
 
-.kiwi-welcome-asl-nick {
-    font-weight: bold;
-}
-
-.kiwi-welcome-asl-group-genders {
-    display: inline-block;
-    font-size: 1em;
-    width: 280px;
-    padding: 0;
-    padding-left: 0.5em;
-    padding-top: 6px;
-}
-.kiwi-welcome-asl-group.gender {
-    width: 100%;
-}
-.kiwi-welcome-asl-group.gender .kiwi-welcome-asl-picto .fa-transgender {
-    font-weight: bolder;
-}
-.kiwi-welcome-asl-section-connection .u-form .u-input, .kiwi-welcome-asl-group input {
-    -webkit-transition: border-color ease-in-out 0.15s, -webkit-box-shadow ease-in-out 0.15s;
-    -o-transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
-    transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
-}
-
-.kiwi-welcome-asl-form input {
-    padding: 0.5em;
-}
-
-.kiwi-welcome-asl-group input:focus {
-    border-color: #66afe9;
-    outline: 0;
-    -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(102, 175, 233, 0.6);
-    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(102, 175, 233, 0.6);
-}
-
-.kiwi-input-invalid.u-input-text input.u-input,
-select.kiwi-input-invalid {
-    border-color: var(--brand-error);
-}
-
-.kiwi-welcome-simple-form .u-submit {
-    width: 100%;
-    height: 50px;
-    font-size: 1.3em;
-}
-
-span.kiwi-welcome-asl-picto {
-    display: inline-block;
-    width: 40px;
-    height: 25px;
-    font-size: 1.2em;
-    padding-top: 5px;
-    color: #555;
-    text-align: center;
-    background-color: #eee;
-    border-right: none;
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-}
-
-.kiwi-welcome-asl-group input[type="number"].kiwi-welcome-asl-age {
-    width: 4em;
-}
-
-.kiwi-welcome-asl-group .age-text {
-    margin: 8px 0;
-    width: 100px;
-}
-
-.kiwi-welcome-asl-group-genders label {
-    margin: 0 10px 0 -5px;
+.kiwi-input-wrapper {
     position: relative;
-    top: -10px;
-    font-size: 1em;
+    width: 100%;
 }
 
-.kiwi-welcome-asl-group-genders .gender_m {
-    color: #208bfc;
-    font-weight: bold;
+.kiwi-input-icon {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    padding-left: 1rem;
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+    color: rgba(0, 75, 135, 0.5);
+    transition: color 0.2s;
 }
 
-.kiwi-welcome-asl-group-genders .gender_f {
-    color: #f0f;
-    font-weight: bold;
+.kiwi-input-wrapper:focus-within .kiwi-input-icon {
+    color: var(--brand-default, #004b87);
 }
 
-.kiwi-welcome-asl-group-genders .gender_u {
-    color: #999;
-    font-weight: bold;
+.kiwi-input,
+.kiwi-fake-input {
+    display: flex;
+    width: 100%;
+    padding: 0.625rem 1rem 0.625rem 2.5rem;
+    background-color: var(--comp-bg, #fff);
+    border: 1px solid #e5e7eb;
+    border-radius: 9999px;
+    color: var(--default-fg, #111827);
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    box-sizing: border-box;
+    align-items: center;
+    min-height: 2.75rem;
 }
 
-.kiwi-welcome-asl-group i.fa-slack {
-    -ms-transform: rotate(19deg);
-    -webkit-transform: rotate(19deg);
-    transform: rotate(19deg);
+.kiwi-input:focus,
+.kiwi-fake-input.focus-within {
+    outline: none;
+    border-color: var(--brand-default, #004b87);
+    box-shadow: 0 0 0 2px rgba(0, 75, 135, 0.2);
 }
 
-.kiwi-welcome-asl-start {
-    font-size: 1.1em;
+.kiwi-input.kiwi-input-error {
+    border-color: var(--brand-error, #ef4444);
+    background-color: #fef2f2;
+}
+
+.kiwi-input.kiwi-input-error:focus {
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+
+.kiwi-input::placeholder {
+    color: #9ca3af;
+}
+
+.kiwi-icon-right {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    padding-right: 0.75rem;
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+}
+.transform-transition { transition: transform 0.2s; }
+.rotate-180 { transform: rotate(180deg); }
+
+/* Dropdown */
+.kiwi-dropdown {
+    position: absolute;
+    z-index: 20;
+    width: 100%;
+    margin-top: 0.25rem;
+    background-color: var(--comp-bg, #fff);
+    border: 1px solid #f3f4f6;
+    border-radius: 1rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    padding: 0.25rem 0;
+    max-height: 12rem;
+    overflow-y: auto;
+}
+
+.kiwi-dropdown-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    gap: 0.75rem;
+    border: none;
+    background: none;
+    font-size: 0.875rem;
+    color: #374151;
+}
+
+.kiwi-dropdown-item:hover {
+    background-color: #f9fafb;
+}
+
+.kiwi-checkbox {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 0.25rem;
+    border: 1px solid #d1d5db;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.kiwi-checkbox.active {
+    background-color: var(--brand-default, #004b87);
+    border-color: var(--brand-default, #004b87);
+}
+
+/* Password Toggle */
+.kiwi-toggle-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.125rem 0.5rem;
+}
+
+.kiwi-toggle-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--brand-default, #004b87);
+    cursor: pointer;
+    user-select: none;
+}
+
+.kiwi-toggle {
+    position: relative;
+    display: inline-flex;
+    height: 1.5rem;
+    width: 2.75rem;
+    flex-shrink: 0;
+    cursor: pointer;
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    background-color: #e5e7eb;
+}
+
+.kiwi-toggle.active {
+    background-color: var(--brand-default, #004b87);
+}
+
+.kiwi-toggle-thumb {
+    display: inline-block;
+    height: 1.25rem;
+    width: 1.25rem;
+    transform: translateX(0);
+    border-radius: 9999px;
+    background-color: var(--comp-bg, #fff);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s;
+}
+
+.kiwi-toggle-thumb.active {
+    transform: translateX(1.25rem);
+}
+
+/* Gender Group */
+.kiwi-gender-group {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.kiwi-gender-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.75rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e5e7eb;
+    background-color: var(--comp-bg, #fff);
+    opacity: 0.7;
+    transition: all 0.2s;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #000;
     cursor: pointer;
 }
 
-.kiwi-welcome-asl-start[disabled] {
+.kiwi-gender-btn:hover {
+    opacity: 1;
+}
+
+.kiwi-gender-btn.active-m {
+    background-color: #bde3ff;
+    border-color: #8bbbe0;
+    opacity: 1;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.kiwi-gender-btn.active-f {
+    background-color: #ffbdf1;
+    border-color: #e08bce;
+    opacity: 1;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.kiwi-gender-btn.active-u {
+    background-color: #a3a3a3;
+    border-color: #7a7a7a;
+    opacity: 1;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Tags / Channels */
+.kiwi-tags-input {
+    display: flex;
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.25rem 1rem 0.25rem 2.5rem;
+    background-color: var(--comp-bg, #fff);
+    border: 1px solid #e5e7eb;
+    border-radius: 1.5rem;
+    color: var(--default-fg, #111827);
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    box-sizing: border-box;
+    cursor: text;
+    align-items: center;
+}
+
+.kiwi-input-wrapper:focus-within .kiwi-tags-input {
+    border-color: var(--brand-default, #004b87);
+    box-shadow: 0 0 0 2px rgba(0, 75, 135, 0.2);
+}
+
+.kiwi-tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    align-items: center;
+    width: 100%;
+}
+
+.kiwi-tag {
+    background-color: #e6f3ff;
+    color: var(--brand-default, #004b87);
+    padding: 0.125rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.kiwi-tag-close {
+    background: none;
+    border: none;
+    padding: 0.125rem;
+    border-radius: 9999px;
+    cursor: pointer;
+    color: var(--brand-default, #004b87);
+    display: flex;
+    align-items: center;
+}
+
+.kiwi-tag-close:hover {
+    background-color: #cce7ff;
+}
+
+.kiwi-tag-input {
+    flex: 1;
+    min-width: 100px;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0.25rem 0;
+    font-size: 0.875rem;
+    color: var(--default-fg, #111827);
+}
+
+/* Submit */
+.kiwi-submit-container {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    display: flex;
+    justify-content: center;
+}
+
+.kiwi-submit-btn {
+    background-color: #8bcbf9;
+    color: var(--brand-default, #004b87);
+    font-weight: 700;
+    padding: 0.75rem 2.5rem;
+    border-radius: 9999px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s;
+    font-size: 0.9375rem;
+    letter-spacing: 0.025em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 3rem;
+    border: none;
+    cursor: pointer;
+}
+
+.kiwi-submit-btn:hover:not(:disabled) {
+    background-color: #6ebbf2;
+}
+
+.kiwi-submit-btn:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.kiwi-submit-btn:disabled {
+    opacity: 0.5;
     cursor: not-allowed;
 }
 
-.kiwi-welcome-asl-form .u-submit {
-    width: 100%;
-    line-height: 50px;
-    padding: 0;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 400;
-    text-shadow: none;
-    margin: 0;
-    transition: all 0.2s;
-    border: none;
-    background-color: #428BCA;
-}
-.kiwi-welcome-asl-form .u-submit:hover {
-    background-color: #3071a9;
-}
-
-/** Closing - the wiping away of the screen **/
-.kiwi-welcome-asl--closing .kiwi-welcome-asl-section-connection {
-    left: -50%;
-}
-
-.kiwi-welcome-asl--closing .kiwi-welcome-asl-section-info {
-    right: -50%;
-}
-
-.kiwi-welcome-asl .help {
-    position: absolute;
-    bottom: 0.2em;
-    font-size: 0.8em;
-    color: #666;
-    width: 50%;
+.kiwi-dropdown-empty {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    color: #6b7280;
     text-align: center;
 }
 
-.kiwi-welcome-asl .help a {
-    text-decoration: underline;
-    color: #666;
+/* Override Kiwi Layout if present */
+.kiwi-welcome-asl-section-connection {
+    position: static;
+    width: 100%;
 }
 
-.kiwi-welcome-asl .help a:hover {
-    color: #a9d87a;
+.kiwi-welcome-asl-section-info {
+    /* stylelint-disable-next-line declaration-no-important */
+    display: none !important;
 }
 
-/* Styling the preloader */
-.kiwi-welcome-asl .fa-spinner {
-    position: absolute;
-    top: 50%;
-    z-index: 999;
-    font-size: 100px;
-    margin-top: -0.5em;
-    left: 50%;
-    margin-left: -40px;
+.kiwi-welcome-asl {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+.text-center { text-align: center; }
+.mt-4 { margin-top: 1rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.hidden { display: none; }
+.cursor-pointer { cursor: pointer; }
+.block { display: block; }
+
+/* Error styling */
+.kiwi-welcome-error {
+    background-color: #fee2e2; /* light red background */
+    border-left: 4px solid var(--brand-error, #ef4444); /* red border */
+    color: #b91c1c; /* dark red text */
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-/** Smaller screen... **/
-@media screen and (max-width: 1025px) {
-    .kiwi-welcome-asl {
-        font-size: 0.9em;
-        position: relative;
-        min-height: 100%;
-    }
-
-    .kiwi-welcome-asl-section-connection {
-        width: 100%;
-        min-height: 400px;
-    }
-
-    .kiwi-welcome-asl-section-info-content {
-        margin: 1em;
-    }
-
-    .kiwi-welcome-asl-form {
-        left: auto;
-        margin: 20px auto 20px auto;
-        z-index: 100;
-        position: relative;
-        top: auto;
-        align-self: flex-start;
-    }
-
-    .kiwi-welcome-asl p.help {
-        position: absolute;
-        bottom: 20px;
-        width: 100%;
-        color: #fff;
-        z-index: 100;
-    }
-
-    .kiwi-welcome-asl p.help a {
-        color: #fff;
-    }
-
-    .kiwi-welcome-asl-section-info {
-        position: static;
-        width: 100%;
-        border: none;
-        min-height: 0;
-    }
-
-    .fa-spinner {
-        position: absolute;
-        left: 48%;
-        top: 50%;
-        margin-top: -50px;
-        color: #999;
-    }
-
-    .kiwi-welcome-asl-section .kiwi-welcome-asl-section-connection {
-        position: static;
-    }
+.kiwi-welcome-error span {
+    display: block;
+    margin-bottom: 0.25rem;
 }
 
-/** Even smaller screen.. probably phones **/
-@media screen and (max-width: 750px) {
-    .kiwi-welcome-asl {
-        font-size: 0.9em;
-        overflow-y: auto;
-    }
-
-    .kiwi-welcome-asl-section-info-content {
-        margin: 0.5em;
-    }
-
-    /** Closing - the wiping away of the screen **/
-    .kiwi-welcome-asl--closing .kiwi-welcome-asl-section-connection {
-        left: -100%;
-    }
-
-    .kiwi-welcome-asl--closing .kiwi-welcome-asl-section-info {
-        left: -100%;
-    }
-}
-
-@media screen and (max-width: 400px) {
-    .kiwi-welcome-asl-form {
-        width: 90%;
-    }
-}
-
-/** Background /border switching between screen sizes **/
-.kiwi-welcome-asl--no-bg .kiwi-welcome-asl-section-info {
-    background-color: rgb(51, 51, 51);
-}
-
-@media screen and (max-width: 850px) {
-    /* Apply some flex so that the info panel fills the rest of the bottom screen */
-    .kiwi-welcome-asl {
-        background-size: cover;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .kiwi-welcome-asl-section {
-        overflow-y: visible;
-    }
-
-    .kiwi-welcome-asl-section-info {
-        background-size: 0;
-        border-left: none;
-        flex: 1 0;
-        display: block;
-    }
-
-    .kiwi-welcome-asl--no-bg .kiwi-welcome-asl-section-info {
-        border-top: 5px solid #428BCA;
-    }
+.kiwi-welcome-error span:last-child {
+    margin-bottom: 0;
 }
 </style>

@@ -92,6 +92,15 @@ const defaultConfig = {
 
     // Display all users in common channels UserBrowser
     browseAllUsers: false,
+
+    // Themes for the 'I feel like' connection dropdown
+    loginDiscussionTopics: [],
+
+    // If should show discussion topics input box on welcome screen
+    showTopics: true,
+
+    // Channels suggested for autocomplete in the channels input
+    loginProposedChannels: [],
 };
 
 export function setDefaults() {
@@ -127,17 +136,17 @@ export function setDefaults() {
     pluginASL.gecosTypes = [];
     pluginASL.gecosTypes.push({
         regex: new RegExp('\\[(\\d+|\\*)\\/([' + sexesRegex + '*])(\\/(.*?|\\*))?\\](\\s*(.+))?'),
-        male: sexesRegex.substr(0,1),
-        female: sexesRegex.substr(1,1),
-        other: sexesRegex.substr(2,1),
+        male: sexesRegex.substr(0, 1),
+        female: sexesRegex.substr(1, 1),
+        other: sexesRegex.substr(2, 1),
         build: '[%asl] %r',
         separator: '/',
     });
     pluginASL.gecosTypes.push({
         regex: new RegExp('(\\d+)\\s+([' + sexesRegex + '])(\\s+(.*))?'),
-        male: sexesRegex.substr(0,1),
-        female: sexesRegex.substr(1,1),
-        other: sexesRegex.substr(2,1),
+        male: sexesRegex.substr(0, 1),
+        female: sexesRegex.substr(1, 1),
+        other: sexesRegex.substr(2, 1),
         build: '%asl',
         separator: ' ',
     });
