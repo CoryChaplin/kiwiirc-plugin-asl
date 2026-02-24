@@ -832,13 +832,14 @@ export default {
             let hasSwitchedActiveBuffer = false;
             let bufferObjs = Misc.extractBuffers(this.channel);
 
-            // Disable previously enabled channels that user removed
+            // Remove channel buffers that user removed from the input
             let channelNames = bufferObjs.map((b) => b.name.toLowerCase());
-            net.buffers.forEach((buffer) => {
-                if (buffer.isChannel() && buffer.enabled
-                    && !channelNames.includes(buffer.name.toLowerCase())) {
-                    buffer.enabled = false;
-                }
+            let buffersToRemove = net.buffers.filter((buffer) => (
+                buffer.isChannel()
+                && !channelNames.includes(buffer.name.toLowerCase())
+            ));
+            buffersToRemove.forEach((buffer) => {
+                this.$state.removeBuffer(buffer);
             });
 
             bufferObjs.forEach((bufferObj) => {
