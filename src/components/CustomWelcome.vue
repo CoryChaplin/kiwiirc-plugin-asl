@@ -462,11 +462,22 @@ export default {
             return config.getSetting('loginProposedChannels') || [];
         },
         filteredChannels() {
-            let search = this.channelSearch.toLowerCase();
+            let search = this.channelSearch.trim();
+            let searchLower = search.toLowerCase();
             let cArr = this.channelsArray.map((c) => c.toLowerCase());
-            return this.loginProposedChannels.filter((c) => (
-                c.toLowerCase().includes(search) && !cArr.includes(c)
+            let results = this.loginProposedChannels.filter((c) => (
+                c.toLowerCase().includes(searchLower) && !cArr.includes(c.toLowerCase())
             ));
+
+            if (search) {
+                let formattedSearch = search.startsWith('#') ? search : '#' + search;
+                let formattedSearchLower = formattedSearch.toLowerCase();
+                if (!results.some((c) => c.toLowerCase() === formattedSearchLower) && !cArr.includes(formattedSearchLower)) {
+                    results.unshift(formattedSearch);
+                }
+            }
+
+            return results;
         },
         readyToStart: function readyToStart() {
             let ready = !!this.nick;
