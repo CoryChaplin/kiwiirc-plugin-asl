@@ -148,24 +148,24 @@
                 <span class="kiwi-userbox-whois-line">
                     {{ $t('user_realname', {realname: user.realname}) }}
                 </span>
-                <span v-if="user.bot" class="kiwi-userbox-whois-line">{{ $t('user_bot') }}</span>
-                <span v-if="user.helpop" class="kiwi-userbox-whois-line">
+                <span v-if="user.whois.bot" class="kiwi-userbox-whois-line">{{ $t('user_bot') }}</span>
+                <span v-if="user.whois.helpop" class="kiwi-userbox-whois-line">
                     {{ $t('user_help') }}
                 </span>
-                <span v-if="user.operator" class="kiwi-userbox-whois-line">
+                <span v-if="user.whois.operator" class="kiwi-userbox-whois-line">
                     {{ $t('user_op') }}
                 </span>
-                <span v-if="user.server" class="kiwi-userbox-whois-line">
+                <span v-if="user.whois.server" class="kiwi-userbox-whois-line">
                     {{ $t('user_server', {
-                        server: user.server,
-                        info: (user.server_info ? `(${user.server_info})` : '')
+                        server: user.whois.server,
+                        info: (user.whois.server_info ? `(${user.whois.server_info})` : '')
                     }) }}
                 </span>
-                <span v-if="user.secure" class="kiwi-userbox-whois-line">
+                <span v-if="user.whois.secure" class="kiwi-userbox-whois-line">
                     {{ $t('user_secure') }}
                 </span>
                 <span
-                    v-if="user.channels"
+                    v-if="user.whois.channels"
                     class="kiwi-userbox-whois-line"
                     @click="onChannelsClick($event)"
                     v-html="$t('user_channels', {channels: userChannels})"
@@ -364,7 +364,7 @@ export default {
             },
         },
         userChannels() {
-            let channels = this.user.channels.trim().split(' ');
+            let channels = this.user.whois.channels.trim().split(' ');
             for (let i = 0; i < channels.length; i++) {
                 channels[i] = TextFormatting.linkifyChannels(channels[i]);
             }
