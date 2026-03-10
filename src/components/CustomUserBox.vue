@@ -261,7 +261,10 @@ export default {
             let parts = config.getSetting('singleLineString');
             let out = [];
             if (this.user.asl.a) {
-                out.push(parts.age.replace('%a', this.user.asl.a));
+                let ageTpl = parts.age[0] === '_' ?
+                    TextFormatting.t('plugin-asl:' + parts.age.substr(1)) :
+                    parts.age;
+                out.push(ageTpl.replace('%a', this.user.asl.a));
             }
             if (this.user.asl.s) {
                 let sex = this.user.asl.s[0] === '_' ?

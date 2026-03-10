@@ -1,5 +1,6 @@
 {
     "age": "Age",
+    "age_years": "%a years",
     "sex": "Sex",
     "location": "Location",
     "info": "Info",

@@ -1,5 +1,6 @@
 {
     "age": "Età",
+    "age_years": "%a anni",
     "sex": "Sesso",
     "location": "Località",
     "info": "Info",

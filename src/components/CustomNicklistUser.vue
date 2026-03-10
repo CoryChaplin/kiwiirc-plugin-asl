@@ -88,8 +88,10 @@ const methods = {
             if (asl.a) out.push('<br>');
         }
         if (asl.a) {
-            out.push(parts.age.replace('%a', asl.a));
-            // asl.l ? out.push('ans, ') : out.push('ans');
+            let ageTpl = parts.age[0] === '_' ?
+                TextFormatting.t('plugin-asl:' + parts.age.substr(1)) :
+                parts.age;
+            out.push(ageTpl.replace('%a', asl.a));
         }
         if (asl.l) {
             out.push(parts.location.replace('%l', asl.l));

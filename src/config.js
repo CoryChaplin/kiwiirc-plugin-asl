@@ -35,7 +35,7 @@ const defaultConfig = {
     // Single line string builder
     // age/sex/location (if they exist) are joined by the separator
     singleLineString: {
-        age: '%a years',
+        age: '_age_years',
         sex: '%s',
         location: '%l',
         separator: ' ',
