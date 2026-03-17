@@ -7,6 +7,64 @@
             <component :is="startupOptions.altComponent" @close="onAltClose" />
         </template>
         <template v-else v-slot:connection>
+            <div v-if="showLoader" class="chatnow-loader">
+                <div class="chatnow-loader__logo">
+                    <svg
+                        viewBox="-12 -12 725 336"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="chatnow-loader__svg"
+                    >
+                        <path
+                            class="chatnow-loader__path"
+                            pathLength="100"
+                            d="M17.1218 311.305C7.85821 310.313 3.43138 306.992
+                               1.08182 299.269C-0.406327 294.379 -0.337072 15.8619
+                               1.15337 10.9192C2.69078 5.82101 6.22965 2.66797
+                               11.8623 1.37781C18.5759 -0.159951 292.638 -0.214026
+                               299.301 1.3211C305.326 2.70913 311.493 6.60047
+                               314.964 11.2053C324.216 23.4778 322.718 41.9077
+                               311.66 51.8557C307.053 56 301.78 58.1583 293.419
+                               59.3219C289.329 59.891 251.132 60.1641 175.602
+                               60.1641H63.8365L63.8358 90.8739L63.835 121.584
+                               L82.0166 121.336C101.868 121.066 117.975 122.069
+                               124.873 124.005C143.415 129.211 152.186 156.501
+                               140.744 173.382C136.908 179.04 132.004 181.972
+                               123.118 183.919C116.884 185.285 112.1 185.572
+                               89.8372 185.915L63.8365 186.315V219.085V251.856
+                               H220.206H376.575L376.834 139.775C377.074 35.6632
+                               377.192 27.2766 378.482 21.8257C381.538 8.91506
+                               388.222 2.72796 401.301 0.703922C409.637 -0.586135
+                               684.69 0.0514879 689.399 1.37179C694.405 2.7756
+                               697.623 5.53657 699.303 9.87186C700.692 13.454
+                               700.762 19.4019 700.963 152.089C701.09 235.782
+                               700.882 292.674 700.436 295.891C698.898 306.994
+                               695.376 310.003 682.191 311.478C676.036 312.166
+                               671.561 312.173 664.037 311.505C649.142 310.184
+                               644.557 307.291 642.555 297.952C641.976 295.253
+                               641.714 257.539 641.714 177.097V60.1641H545.956
+                               H450.199L449.906 174.984C449.691 258.887 449.366
+                               290.837 448.699 293.644C447.278 299.622 444.305
+                               305.43 441.726 307.268C440.433 308.189 437.309
+                               309.56 434.783 310.314C430.461 311.606 418.201
+                               311.693 226.487 311.799C114.45 311.86 20.2356
+                               311.638 17.1218 311.305Z"
+                            stroke="white"
+                            stroke-width="8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                    </svg>
+                </div>
+                <div class="chatnow-loader__content">
+                    <div class="chatnow-loader__dots">
+                        <div class="chatnow-loader__dot" style="animation-delay: 0s;" />
+                        <div class="chatnow-loader__dot" style="animation-delay: 0.15s;" />
+                        <div class="chatnow-loader__dot" style="animation-delay: 0.3s;" />
+                    </div>
+                    <p class="chatnow-loader__text">{{ $t('logging_in') }}</p>
+                </div>
+            </div>
             <div class="kiwi-welcome-overlay">
                 <!-- Background Bubbles -->
                 <div class="kiwi-welcome-bubble kiwi-welcome-bubble-1"/>
@@ -295,6 +353,7 @@ export default {
     },
     data: function data() {
         return {
+            chatNowMode: false,
             connectErrors: [],
             network: null,
             channel: '',
@@ -515,6 +574,12 @@ export default {
 
             return ready;
         },
+        showLoader() {
+            if (!this.chatNowMode) return false;
+            if (this.connectErrors.length) return false;
+            if (this.network && this.network.state === 'disconnected') return false;
+            return true;
+        },
     },
     watch: {
         show_password_box(newVal) {
@@ -676,12 +741,15 @@ export default {
         }
         // End legacy params
 
-        if (
-            options.autoConnect &&
-            this.nick &&
-            (Misc.queryStringVal('chatnow') && Misc.queryStringVal('chatnow') === '1') &&
-            (this.channel || this.connectWithoutChannel)
-        ) {
+        const isChatNow = !!(
+            Misc.queryStringVal('chatnow') && Misc.queryStringVal('chatnow') === '1'
+        );
+
+        if (isChatNow && this.nick && (this.channel || this.connectWithoutChannel)) {
+            this.chatNowMode = true;
+            this.startUp();
+        } else if (options.autoConnect && this.nick &&
+            (this.channel || this.connectWithoutChannel)) {
             this.startUp();
         }
     },
@@ -1454,5 +1522,100 @@ export default {
 
 .kiwi-welcome-error span:last-child {
     margin-bottom: 0;
+}
+
+.chatnow-loader {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #194D78;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.chatnow-loader__logo {
+    width: 16rem;
+    margin-bottom: 2rem;
+
+    @media (min-width: 768px) {
+        width: 24rem;
+    }
+}
+
+.chatnow-loader__svg {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    filter: drop-shadow(0 25px 25px rgba(0, 0, 0, 0.15));
+}
+
+.chatnow-loader__path {
+    stroke-dasharray: 100;
+    animation: chatnowDrawFillFade 3.5s ease-in-out infinite;
+}
+
+.chatnow-loader__content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    animation: chatnowFadeInUp 0.8s ease-out 0.5s both;
+}
+
+.chatnow-loader__dots {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.chatnow-loader__dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    background-color: white;
+    border-radius: 50%;
+    animation: chatnowDotBounce 0.8s ease-in-out infinite;
+}
+
+.chatnow-loader__text {
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+    letter-spacing: 0.025em;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+@keyframes chatnowDrawFillFade {
+    0%   { stroke-dashoffset: 100; fill: rgba(255, 255, 255, 0); opacity: 1; }
+    40%  { stroke-dashoffset: 0;   fill: rgba(255, 255, 255, 0); opacity: 1; }
+    60%  { stroke-dashoffset: 0;   fill: rgba(255, 255, 255, 1); opacity: 1; }
+    80%  { stroke-dashoffset: 0;   fill: rgba(255, 255, 255, 1); opacity: 0; }
+    100% { stroke-dashoffset: 100; fill: rgba(255, 255, 255, 0); opacity: 0; }
+}
+
+@keyframes chatnowDotBounce {
+    0%, 100% {
+        transform: translateY(0);
+        opacity: 0.5;
+    }
+
+    50% {
+        transform: translateY(-50%);
+        opacity: 1;
+    }
+}
+
+@keyframes chatnowFadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 </style>
