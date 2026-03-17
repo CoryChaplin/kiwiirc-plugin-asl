@@ -748,9 +748,6 @@ export default {
         if (isChatNow && this.nick && (this.channel || this.connectWithoutChannel)) {
             this.chatNowMode = true;
             this.startUp();
-        } else if (options.autoConnect && this.nick &&
-            (this.channel || this.connectWithoutChannel)) {
-            this.startUp();
         }
     },
     methods: {
