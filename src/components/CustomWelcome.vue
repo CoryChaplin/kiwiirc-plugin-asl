@@ -299,6 +299,7 @@
                                          type="button"
                             />
                         </div>
+
                         <!-- Nick hint — shown when nick is missing, hidden once filled -->
                         <p :class="[
                             'kiwi-asl-nick-hint',
@@ -307,6 +308,12 @@
                         >
                             <i class="fa fa-arrow-up" aria-hidden="true"/>
                             {{ $t('plugin-asl:nick_hint') }}
+                        </p>
+
+                        <p class="kiwi-asl-cgu-text">
+                            En vous connectant, vous reconnaissez accepter les <strong>
+                                <a href="https://www.europnet.org/fr/a-propos-d-europnet/legal/cgu.html" target="_blank" rel="noopener noreferrer" class="kiwi-asl-cgu-link">CGU</a>
+                            </strong>.
                         </p>
                         <div v-html="footerText" />
                     </form>
@@ -2043,5 +2050,17 @@ export default {
         opacity: 1;
         transform: scale(1);
     }
+}
+
+.kiwi-asl-cgu-text {
+    font-size: 0.9em;
+    text-align: center;
+    margin-top: 1em;
+    opacity: 0.9;
+}
+
+.kiwi-asl-cgu-link {
+    text-decoration: none;
+    color: var(--brand-default, #004b87),
 }
 </style>
