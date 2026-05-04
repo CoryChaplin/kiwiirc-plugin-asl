@@ -93,14 +93,14 @@ const defaultConfig = {
     // Display all users in common channels UserBrowser
     browseAllUsers: false,
 
-    // Themes for the 'I feel like' connection dropdown
-    loginDiscussionTopics: [],
-
     // If should show discussion topics input box on welcome screen
     showTopics: true,
 
-    // Channels suggested for autocomplete in the channels input
-    loginProposedChannels: [],
+    // Irception API base URL — provides /form/config, /getLocation, /recommend/json
+    irceptionApiUrl: 'https://irception.europnet.org',
+
+    // Origin ID sent to the irception API (identifies this client/site)
+    irceptionOrigin: 1,
 };
 
 export function setDefaults() {

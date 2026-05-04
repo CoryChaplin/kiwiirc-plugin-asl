@@ -148,7 +148,9 @@
                 <span class="kiwi-userbox-whois-line">
                     {{ $t('user_realname', {realname: user.realname}) }}
                 </span>
-                <span v-if="user.whois.bot" class="kiwi-userbox-whois-line">{{ $t('user_bot') }}</span>
+                <span v-if="user.whois.bot" class="kiwi-userbox-whois-line">
+                    {{ $t('user_bot') }}
+                </span>
                 <span v-if="user.whois.helpop" class="kiwi-userbox-whois-line">
                     {{ $t('user_help') }}
                 </span>

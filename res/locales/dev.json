@@ -28,5 +28,17 @@
     "report_channels": "Channel(s)",
     "report_reason": "Reason",
     "report_confirm": "Your report has been transferred to our moderators.\nThank you and good chat !",
-    "system_message": "Automatic message"
+    "system_message": "Automatic message",
+    "topics_section_label": "I feel like…",
+    "suggestions_label": "Suggested channels",
+    "my_channels_label": "My channels",
+    "channel_add_placeholder": "Add a channel",
+    "channel_remove": "Remove {{channel}}",
+    "channels_full": "Maximum {{max}} channels",
+    "suggestion_add": "Add {{channel}}",
+    "cta_label": "Join the chat",
+    "cta_channel_count_one": "{{count}} channel",
+    "cta_channel_count_many": "{{count}} channels",
+    "form_config_error": "Service temporarily unavailable — try again in a moment.",
+    "retry": "Retry"
 }
