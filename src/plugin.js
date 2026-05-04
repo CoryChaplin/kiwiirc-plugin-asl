@@ -1,3 +1,7 @@
+// Polyfill for Babel-transpiled async/await — Webpack 4 + @babel/preset-env
+// emit calls to regeneratorRuntime that aren't otherwise provided.
+import 'regenerator-runtime/runtime';
+
 import CustomWelcome from './components/CustomWelcome.vue';
 import CustomUserBox from './components/CustomUserBox.vue';
 import CustomNicklistUser from './components/CustomNicklistUser.vue';

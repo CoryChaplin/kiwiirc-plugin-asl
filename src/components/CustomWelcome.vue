@@ -138,77 +138,61 @@
                             >
                         </div>
 
-                        <!-- 3. Age -->
-                        <div class="kiwi-input-wrapper">
-                            <div class="kiwi-input-icon">
-                                <i class="fa fa-calendar"/>
-                            </div>
-                            <input v-model="age" type="number" min="16" max="99"
-                                   :placeholder="$t('plugin-asl:age')"
-                                   class="kiwi-input"
-                            >
-                        </div>
-
-                        <!-- 4. Topics -->
-                        <div v-if="showTopics" ref="topicsContainer"
-                             class="kiwi-input-wrapper cursor-pointer"
-                        >
-                            <div class="kiwi-fake-input" @click="isTopicsOpen = !isTopicsOpen">
+                        <!-- 3. Age + Ville (one row) -->
+                        <div class="kiwi-asl-age-ville-row">
+                            <div class="kiwi-input-wrapper kiwi-asl-age-ville-row__age">
                                 <div class="kiwi-input-icon">
-                                    <i class="fa fa-heart"/>
+                                    <i class="fa fa-calendar"/>
                                 </div>
-                                <span :class="[
-                                    'truncate',
-                                    topics.length === 0 ? 'text-gray-400' : 'text-gray-900'
-                                ]"
+                                <input v-model="age" type="number" min="13" max="99"
+                                       :placeholder="$t('plugin-asl:age')"
+                                       :class="[
+                                           'kiwi-input',
+                                           ageTooYoung ? 'kiwi-input-warning' : ''
+                                       ]"
+                                       @blur="onAgeBlur"
                                 >
-                                    {{
-                                        topics.length === 0
-                                            ? $t('plugin-asl:topics_placeholder')
-                                            : topics.join(', ')
-                                    }}
-                                </span>
-                                <div class="kiwi-icon-right">
+                            </div>
+                            <div v-if="showLocation"
+                                 class="kiwi-input-wrapper kiwi-asl-age-ville-row__ville"
+                            >
+                                <div class="kiwi-input-icon">
+                                    <i class="fa fa-map-marker"/>
+                                </div>
+                                <input v-model="location" type="text"
+                                       :placeholder="$t('plugin-asl:location')"
+                                       class="kiwi-input kiwi-input--with-gps"
+                                >
+                                <button v-if="gpsAvailable"
+                                        type="button"
+                                        class="kiwi-asl-gps-btn"
+                                        :title="$t('plugin-asl:gps_locate')"
+                                        @click="requestGps"
+                                >
                                     <i :class="[
-                                        'fa fa-chevron-down transform-transition',
-                                        isTopicsOpen ? 'rotate-180' : ''
+                                        'fa',
+                                        gpsLoading ? 'fa-spin fa-spinner' : 'fa-crosshairs'
                                     ]"
                                     />
-                                </div>
-                            </div>
-                            <div v-if="isTopicsOpen" class="kiwi-dropdown">
-                                <label v-for="option in loginDiscussionTopics" :key="option"
-                                       class="kiwi-dropdown-item"
-                                >
-                                    <input v-model="topics" type="checkbox" :value="option"
-                                           class="hidden"
-                                    >
-                                    <div :class="[
-                                        'kiwi-checkbox',
-                                        topics.includes(option) ? 'active' : ''
-                                    ]"
-                                    >
-                                        <i v-if="topics.includes(option)"
-                                           class="fa fa-check text-white text-xs"
-                                        />
-                                    </div>
-                                    <span class="text-sm">{{ option }}</span>
-                                </label>
+                                </button>
                             </div>
                         </div>
+                        <!-- Age hint — under the age field, mirrors irception #age-hint -->
+                        <p v-if="ageTooYoung" class="kiwi-asl-age-hint">
+                            <i class="fa fa-exclamation-triangle fa-xs" aria-hidden="true"/>
+                            {{ $t('plugin-asl:age_hint', { min: ageMin }) }}
+                        </p>
 
-                        <!-- 5. Gender -->
-                        <div class="kiwi-gender-group">
-                            <button type="button"
-                                    :class="['kiwi-gender-btn', sex === 'M' ? 'active-m' : '']"
-                                    @click="sex = 'M'"
+                        <div v-if="showRealname" class="kiwi-input-wrapper"
+                             style="margin-top: 0.5rem;"
+                        >
+                            <input v-model="realname" type="text" class="kiwi-input"
+                                   :placeholder="$t('whois_realname')"
                             >
-                                <i :class="[
-                                    'fa mr-1.5', sex === 'M' ? 'fa-check-circle' : 'fa-circle-o'
-                                ]"
-                                />
-                                <span>&nbsp;{{ $t('plugin-asl:male') }}</span>
-                            </button>
+                        </div>
+
+                        <!-- 4. Gender — Femme / Homme / Secret per spec -->
+                        <div class="kiwi-gender-group">
                             <button type="button"
                                     :class="['kiwi-gender-btn', sex === 'F' ? 'active-f' : '']"
                                     @click="sex = 'F'"
@@ -218,6 +202,16 @@
                                 ]"
                                 />
                                 <span>&nbsp;{{ $t('plugin-asl:female') }}</span>
+                            </button>
+                            <button type="button"
+                                    :class="['kiwi-gender-btn', sex === 'M' ? 'active-m' : '']"
+                                    @click="sex = 'M'"
+                            >
+                                <i :class="[
+                                    'fa mr-1.5', sex === 'M' ? 'fa-check-circle' : 'fa-circle-o'
+                                ]"
+                                />
+                                <span>&nbsp;{{ $t('plugin-asl:male') }}</span>
                             </button>
                             <button type="button"
                                     :class="['kiwi-gender-btn', sex === 'U' ? 'active-u' : '']"
@@ -231,73 +225,51 @@
                             </button>
                         </div>
 
-                        <!-- 6. Location -->
-                        <div v-if="showLocation" class="kiwi-input-wrapper">
-                            <div class="kiwi-input-icon">
-                                <i class="fa fa-map-marker"/>
-                            </div>
-                            <input v-model="location" type="text"
-                                   :placeholder="$t('plugin-asl:location')"
-                                   class="kiwi-input"
+                        <!-- 6. Topics chips -->
+                        <topic-chip-group v-if="showTopics && formConfig"
+                                          :label="$t('plugin-asl:topics_section_label')"
+                                          :topics="formConfig.topics || []"
+                                          :selected-topics="selectedTopics"
+                                          :hidden-topics="ruleResult.hiddenTopics"
+                                          :disabled-topics="ruleResult.disabledTopics"
+                                          @toggle="onTopicToggle"
+                        />
+
+                        <!-- Topic rule correction messages -->
+                        <div v-if="topicErrors.length" class="kiwi-asl-topic-errors">
+                            <p v-for="msg in topicErrors" :key="msg"
+                               class="kiwi-asl-topic-error"
                             >
-                        </div>
-                        <div v-if="showRealname" class="kiwi-input-wrapper"
-                             style="margin-top: 0.5rem;"
-                        >
-                            <input v-model="realname" type="text" class="kiwi-input"
-                                   :placeholder="$t('whois_realname')"
-                            >
+                                <i class="fa fa-exclamation-triangle" aria-hidden="true"/>
+                                {{ msg }}
+                            </p>
                         </div>
 
-                        <!-- 7. Channels -->
-                        <div v-if="showChannel" ref="channelsContainer"
-                             class="kiwi-input-wrapper"
-                        >
-                            <div class="kiwi-tags-input" @click="$refs.channelInput.focus()">
-                                <div class="kiwi-input-icon"
-                                     style="position: absolute; top: 0.5rem;"
-                                >
-                                    <i class="fa fa-hashtag"/>
-                                </div>
-                                <div class="kiwi-tags-list">
-                                    <span v-for="chan in channelsArray" :key="chan"
-                                          class="kiwi-tag"
-                                    >
-                                        {{ chan }}
-                                        <button type="button" class="kiwi-tag-close"
-                                                @click.stop="removeChannel(chan)"
-                                        >
-                                            <i class="fa fa-times"/>
-                                        </button>
-                                    </span>
-                                    <input ref="channelInput" v-model="channelSearch" type="text"
+                        <!-- 7. Suggestions cloud -->
+                        <suggestions-cloud v-if="showTopics && formConfig"
+                                           :label="$t('plugin-asl:suggestions_label')"
+                                           :selected-topics="selectedTopics"
+                                           :topics="formConfig.topics || []"
+                                           :suggestions="serverSuggestions"
+                                           :current-channels="channelNames"
+                                           :blocked-channels="ruleResult.blockedChannels"
+                                           :removed-tag-cloud-channels="removedTagCloudChannels"
+                                           @pick="onSuggestionPick"
+                        />
 
-                                           :placeholder="channelsArray.length === 0
-                                               ? $t('channels')
-                                               : ''"
-                                           class="kiwi-tag-input"
-                                           @focus="isChannelsOpen = true"
-                                           @keydown="onChannelKeyDown"
-                                    >
-                                </div>
-                            </div>
-                            <div v-if="isChannelsOpen && channelSearch.trim() !== ''"
-                                 class="kiwi-dropdown"
-                            >
-                                <template v-if="filteredChannels.length > 0">
-                                    <button v-for="chan in filteredChannels" :key="chan"
-                                            type="button"
-                                            class="kiwi-dropdown-item w-full text-left"
-                                            @click.stop="addChannel(chan)"
-                                    >
-                                        <i class="fa fa-hashtag text-gray-400 mr-2"/> {{ chan }}
-                                    </button>
-                                </template>
-                                <div v-else class="kiwi-dropdown-empty">
-                                    {{ $t('plugin-asl:channel_empty') }}
-                                </div>
-                            </div>
-                        </div>
+                        <!-- 8. Selected channels -->
+                        <selected-channels-list v-if="showChannel"
+                                                :label="$t('plugin-asl:my_channels_label')"
+                                                :channels="selectedChannelEntries"
+                                                :locked-channels="ruleResult.lockedChannels"
+                                                :blocked-channels="ruleResult.blockedChannels"
+                                                :max-channels="maxChannels"
+                                                :channel-categories="formConfig
+                                                    ? (formConfig.channelCategories || [])
+                                                    : []"
+                                                @add="onChannelAdd"
+                                                @remove="onChannelRemove"
+                        />
 
                         <!-- Terms -->
                         <div v-if="termsContent" class="kiwi-terms">
@@ -312,16 +284,30 @@
 
                         <!-- Submit -->
                         <div class="kiwi-submit-container">
-                            <button v-if="!network || network.state === 'disconnected'"
-                                    :disabled="!readyToStart"
-                                    type="submit"
-                                    class="kiwi-submit-btn"
-                                    v-html="buttonText"
+                            <dynamic-cta v-if="!network || network.state === 'disconnected'"
+                                         :ready="readyToStart"
+                                         :count="selectedChannelEntries.length"
+                                         :pending="false"
+                                         :label="ctaLabel"
+                                         @submit="formSubmit"
                             />
-                            <button v-else type="button" disabled class="kiwi-submit-btn disabled">
-                                <i class="fa fa-spin fa-spinner mr-2"/> {{ $t('logging_in') }}
-                            </button>
+                            <dynamic-cta v-else
+                                         :ready="false"
+                                         :count="0"
+                                         :pending="true"
+                                         :label="$t('logging_in')"
+                                         type="button"
+                            />
                         </div>
+                        <!-- Nick hint — shown when nick is missing, hidden once filled -->
+                        <p :class="[
+                            'kiwi-asl-nick-hint',
+                            !nick ? 'is-visible' : 'is-hidden'
+                        ]"
+                        >
+                            <i class="fa fa-arrow-up" aria-hidden="true"/>
+                            {{ $t('plugin-asl:nick_hint') }}
+                        </p>
                         <div v-html="footerText" />
                     </form>
                 </div>
@@ -337,6 +323,14 @@
 
 import * as config from '../config.js';
 import * as utils from '../libs/utils.js';
+import * as irceptionApi from '../libs/irceptionApi.js';
+import { evaluateRules, isTopicHeld } from '../libs/irceptionRules.js';
+import { readWelcomeState, writeWelcomeState } from '../libs/welcomeStorage.js';
+
+import TopicChipGroup from './welcome/TopicChipGroup.vue';
+import SuggestionsCloud from './welcome/SuggestionsCloud.vue';
+import SelectedChannelsList from './welcome/SelectedChannelsList.vue';
+import DynamicCta from './welcome/DynamicCta.vue';
 
 let Misc = kiwi.require('helpers/Misc');
 let Logger = kiwi.require('libs/Logger');
@@ -346,17 +340,43 @@ let StartupLayout = kiwi.require('components/startups/CommonLayout');
 
 let log = Logger.namespace('Welcome.vue');
 
+const RECOMMEND_DEBOUNCE_MS = 300;
+const REVERSE_GEOCODE_DEBOUNCE_MS = 600;
+
+const EMPTY_RULE_RESULT = {
+    disabledTopics: {},
+    hiddenTopics: {},
+    blockedChannels: {},
+    channelsToRemove: [],
+    lockedChannels: [],
+    corrections: [],
+};
+
+function freshRuleResult() {
+    return {
+        disabledTopics: {},
+        hiddenTopics: {},
+        blockedChannels: {},
+        channelsToRemove: [],
+        lockedChannels: [],
+        corrections: [],
+    };
+}
+
 export default {
     components: {
         Captcha,
         StartupLayout,
+        TopicChipGroup,
+        SuggestionsCloud,
+        SelectedChannelsList,
+        DynamicCta,
     },
     data: function data() {
         return {
             chatNowMode: false,
             connectErrors: [],
             network: null,
-            channel: '',
             nick: '',
             password: '',
             showChannel: true,
@@ -372,10 +392,53 @@ export default {
             sex: null,
             location: '',
             realname: '',
-            topics: [],
-            isTopicsOpen: false,
-            isChannelsOpen: false,
-            channelSearch: '',
+
+            // Irception form config (topics, rules, channelCategories, maxChannels...).
+            // Null when /form/config hasn't loaded yet OR when irception is
+            // unreachable — in that case we degrade to a basic connection form
+            // (no topic chips, no tag cloud, no recommendations) but every
+            // other field stays functional. No user-facing error.
+            formConfig: null,
+
+            // Rule evaluation result, refreshed on any state change.
+            ruleResult: { ...EMPTY_RULE_RESULT },
+
+            // Error messages from rule corrections (e.g. "Rencontres nécessite 16 ans").
+            // Cleared after a short delay like irception's showTopicError.
+            topicErrors: [],
+            topicErrorTimer: null,
+
+            // Selected topic keys (from formConfig.topics[].key).
+            selectedTopics: [],
+
+            // [{ name: '#chan', source: 'manual' | 'auto' | 'stored' }]
+            selectedChannelEntries: [],
+
+            // Channels the user explicitly removed; /recommend won't re-add them.
+            removedChannels: [],
+
+            // Server-supplied per-topic suggestions, last from /recommend/json.
+            serverSuggestions: {},
+
+            // Geolocation enrichment for /recommend/json.
+            geoLat: null,
+            geoLon: null,
+            geoCountry: '',
+
+            // Cache key of the last recommend() call params; skips the fetch
+            // when nothing meaningful changed (mirrors form.js previousSuggestionValues).
+            previousSuggestionKey: '',
+
+            // GPS HTML5
+            gpsAvailable: typeof navigator !== 'undefined' && !!navigator.geolocation,
+            gpsLoading: false,
+
+            // Age warning — only show after user has touched the field (form.js ageInteracted).
+            ageInteracted: false,
+
+            // Channels the user removed from the tag cloud; not re-shown until
+            // the user explicitly re-adds them (mirrors form.js removedTagCloudChannels).
+            removedTagCloudChannels: [],
         };
     },
     computed: {
@@ -406,7 +469,16 @@ export default {
             return showRealname && gecosType === 1;
         },
         showTopics() {
-            return config.getSetting('showTopics') !== false; // Default true if undefined
+            return config.getSetting('showTopics') !== false;
+        },
+        // Minimum plausible age from formConfig (13). Used for the inline hint
+        // below the age field — mirrors irception's CFG.minAge check, not the
+        // plugin's allowedAge.min which controls the Connect button separately.
+        ageMin() {
+            return (this.formConfig && this.formConfig.minAge) || 15;
+        },
+        ageTooYoung() {
+            return this.ageInteracted && this.ageInt !== null && this.ageInt < this.ageMin;
         },
         requiredFields() {
             return this.$state.getSetting('settings.plugin-asl.requiredFields');
@@ -440,29 +512,23 @@ export default {
         startupOptions() {
             return this.$state.settings.startupOptions;
         },
-        greetingText: function greetingText() {
+        greetingText() {
             let greeting = this.$state.settings.startupOptions.greetingText;
-            return typeof greeting === 'string' ?
-                greeting :
-                this.$t('start_greeting');
+            return typeof greeting === 'string' ? greeting : this.$t('start_greeting');
         },
-        footerText: function footerText() {
+        footerText() {
             let footer = this.$state.settings.startupOptions.footerText;
-            return typeof footer === 'string' ?
-                footer :
-                '';
+            return typeof footer === 'string' ? footer : '';
         },
-        buttonText: function buttonText() {
-            let greeting = this.$state.settings.startupOptions.buttonText;
-            return typeof greeting === 'string' ?
-                greeting :
-                this.$t('start_button');
+        ctaLabel() {
+            let configured = this.$state.settings.startupOptions.buttonText;
+            return typeof configured === 'string' && configured
+                ? configured
+                : this.$t('plugin-asl:cta_label');
         },
         termsContent() {
             let terms = this.$state.settings.startupOptions.termsContent;
-            return typeof terms === 'string' ?
-                terms :
-                '';
+            return typeof terms === 'string' ? terms : '';
         },
         termsAutoAccept() {
             return !!this.$state.settings.startupOptions.termsAutoAccept;
@@ -471,26 +537,18 @@ export default {
             let nickPatternStr = this.$state.setting('startupOptions.nick_format');
             let nickPattern = '';
             if (!nickPatternStr) {
-                // Nicks cannot start with [0-9- ]
-                // ? is not a valid nick character but we allow it as it gets replaced
-                // with a number.
                 nickPattern = /^[a-z_\\[\]{}^`|][a-z0-9_\-\\[\]{}^`|]*$/i;
             } else {
-                // Support custom pattern matches. Eg. only '@example.com' may be allowed
-                // on some IRCDs
                 let pattern = '';
                 let flags = '';
                 if (nickPatternStr[0] === '/') {
-                    // Custom regex
                     let pos = nickPatternStr.lastIndexOf('/');
                     pattern = nickPatternStr.substring(1, pos);
                     flags = nickPatternStr.substr(pos + 1);
                 } else {
-                    // Basic contains rule
                     pattern = _.escapeRegExp(nickPatternStr);
                     flags = 'i';
                 }
-
                 try {
                     nickPattern = new RegExp(pattern, flags);
                 } catch (error) {
@@ -498,7 +556,6 @@ export default {
                     return false;
                 }
             }
-
             return this.nick.match(nickPattern);
         },
         hasPasswordError() {
@@ -511,41 +568,38 @@ export default {
             let hasConnectError = this.connectErrors.some((err) => isSaslError(err));
             return hasSaslError || hasConnectError;
         },
-        channelsArray() {
-            return this.channel.split(',').map((c) => c.trim()).filter(Boolean);
+        channel() {
+            return this.selectedChannelEntries.map((c) => c.name).join(',');
         },
-        loginDiscussionTopics() {
-            return config.getSetting('loginDiscussionTopics') || [];
+        channelNames() {
+            return this.selectedChannelEntries.map((c) => c.name);
         },
-        loginProposedChannels() {
-            return config.getSetting('loginProposedChannels') || [];
+        manualChannelNames() {
+            return this.selectedChannelEntries
+                .filter((c) => c.source === 'manual' || c.source === 'stored')
+                .map((c) => c.name);
         },
-        filteredChannels() {
-            let search = this.channelSearch.trim();
-            let searchLower = search.toLowerCase();
-            let cArr = this.channelsArray.map((c) => c.toLowerCase());
-            let results = this.loginProposedChannels.filter((c) => (
-                c.toLowerCase().includes(searchLower) && !cArr.includes(c.toLowerCase())
-            ));
-
-            if (search) {
-                let formattedSearch = search.startsWith('#') ? search : '#' + search;
-                let formattedSearchLower = formattedSearch.toLowerCase();
-                if (!results.some((c) => c.toLowerCase() === formattedSearchLower) && !cArr.includes(formattedSearchLower)) {
-                    results.unshift(formattedSearch);
-                }
-            }
-
-            return results;
+        maxChannels() {
+            return (this.formConfig && this.formConfig.maxChannels) || 8;
         },
-        readyToStart: function readyToStart() {
+        supportChannelSet() {
+            let channels = (this.formConfig && this.formConfig.support_channels) || [];
+            return new Set(channels.map((c) => c.toLowerCase()));
+        },
+        ruleState() {
+            return {
+                age: this.ageInt,
+                gender: this.sex || '',
+                topics: this.selectedTopics.slice(),
+                channels: this.channelNames.slice(),
+                manualChannels: this.manualChannelNames.slice(),
+            };
+        },
+        readyToStart() {
             let ready = !!this.nick;
-
             if (!this.connectWithoutChannel && !this.channel) {
                 ready = false;
             }
-
-            // Make sure the channel name starts with a common channel prefix
             if (!this.connectWithoutChannel) {
                 let bufferObjs = Misc.extractBuffers(this.channel);
                 bufferObjs.forEach((bufferObj) => {
@@ -554,24 +608,18 @@ export default {
                     }
                 });
             }
-
-            // If toggling the password is is disabled, assume it is required
             if (!this.toggablePass && !this.password) {
                 ready = false;
             }
-
             if (!this.isNickValid) {
                 ready = false;
             }
-
             if (this.termsContent && !this.termsAccepted && !this.termsAutoAccept) {
                 ready = false;
             }
-
             if (!this.aslReady) {
                 ready = false;
             }
-
             return ready;
         },
         showLoader() {
@@ -584,22 +632,40 @@ export default {
     watch: {
         show_password_box(newVal) {
             if (newVal === false) {
-                // clear the password when show password is unchecked
                 this.password = '';
             }
         },
-    },
-    mounted() {
-        document.addEventListener('mousedown', this.onDocumentClick);
-    },
-    beforeDestroy() {
-        document.removeEventListener('mousedown', this.onDocumentClick);
+        ageInt() {
+            this.applyRules();
+            this.scheduleRecommend();
+        },
+        sex() {
+            this.applyRules();
+            this.scheduleRecommend();
+        },
+        location() {
+            this.scheduleReverseGeocode();
+            this.scheduleRecommend();
+        },
+        selectedTopics() {
+            this.applyRules();
+            this.scheduleRecommend();
+        },
+        selectedChannelEntries() {
+            this.applyRules();
+        },
     },
     created: function created() {
+        // Stable debounced helpers, bound per-instance.
+        this.debouncedRecommend = _.debounce(() => this.recommend(), RECOMMEND_DEBOUNCE_MS);
+        this.debouncedReverseGeocode = _.debounce(
+            () => this.reverseGeocode(),
+            REVERSE_GEOCODE_DEBOUNCE_MS
+        );
+
         let options = this.startupOptions;
         let connectOptions = this.connectOptions();
 
-        // Take some settings from a previous network if available
         let previousNet = null;
         if (connectOptions.hostname.trim()) {
             previousNet = this.$state.getNetworkFromAddress(connectOptions.hostname.trim());
@@ -613,12 +679,12 @@ export default {
         this.nick = this.processNickRandomNumber(this.nick || '');
 
         if (options.password) {
-            // Don't use previousNet.password if we did not use previousNet.nick
             this.password = options.password;
         } else if (
             previousNet &&
             previousNet.password && (
-                !Misc.queryStringVal('nick') || previousNet.connection.nick === Misc.queryStringVal('nick')
+                !Misc.queryStringVal('nick') ||
+                previousNet.connection.nick === Misc.queryStringVal('nick')
             )
         ) {
             this.password = previousNet.password;
@@ -665,20 +731,36 @@ export default {
             this.realname = parsedGecos.realname;
         }
 
-        let persistedChannels = '';
-        if (previousNet) {
-            let channels = previousNet.buffers
-                .filter((b) => b.isChannel())
-                .map((b) => b.name);
-            if (channels.length) {
-                persistedChannels = channels.join(',');
-            }
-        }
-        // Base: persisted buffers, then config fallback
-        this.channel = persistedChannels || options.channel || '';
+        // Restore plugin-owned welcome state from previousNet.settings.pluginAsl
+        let stored = readWelcomeState(previousNet);
+        this.removedChannels = stored.removedChannels.slice();
 
-        // Collect extra channels from URL hash and query string — merge, don't override
-        let extraChannels = [];
+        // Build initial channel entries: previousNet.buffers tagged 'manual' if
+        // listed in stored.manualChannels, else 'stored'. URL/options channels
+        // are then merged in as 'manual' (and clear themselves from
+        // removedChannels — see plan § Coexistence URL).
+        let channelEntries = [];
+        let manualSet = new Set(stored.manualChannels.map((c) => c.toLowerCase()));
+        if (previousNet) {
+            previousNet.buffers
+                .filter((b) => b.isChannel())
+                .forEach((b) => {
+                    let source = manualSet.has(b.name.toLowerCase()) ? 'manual' : 'stored';
+                    channelEntries.push({ name: b.name, source });
+                });
+        }
+
+        // Carried-from-config channel(s) — treat as manual (explicit setup).
+        if (channelEntries.length === 0 && options.channel) {
+            options.channel.split(',')
+                .map((c) => c.trim())
+                .filter(Boolean)
+                .forEach((name) => channelEntries.push({ name, source: 'manual' }));
+        }
+
+        // URL hash + ?channel= override / merge as manual; un-remove from
+        // removedChannels (URL = source d'autorité, voir plan).
+        let urlChannels = [];
         let hashChannel = '';
         try {
             hashChannel = decodeURIComponent(window.location.hash).replace(/^#/, '');
@@ -686,33 +768,43 @@ export default {
             log.error('Invalid URL hash encoding:', err);
         }
         if (hashChannel) {
-            extraChannels.push('#' + hashChannel);
+            urlChannels.push('#' + hashChannel);
         }
         if (Misc.queryStringVal(queryKeys.channel)) {
-            let qsChannels = ('#' + Misc.queryStringVal(queryKeys.channel).replace(/,/g, ',#')).split(',');
-            extraChannels.push(...qsChannels);
+            let qsChannels = ('#' + Misc.queryStringVal(queryKeys.channel).replace(/,/g, ',#'))
+                .split(',');
+            urlChannels.push(...qsChannels);
         }
-        if (extraChannels.length) {
-            let existing = this.channel.split(',').map((c) => c.toLowerCase().trim()).filter(Boolean);
-            extraChannels.forEach((c) => {
-                if (c && !existing.includes(c.toLowerCase().trim())) {
-                    this.channel = this.channel ? this.channel + ',' + c : c;
-                    existing.push(c.toLowerCase().trim());
-                }
-            });
-        }
-        this.showChannel = typeof options.showChannel === 'boolean' ?
-            options.showChannel :
-            true;
-        this.showNick = typeof options.showNick === 'boolean' ?
-            options.showNick :
-            true;
-        this.showPass = typeof options.showPassword === 'boolean' ?
-            options.showPassword :
-            true;
-        this.toggablePass = typeof options.toggablePassword === 'boolean' ?
-            options.toggablePassword :
-            true;
+        urlChannels.forEach((name) => {
+            let normalized = name.trim();
+            if (!normalized) return;
+            if (!normalized.startsWith('#')) normalized = '#' + normalized;
+            // Un-remove
+            this.removedChannels = this.removedChannels.filter(
+                (c) => c.toLowerCase() !== normalized.toLowerCase()
+            );
+            // Promote or insert as manual
+            let existing = channelEntries.find(
+                (c) => c.name.toLowerCase() === normalized.toLowerCase()
+            );
+            if (existing) {
+                existing.source = 'manual';
+            } else {
+                channelEntries.push({ name: normalized, source: 'manual' });
+            }
+        });
+        this.selectedChannelEntries = channelEntries;
+
+        // Restore selected topics — they will be filtered/corrected after
+        // formConfig and rules load (e.g. hot dropped if age < 18 stored).
+        this.selectedTopics = stored.topics.slice();
+
+        this.showChannel = typeof options.showChannel === 'boolean' ? options.showChannel : true;
+        this.showNick = typeof options.showNick === 'boolean' ? options.showNick : true;
+        this.showPass = typeof options.showPassword === 'boolean' ? options.showPassword : true;
+        this.toggablePass = typeof options.toggablePassword === 'boolean'
+            ? options.toggablePassword
+            : true;
 
         this.connectWithoutChannel = !!options.allowNoChannel;
 
@@ -732,25 +824,367 @@ export default {
             );
         }
 
-        // Support for legacy EuropNet query strings. Decided to override prior params.
+        // Legacy EuropNet query strings — override prior params.
         if (Misc.queryStringVal(queryKeys.sexe)) {
             this.sex = Misc.queryStringVal(queryKeys.sexe);
         }
         if (Misc.queryStringVal(queryKeys.ville)) {
             this.location = Misc.queryStringVal(queryKeys.ville);
         }
-        // End legacy params
+
+        // Boot irception-side enrichment in parallel.
+        this.loadFormConfigAndGeo();
 
         const isChatNow = !!(
             Misc.queryStringVal('chatnow') && Misc.queryStringVal('chatnow') === '1'
         );
-
         if (isChatNow && this.nick && (this.channel || this.connectWithoutChannel)) {
             this.chatNowMode = true;
             this.startUp();
         }
     },
+    mounted() {
+        document.addEventListener('mousedown', this.onDocumentClick);
+    },
+    beforeDestroy() {
+        document.removeEventListener('mousedown', this.onDocumentClick);
+        if (this.debouncedRecommend) this.debouncedRecommend.cancel();
+        if (this.debouncedReverseGeocode) this.debouncedReverseGeocode.cancel();
+    },
     methods: {
+        // ---------- Boot helpers ----------
+
+        async loadFormConfigAndGeo() {
+            // Best effort: each call is independent so a /form/config failure
+            // doesn't prevent GeoIP from pre-filling the location, and an
+            // irception outage just leaves the form in basic mode (no chips,
+            // no tag cloud, no recommendations) — never a user-facing error.
+            let [formConfigResult, geo] = await Promise.all([
+                irceptionApi.loadFormConfig().catch((err) => {
+                    log.debug('irception /form/config unavailable:', err);
+                    return null;
+                }),
+                irceptionApi.loadGeoIP().catch(() => null),
+            ]);
+            if (formConfigResult) {
+                this.formConfig = formConfigResult;
+            }
+            if (geo) {
+                if (!this.location && geo.city) this.location = geo.city;
+                if (geo.country_code) this.geoCountry = geo.country_code;
+                if (geo.lat != null) this.geoLat = geo.lat;
+                if (geo.long != null) this.geoLon = geo.long;
+            }
+            if (this.formConfig) {
+                this.applyRules();
+                this.scheduleRecommend();
+            }
+        },
+
+        // ---------- Rule application ----------
+
+        applyRules() {
+            if (!this.formConfig || !this.formConfig.rules) {
+                this.ruleResult = freshRuleResult();
+                return;
+            }
+
+            let result = evaluateRules(this.formConfig.rules, this.ruleState);
+
+            // Apply topic corrections (cascading double-pass — see form.js).
+            let hadTopicCorrections = false;
+            let newErrors = [];
+            result.corrections.forEach((c) => {
+                if (c.removeTopic && this.selectedTopics.includes(c.removeTopic)) {
+                    this.selectedTopics = this.selectedTopics.filter((t) => t !== c.removeTopic);
+                    this.dropTriggerChannels(c.removeTopic);
+                    hadTopicCorrections = true;
+                    if (c.message) newErrors.push(c.message);
+                }
+                if (c.activateTopic && !this.selectedTopics.includes(c.activateTopic)) {
+                    this.selectedTopics.push(c.activateTopic);
+                    hadTopicCorrections = true;
+                }
+            });
+
+            if (hadTopicCorrections) {
+                result = evaluateRules(this.formConfig.rules, this.ruleState);
+                result.corrections.forEach((c) => {
+                    if (c.removeTopic && this.selectedTopics.includes(c.removeTopic)) {
+                        this.selectedTopics = this.selectedTopics.filter(
+                            (t) => t !== c.removeTopic
+                        );
+                    }
+                });
+            }
+
+            // Force-remove blocked channels (rules trump source — e.g. #accueil
+            // dropped when hot is active via channel_conditional).
+            if (result.channelsToRemove.length) {
+                let toRemove = new Set(result.channelsToRemove.map((c) => c.toLowerCase()));
+                this.selectedChannelEntries = this.selectedChannelEntries.filter(
+                    (c) => !toRemove.has(c.name.toLowerCase())
+                );
+            }
+
+            // Remove support channels restored from previous sessions (non-manual only).
+            if (this.supportChannelSet.size) {
+                let filtered = this.selectedChannelEntries.filter(
+                    (c) => c.source === 'manual' || !this.supportChannelSet.has(c.name.toLowerCase())
+                );
+                if (filtered.length !== this.selectedChannelEntries.length) {
+                    this.selectedChannelEntries = filtered;
+                }
+            }
+
+            this.ruleResult = result;
+
+            // Surface correction messages as transient toasts (auto-clear 4s).
+            if (newErrors.length) {
+                this.topicErrors = [...new Set(newErrors)];
+                clearTimeout(this.topicErrorTimer);
+                this.topicErrorTimer = setTimeout(() => {
+                    this.topicErrors = [];
+                }, 4000);
+            }
+        },
+
+        // ---------- /recommend/json ----------
+
+        scheduleRecommend() {
+            if (!this.formConfig) return;
+            this.debouncedRecommend();
+        },
+
+        async recommend() {
+            if (!this.formConfig) return;
+            // Short-circuit when params haven't changed (mirrors form.js
+            // previousSuggestionValues check — avoids redundant fetches).
+            let position = this.geoLat != null && this.geoLon != null
+                ? this.geoLat + ',' + this.geoLon : '';
+            let key = [
+                this.ageInt || '',
+                this.sex || '',
+                this.location || '',
+                this.geoCountry || '',
+                position,
+                this.selectedTopics.slice().sort().join(','),
+            ].join('|');
+            if (key === this.previousSuggestionKey) return;
+            this.previousSuggestionKey = key;
+            try {
+                let data = await irceptionApi.recommend({
+                    age: this.ageInt || '',
+                    gender: this.sex || '',
+                    location: this.location || '',
+                    country: this.geoCountry || '',
+                    position,
+                    topics: this.selectedTopics,
+                    manualChannels: this.manualChannelNames,
+                });
+                this.applyRecommendations(data);
+            } catch (err) {
+                // Spec § Règles d'erreur : silent — keep current state, retry on
+                // next user interaction.
+                this.previousSuggestionKey = '';
+                log.debug('recommend failed:', err);
+            }
+        },
+
+        applyRecommendations(data) {
+            let channelsBlock = (data && data.channels) || {};
+            let recommended = []
+                .concat(channelsBlock.default_channels || [])
+                .concat(channelsBlock.age_channels || [])
+                .concat(channelsBlock.local_channels || [])
+                .concat(channelsBlock.theme_channels || []);
+            let recommendedSet = new Set(recommended.map((c) => c.toLowerCase()));
+
+            // 1. Drop auto channels that are no longer recommended.
+            let kept = this.selectedChannelEntries.filter((entry) => {
+                if (entry.source !== 'auto') return true;
+                return recommendedSet.has(entry.name.toLowerCase());
+            });
+
+            // 2. Add new auto channels (skip those manually removed or already
+            // present, or blocked by the rules engine).
+            let blocked = this.ruleResult.blockedChannels || {};
+            let removedSet = new Set(this.removedChannels.map((c) => c.toLowerCase()));
+            let presentSet = new Set(kept.map((c) => c.name.toLowerCase()));
+            recommended.forEach((name) => {
+                let lower = name.toLowerCase();
+                if (presentSet.has(lower)) return;
+                if (removedSet.has(lower)) return;
+                if (name in blocked) return;
+                if (kept.length >= this.maxChannels) return;
+                kept.push({ name, source: 'auto' });
+                presentSet.add(lower);
+            });
+
+            this.selectedChannelEntries = kept;
+            // PHP's json_encode emits [] (Array) instead of {} (Object) for
+            // empty associative arrays, so /recommend/json returns
+            // "suggestions": [] when no topic is active. Normalise to a plain
+            // object so the SuggestionsCloud prop contract stays strict.
+            let rawSuggestions = data && data.suggestions;
+            this.serverSuggestions = (rawSuggestions && !Array.isArray(rawSuggestions))
+                ? rawSuggestions
+                : {};
+        },
+
+        // ---------- Reverse geocoding (Nominatim) ----------
+
+        scheduleReverseGeocode() {
+            this.debouncedReverseGeocode();
+        },
+
+        requestGps() {
+            if (!navigator.geolocation || this.gpsLoading) return;
+            this.gpsLoading = true;
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    this.geoLat = pos.coords.latitude;
+                    this.geoLon = pos.coords.longitude;
+                    this.gpsLoading = false;
+                    this.scheduleRecommend();
+                },
+                () => {
+                    this.gpsLoading = false;
+                }
+            );
+        },
+
+        async reverseGeocode() {
+            if (!this.location || !this.location.trim()) return;
+            let result = await irceptionApi.reverseGeocode(this.location, {
+                countryCode: this.geoCountry,
+            });
+            if (!result) return;
+            this.geoLat = result.lat;
+            this.geoLon = result.lon;
+            if (result.countryCode) this.geoCountry = result.countryCode;
+            this.scheduleRecommend();
+        },
+
+        // Remove non-manual channels that would re-trigger topicKey via
+        // channel_triggers_topic, preventing an immediate re-activation cycle.
+        dropTriggerChannels(topicKey) {
+            let rules = (this.formConfig && this.formConfig.rules) || [];
+            let triggerSet = new Set();
+            rules.forEach((rule) => {
+                if (rule.type === 'channel_triggers_topic' && rule.activates === topicKey) {
+                    rule.channels.forEach((ch) => triggerSet.add(ch.toLowerCase()));
+                }
+            });
+            if (!triggerSet.size) return;
+            this.selectedChannelEntries = this.selectedChannelEntries.filter(
+                (e) => e.source === 'manual' || e.source === 'stored'
+                    || !triggerSet.has(e.name.toLowerCase())
+            );
+        },
+
+        // ---------- Topic / channel events ----------
+
+        onTopicToggle(topic) {
+            if (this.selectedTopics.includes(topic.key)) {
+                this.selectedTopics = this.selectedTopics.filter((k) => k !== topic.key);
+            } else {
+                // Before adding the topic, remove any active topic that deselects it
+                // (last-click-wins). Without this, both topics would be in state
+                // simultaneously and each topic_deselects rule would remove the other,
+                // leaving neither selected.
+                let rules = (this.formConfig && this.formConfig.rules) || [];
+                let toRemove = new Set();
+                let reverseMessages = [];
+                rules.forEach((rule) => {
+                    if (
+                        rule.type === 'topic_deselects'
+                        && this.selectedTopics.includes(rule.topic)
+                        && rule.deselects.includes(topic.key)
+                        && !isTopicHeld(rule.topic, rules, this.ruleState)
+                    ) {
+                        toRemove.add(rule.topic);
+                        if (rule.reverseMessage) reverseMessages.push(rule.reverseMessage);
+                    }
+                });
+                if (toRemove.size) {
+                    this.selectedTopics = this.selectedTopics.filter((k) => !toRemove.has(k));
+                    toRemove.forEach((t) => this.dropTriggerChannels(t));
+                    if (reverseMessages.length) {
+                        this.topicErrors = reverseMessages;
+                        clearTimeout(this.topicErrorTimer);
+                        this.topicErrorTimer = setTimeout(() => { this.topicErrors = []; }, 5500);
+                    }
+                }
+                this.selectedTopics = this.selectedTopics.concat([topic.key]);
+            }
+        },
+
+        onSuggestionPick(channel) {
+            // Un-remove from tag cloud suppression so the chip can reappear
+            // if the user removes the channel from Mes salons later.
+            this.removedTagCloudChannels = this.removedTagCloudChannels.filter(
+                (c) => c.toLowerCase() !== channel.toLowerCase()
+            );
+            this.addChannel(channel, 'tagcloud');
+        },
+
+        onChannelAdd(name) {
+            this.addChannel(name, 'manual');
+        },
+
+        onChannelRemove(entry) {
+            // Track tag-cloud sourced removals so the chip doesn't reappear.
+            if (entry.source === 'tagcloud') {
+                let lower = entry.name.toLowerCase();
+                if (!this.removedTagCloudChannels.some((c) => c.toLowerCase() === lower)) {
+                    this.removedTagCloudChannels = this.removedTagCloudChannels
+                        .concat([entry.name]);
+                }
+            }
+            this.removeChannel(entry.name);
+        },
+
+        addChannel(rawName, source) {
+            let name = (rawName || '').trim();
+            if (!name) return;
+            if (!name.startsWith('#') && !name.startsWith('&')) name = '#' + name;
+            if (name in (this.ruleResult.blockedChannels || {})) return;
+            if (source !== 'manual' && this.supportChannelSet.has(name.toLowerCase())) return;
+            if (this.selectedChannelEntries.length >= this.maxChannels) return;
+            let exists = this.selectedChannelEntries.find(
+                (c) => c.name.toLowerCase() === name.toLowerCase()
+            );
+            if (exists) {
+                if (source === 'manual' && exists.source !== 'manual') {
+                    exists.source = 'manual';
+                }
+                return;
+            }
+            // Adding manually un-removes
+            if (source === 'manual') {
+                this.removedChannels = this.removedChannels.filter(
+                    (c) => c.toLowerCase() !== name.toLowerCase()
+                );
+            }
+            this.selectedChannelEntries = this.selectedChannelEntries.concat([
+                { name, source: source || 'manual' },
+            ]);
+        },
+
+        removeChannel(name) {
+            if ((this.ruleResult.lockedChannels || []).includes(name)) return;
+            this.selectedChannelEntries = this.selectedChannelEntries.filter(
+                (c) => c.name !== name
+            );
+            let lower = name.toLowerCase();
+            if (!this.removedChannels.some((c) => c.toLowerCase() === lower)) {
+                this.removedChannels = this.removedChannels.concat([name]);
+            }
+        },
+
+        // ---------- Existing helpers (preserved) ----------
+
         buildGecos() {
             if (!this.age && !this.sex && !this.location) {
                 return '';
@@ -759,16 +1193,9 @@ export default {
             let gecosType = this.$state.pluginASL.gecosTypes[gecosId - 1];
             let gecos = gecosType.build;
             let asl = [];
-            if (this.age) {
-                asl.push(this.age);
-            }
-            if (this.sex) {
-                asl.push(this.sex);
-            }
-            if (this.location) {
-                asl.push(this.location);
-            }
-
+            if (this.age) asl.push(this.age);
+            if (this.sex) asl.push(this.sex);
+            if (this.location) asl.push(this.location);
             return gecos.replace('%asl', asl.join(gecosType.separator))
                 .replace('%a', this.age || '*')
                 .replace('%s', this.sex || '*')
@@ -778,18 +1205,12 @@ export default {
         },
         onAltClose(event) {
             if (event.channel) {
-                this.channel = event.channel;
+                let names = event.channel.split(',').map((c) => c.trim()).filter(Boolean);
+                this.selectedChannelEntries = names.map((name) => ({ name, source: 'manual' }));
             }
-            if (event.nick) {
-                this.nick = event.nick;
-            }
-            if (event.password) {
-                this.password = event.password;
-            }
-            if (event.error) {
-                this.connectErrors.push(event.error);
-            }
-
+            if (event.nick) this.nick = event.nick;
+            if (event.password) this.password = event.password;
+            if (event.error) this.connectErrors.push(event.error);
             this.$state.settings.startupOptions.altComponent = null;
         },
         readableStateError(err) {
@@ -803,41 +1224,14 @@ export default {
             let el = event.target;
             el.setSelectionRange(el.value.length, el.value.length);
         },
-
-        onChannelKeyDown(e) {
-            if (e.key === 'Enter' || e.key === ' ' || e.key === ',') {
-                e.preventDefault();
-                if (this.channelSearch.trim()) {
-                    this.addChannel(this.channelSearch);
-                }
-            }
+        onAgeBlur() {
+            this.ageInteracted = true;
         },
-        onDocumentClick(e) {
-            let topicsEl = this.$refs.topicsContainer;
-            if (topicsEl && !topicsEl.contains(e.target)) {
-                this.isTopicsOpen = false;
-            }
-            let channelsEl = this.$refs.channelsContainer;
-            if (channelsEl && !channelsEl.contains(e.target)) {
-                this.isChannelsOpen = false;
-            }
+        onDocumentClick() {
+            // Kept for API compatibility; the new components don't expose
+            // dropdowns that need outside-click dismissal.
         },
-        addChannel(chanName) {
-            let chan = chanName.trim();
-            if (!chan) return;
-            if (!chan.startsWith('#')) chan = '#' + chan;
-            let current = this.channelsArray.slice();
-            if (!current.includes(chan)) {
-                current.push(chan);
-                this.channel = current.join(',');
-            }
-            this.channelSearch = '';
-            this.isChannelsOpen = false;
-        },
-        removeChannel(chanName) {
-            this.channel = this.channelsArray.filter((c) => c !== chanName).join(',');
-        },
-        formSubmit: function formSubmit() {
+        formSubmit() {
             if (this.termsAutoAccept && this.termsContent) {
                 this.termsAccepted = true;
             }
@@ -845,19 +1239,16 @@ export default {
                 this.startUp();
             }
         },
-        startUp: function startUp() {
+        startUp() {
             this.connectErrors = [];
 
             let options = Object.assign({}, this.$state.settings.startupOptions);
             let connectOptions = this.connectOptions();
             let netAddress = _.trim(connectOptions.hostname);
 
-            // Check if we have this network already
             let net = this.network || this.$state.getNetworkFromAddress(netAddress);
-
             let password = this.password;
 
-            // If the network doesn't already exist, add a new one
             net = net || this.$state.addNetwork('Network', this.nick, {
                 server: netAddress,
                 port: connectOptions.port,
@@ -870,16 +1261,10 @@ export default {
                 username: options.username,
             });
 
-            // Clear the server buffer in case it already existed and contains messages relating to
-            // the previous connection, such as errors. They are now redundant since this is a
-            // new connection.
             net.serverBuffer().clearMessages();
 
-            // If we retreived an existing network, update the nick+password with what
-            // the user has just put in place
             net.connection.nick = this.nick;
             if (options.bouncer) {
-                // Bouncer mode uses server PASS
                 net.connection.password = `${this.nick}:${password}`;
                 net.password = '';
             } else {
@@ -887,8 +1272,6 @@ export default {
                 net.password = password;
             }
 
-            // Default to 'U' sex if no ASL fields are filled
-            // to prevent fallback to default kiwiirc.com realname
             if (!this.age && !this.sex && !this.location) {
                 this.sex = 'U';
             }
@@ -902,13 +1285,19 @@ export default {
                 net.connection.encoding = _.trim(options.encoding);
             }
 
+            // Persist plugin-owned welcome state on the Kiwi Network — see plan
+            // § Persistence — extension du modèle Kiwi.
+            writeWelcomeState(net, {
+                topics: this.selectedTopics,
+                manualChannels: this.manualChannelNames,
+                removedChannels: this.removedChannels,
+            });
+
             this.network = net;
 
-            // Only switch to the first channel we join if multiple are being joined
             let hasSwitchedActiveBuffer = false;
             let bufferObjs = Misc.extractBuffers(this.channel);
 
-            // Remove channel buffers that user removed from the input
             let channelNames = bufferObjs.map((b) => b.name.toLowerCase());
             let buffersToRemove = net.buffers.filter((buffer) => (
                 buffer.isChannel()
@@ -921,18 +1310,15 @@ export default {
             bufferObjs.forEach((bufferObj) => {
                 let newBuffer = this.$state.addBuffer(net.id, bufferObj.name);
                 newBuffer.enabled = true;
-
                 if (newBuffer && !hasSwitchedActiveBuffer) {
                     this.$state.setActiveBuffer(net.id, newBuffer.name);
                     hasSwitchedActiveBuffer = true;
                 }
-
                 if (bufferObj.key) {
                     newBuffer.key = bufferObj.key;
                 }
             });
 
-            // switch to server buffer if no channels are joined
             if (!options.bouncer && !hasSwitchedActiveBuffer) {
                 this.$state.setActiveBuffer(net.id, net.serverBuffer().name);
             }
@@ -952,7 +1338,6 @@ export default {
             };
             let saslMessage = null;
             let onClosed = () => {
-                // Prefer specific SASL server message over generic localized error
                 let errorToShow = saslMessage || this.network.last_error;
                 if (errorToShow && !this.connectErrors.includes(errorToShow)) {
                     this.connectErrors.push(errorToShow);
@@ -973,8 +1358,7 @@ export default {
             net.ircClient.on('irc error', onError);
             net.ircClient.on('sasl failed', onSaslFailed);
         },
-        processNickRandomNumber: function processNickRandomNumber(nick) {
-            // Replace ? with a random number
+        processNickRandomNumber(nick) {
             let tmp = (nick || '').replace(/\?/g, () => Math.floor(Math.random() * 100).toString());
             return _.trim(tmp);
         },
@@ -984,22 +1368,12 @@ export default {
         connectOptions() {
             let options = Object.assign({}, this.$state.settings.startupOptions);
             let connectOptions = Misc.connectionInfoFromConfig(options);
-
-            // If a server isn't specified in the config, set some defaults
-            // The webircgateway will have a default network set and will connect
-            // there instead. This just removes the requirement of specifying the same
-            // irc network address in both the server-side and client side configs
             connectOptions.hostname = connectOptions.hostname || 'default';
             if (!connectOptions.port && connectOptions.direct) {
-                connectOptions.port = connectOptions.tls ?
-                    443 :
-                    80;
+                connectOptions.port = connectOptions.tls ? 443 : 80;
             } else if (!connectOptions.port && !connectOptions.direct) {
-                connectOptions.port = connectOptions.tls ?
-                    6697 :
-                    6667;
+                connectOptions.port = connectOptions.tls ? 6697 : 6667;
             }
-
             return connectOptions;
         },
     },
@@ -1007,6 +1381,76 @@ export default {
 </script>
 
 <style>
+
+/* Irception tokens — copied verbatim from irception/static/css/form.css
+   (the #connectChat scope) so the welcome chips, channels and tag cloud
+   render with the same palette as the partner sites. Scoped to this
+   component to avoid leaking into the rest of Kiwi. */
+.kiwi-welcome-asl {
+    /* Bouton / accent principal (kept for parity, not used in S01 chrome) */
+    --ir-color-primary: #2185c7;
+    --ir-color-primary-dark: #1262b8;
+    --ir-color-primary-hover: #2a92d8;
+    --ir-color-primary-hover-dark: #1976d2;
+    --ir-color-primary-shadow: rgba(21, 101, 192, 0.32);
+    --ir-color-primary-shadow-hover: rgba(21, 101, 192, 0.42);
+
+    /* Surfaces */
+    --ir-color-surface: #fff;
+    --ir-color-surface-alt: #f4f8ff;
+    --ir-color-surface-chip: #f5f8fc;
+
+    /* Texte */
+    --ir-color-text: #333;
+    --ir-color-text-muted: #767676;
+    --ir-color-text-surface-muted: #767676;
+    --ir-color-text-placeholder: #666;
+    --ir-color-text-on-primary: #fff;
+
+    /* Tags salon */
+    --ir-channel-bg: #dbeafe;
+    --ir-channel-border: #6baed6;
+    --ir-channel-text: #1565c0;
+    --ir-channel-bg-hover: #bfdbfe;
+    --ir-channel-border-hover: #3b82f6;
+
+    /* Topic chip sélectionné */
+    --ir-topic-selected-bg: #e3f0fd;
+    --ir-topic-selected-border: #6baed6;
+    --ir-topic-selected-text: #1565c0;
+    --ir-topic-selected-shadow: rgba(21, 101, 192, 0.15);
+
+    /* Autocomplete dropdown */
+    --ir-suggest-border: #c5d8f0;
+    --ir-suggest-item-hover-bg: #e3f0fd;
+    --ir-suggest-item-hover-text: #1565c0;
+    --ir-suggest-shadow: rgba(21, 101, 192, 0.12);
+
+    /* Focus ring */
+    --ir-focus-border: #93b9d8;
+    --ir-focus-shadow: rgba(107, 174, 214, 0.15);
+
+    /* Bordures */
+    --ir-border-field: #dde3ec;
+    --ir-border-light: #eef0f3;
+    --ir-border-suggestion: rgba(107, 174, 214, 0.15);
+
+    /* Tagcloud chips */
+    --ir-tagcloud-bg: #fff;
+    --ir-tagcloud-border: #c5d8f0;
+    --ir-tagcloud-text: #4a7fa5;
+    --ir-tagcloud-hover-bg: #e3f0fd;
+    --ir-tagcloud-hover-border: #6baed6;
+    --ir-tagcloud-hover-text: #1565c0;
+
+    /* Labels de section (panel de suggestions) */
+    --ir-color-topic-label: #5a8fb5;
+
+    /* CTA EuropNet */
+    --brand-cta-bg: #8bcbf9;
+    --brand-cta-bg-hover: #6ebbf2;
+    --brand-cta-fg: #004b87;
+}
 
 /* Utility classes */
 .text-white { color: #fff; }
@@ -1060,7 +1504,7 @@ export default {
     left: -10%;
     width: 16rem;
     height: 16rem;
-    background-color: #dbeafe; /* blue-100 */
+    background-color: #dbeafe;
 }
 
 .kiwi-welcome-bubble-2 {
@@ -1068,7 +1512,7 @@ export default {
     right: -10%;
     width: 18rem;
     height: 18rem;
-    background-color: #cffafe; /* cyan-100 */
+    background-color: #cffafe;
     animation-delay: 2s;
 }
 
@@ -1077,7 +1521,7 @@ export default {
     left: 20%;
     width: 20rem;
     height: 20rem;
-    background-color: #eff6ff; /* blue-50 */
+    background-color: #eff6ff;
     animation-delay: 4s;
 }
 
@@ -1173,7 +1617,7 @@ export default {
     padding: 0.625rem 1rem 0.625rem 2.5rem;
     background-color: var(--comp-bg, #fff);
     border: 1px solid #e5e7eb;
-    border-radius: 9999px;
+    border-radius: 12px;
     color: var(--default-fg, #111827);
     font-size: 0.875rem;
     transition: all 0.2s;
@@ -1195,73 +1639,17 @@ export default {
     background-color: #fef2f2;
 }
 
+.kiwi-input.kiwi-input-warning {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+
 .kiwi-input.kiwi-input-error:focus {
     box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
 }
 
 .kiwi-input::placeholder {
     color: #9ca3af;
-}
-
-.kiwi-icon-right {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    right: 0;
-    padding-right: 0.75rem;
-    display: flex;
-    align-items: center;
-    pointer-events: none;
-}
-.transform-transition { transition: transform 0.2s; }
-.rotate-180 { transform: rotate(180deg); }
-
-/* Dropdown */
-.kiwi-dropdown {
-    position: absolute;
-    z-index: 20;
-    width: 100%;
-    margin-top: 0.25rem;
-    background-color: var(--comp-bg, #fff);
-    border: 1px solid #f3f4f6;
-    border-radius: 1rem;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    overflow: hidden;
-    padding: 0.25rem 0;
-    max-height: 12rem;
-    overflow-y: auto;
-}
-
-.kiwi-dropdown-item {
-    display: flex;
-    align-items: center;
-    padding: 0.5rem 1rem;
-    cursor: pointer;
-    gap: 0.75rem;
-    border: none;
-    background: none;
-    font-size: 0.875rem;
-    color: #374151;
-}
-
-.kiwi-dropdown-item:hover {
-    background-color: #f9fafb;
-}
-
-.kiwi-checkbox {
-    width: 1rem;
-    height: 1rem;
-    border-radius: 0.25rem;
-    border: 1px solid #d1d5db;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-}
-
-.kiwi-checkbox.active {
-    background-color: var(--brand-default, #004b87);
-    border-color: var(--brand-default, #004b87);
 }
 
 /* Password Toggle */
@@ -1312,6 +1700,119 @@ export default {
     transform: translateX(1.25rem);
 }
 
+/* Topic rule error toasts */
+.kiwi-asl-topic-errors {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.kiwi-asl-topic-error {
+    background: #fff7f0;
+    border: 1px solid #f5c9a0;
+    border-radius: 10px;
+    color: #7a4010;
+    font-size: 13px;
+    margin: 0;
+    padding: 9px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: kiwi-asl-chip-in 0.15s ease-out;
+}
+
+/* Nick hint + age warning */
+.kiwi-asl-nick-hint {
+    text-align: center;
+    font-size: 12px;
+    color: var(--ir-color-text-muted, #767676);
+    margin: 4px 0 0;
+    transition: opacity 0.2s;
+}
+
+.kiwi-asl-nick-hint.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.kiwi-asl-nick-hint.is-visible {
+    opacity: 1;
+}
+
+.kiwi-asl-age-hint {
+    font-size: 11px;
+    color: #b45309;
+    margin: 4px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    line-height: 1.3;
+}
+
+/* GPS locate button inside ville field */
+.kiwi-asl-age-ville-row__ville {
+    position: relative;
+}
+
+.kiwi-input--with-gps {
+    padding-right: 2.5rem;
+}
+
+.kiwi-asl-gps-btn {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: rgba(0, 75, 135, 0.5);
+    font-size: 0.875rem;
+    line-height: 1;
+    transition: color 0.15s;
+}
+
+.kiwi-asl-gps-btn:hover {
+    color: var(--brand-default, #004b87);
+}
+
+/* Age + Ville on one row (irception layout) */
+.kiwi-asl-age-ville-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+    width: 100%;
+}
+
+.kiwi-asl-age-ville-row__age {
+    flex: 0 0 7.5rem;
+}
+
+.kiwi-asl-age-ville-row__ville {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+@media (max-width: 600px) {
+    .kiwi-asl-age-ville-row {
+        flex-direction: column;
+    }
+
+    .kiwi-asl-age-ville-row__age {
+        flex: 0 0 auto;
+        width: 100%;
+    }
+}
+
+/* iOS Safari anti-zoom: font-size >= 16px prevents auto-zoom on input focus
+   on viewports where the layout is still desktop (481-600px). */
+@media (min-width: 481px) and (max-width: 600px) {
+    .kiwi-input {
+        font-size: 16px;
+    }
+}
+
 /* Gender Group */
 .kiwi-gender-group {
     display: flex;
@@ -1325,7 +1826,7 @@ export default {
     align-items: center;
     justify-content: center;
     height: 2.75rem;
-    border-radius: 0.75rem;
+    border-radius: 9999px;
     border: 1px solid #e5e7eb;
     background-color: var(--comp-bg, #fff);
     opacity: 0.7;
@@ -1361,119 +1862,17 @@ export default {
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
-/* Tags / Channels */
-.kiwi-tags-input {
-    display: flex;
-    width: 100%;
-    min-height: 2.75rem;
-    padding: 0.25rem 1rem 0.25rem 2.5rem;
-    background-color: var(--comp-bg, #fff);
-    border: 1px solid #e5e7eb;
-    border-radius: 1.5rem;
-    color: var(--default-fg, #111827);
-    font-size: 0.875rem;
-    transition: all 0.2s;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    box-sizing: border-box;
-    cursor: text;
-    align-items: center;
-}
-
-.kiwi-input-wrapper:focus-within .kiwi-tags-input {
-    border-color: var(--brand-default, #004b87);
-    box-shadow: 0 0 0 2px rgba(0, 75, 135, 0.2);
-}
-
-.kiwi-tags-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.375rem;
-    align-items: center;
-    width: 100%;
-}
-
-.kiwi-tag {
-    background-color: #e6f3ff;
-    color: var(--brand-default, #004b87);
-    padding: 0.125rem 0.625rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-}
-
-.kiwi-tag-close {
-    background: none;
-    border: none;
-    padding: 0.125rem;
-    border-radius: 9999px;
-    cursor: pointer;
-    color: var(--brand-default, #004b87);
-    display: flex;
-    align-items: center;
-}
-
-.kiwi-tag-close:hover {
-    background-color: #cce7ff;
-}
-
-.kiwi-tag-input {
-    flex: 1;
-    min-width: 100px;
-    background: transparent;
-    border: none;
-    outline: none;
-    padding: 0.25rem 0;
-    font-size: 0.875rem;
-    color: var(--default-fg, #111827);
-}
-
-/* Submit */
+/* Submit container — sticky at the bottom with a fade gradient so the
+   button stays visible when the form overflows the viewport on mobile. */
 .kiwi-submit-container {
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
     display: flex;
     justify-content: center;
-}
-
-.kiwi-submit-btn {
-    background-color: #8bcbf9;
-    color: var(--brand-default, #004b87);
-    font-weight: 700;
-    padding: 0.75rem 2.5rem;
-    border-radius: 9999px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    transition: all 0.2s;
-    font-size: 0.9375rem;
-    letter-spacing: 0.025em;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    height: 3rem;
-    border: none;
-    cursor: pointer;
-}
-
-.kiwi-submit-btn:hover:not(:disabled) {
-    background-color: #6ebbf2;
-}
-
-.kiwi-submit-btn:active:not(:disabled) {
-    transform: scale(0.98);
-}
-
-.kiwi-submit-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.kiwi-dropdown-empty {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-    color: #6b7280;
-    text-align: center;
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(to bottom, transparent 0%, var(--default-bg, #f4f9ff) 28%);
+    z-index: 10;
 }
 
 /* Override Kiwi Layout if present */
@@ -1487,7 +1886,7 @@ export default {
     display: none !important;
 }
 
-.kiwi-welcome-asl {
+.kiwi-welcome-asl-section {
     height: 100%;
     margin: 0;
     padding: 0;
@@ -1501,9 +1900,9 @@ export default {
 
 /* Error styling */
 .kiwi-welcome-error {
-    background-color: #fee2e2; /* light red background */
-    border-left: 4px solid var(--brand-error, #ef4444); /* red border */
-    color: #b91c1c; /* dark red text */
+    background-color: #fee2e2;
+    border-left: 4px solid var(--brand-error, #ef4444);
+    color: #b91c1c;
     padding: 0.75rem 1rem;
     border-radius: 0.375rem;
     font-size: 0.875rem;
@@ -1519,6 +1918,21 @@ export default {
 
 .kiwi-welcome-error span:last-child {
     margin-bottom: 0;
+}
+
+.kiwi-welcome-error-retry {
+    background: var(--brand-error, #ef4444);
+    color: #fff;
+    border: none;
+    border-radius: 9999px;
+    padding: 0.375rem 1rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    margin-top: 0.5rem;
+}
+
+.kiwi-welcome-error-retry:hover {
+    background: #dc2626;
 }
 
 .chatnow-loader {
@@ -1613,6 +2027,21 @@ export default {
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+/* Shared chip-in keyframe for sub-components (TopicChip, channel pills,
+   tag-cloud chips). Defined at the welcome scope so the children pick it
+   up via animation: kiwi-asl-chip-in 0.15s ease-out. */
+@keyframes kiwi-asl-chip-in {
+    from {
+        opacity: 0;
+        transform: scale(0.85);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
     }
 }
 </style>
