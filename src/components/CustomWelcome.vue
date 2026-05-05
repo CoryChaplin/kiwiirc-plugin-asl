@@ -847,7 +847,6 @@ export default {
         );
         if (isChatNow && this.nick && (this.channel || this.connectWithoutChannel)) {
             this.chatNowMode = true;
-            this.startUp();
         }
     },
     mounted() {
@@ -885,6 +884,9 @@ export default {
             if (this.formConfig) {
                 this.applyRules();
                 this.scheduleRecommend();
+            }
+            if (this.chatNowMode) {
+                this.startUp();
             }
         },
 
