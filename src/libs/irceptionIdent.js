@@ -13,25 +13,13 @@ function randString(n) {
     return t;
 }
 
-function getSource(originParam) {
-    const map = {
-        3: 'c',
-        4: 'e',
-        5: 'f',
-        6: 'a',
-        7: 'c',
-        8: 'e',
-        9: 'e',
-        10: 'l',
-        11: 'l',
-        12: 'l',
-        13: 'l',
-        14: 'v',
-        15: 'm',
-        16: 'x',
-        17: 'z',
-    };
-    return (originParam && map[String(originParam)]) ? map[String(originParam)] : 'd';
+function getSource(originParam, formConfig) {
+    if (originParam) {
+        let origins = formConfig && formConfig.origins;
+        let entry = origins && origins[String(originParam)];
+        return (entry && entry.sourceCode) || 'o';
+    }
+    return 'd';
 }
 
 function getBrowser() {
@@ -69,7 +57,7 @@ function getSexeUnivers(channelNames, formConfig) {
 }
 
 export function generateIdent(channelNames, originParam, formConfig) {
-    return getSource(originParam) + getBrowser() + getOs()
+    return getSource(originParam, formConfig) + getBrowser() + getOs()
         + getSexeUnivers(channelNames, formConfig) + randString(7);
 }
 
@@ -114,8 +102,11 @@ function writeCookie(name, value, days) {
     let secure = window.location.protocol === 'https:' ? '; Secure' : '';
     // Share cookie across subdomains of the same parent (e.g. .example.org).
     // No Domain attribute for single-label hosts (localhost, bare IP).
-    let parts = window.location.hostname.split('.');
-    let domain = parts.length >= 2 ? '; Domain=.' + parts.slice(-2).join('.') : '';
+    let hostname = window.location.hostname;
+    let parts = hostname.split('.');
+    let domain = (parts.length >= 2 && !/^\d+(\.\d+){3}$/.test(hostname))
+        ? '; Domain=.' + parts.slice(-2).join('.')
+        : '';
     document.cookie = name + '=' + value
         + '; expires=' + date.toUTCString()
         + '; path=/; SameSite=Lax' + domain + secure;
