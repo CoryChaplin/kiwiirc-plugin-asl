@@ -32,6 +32,11 @@ kiwi.plugin('asl', (kiwi) => {
         kiwi.addUi('header_channel', browserButton.$el);
     }
 
+    kiwi.state.$on('network.new', (event) => {
+        let ident = window.localStorage && window.localStorage.getItem('irc_ident');
+        if (ident && ident.length === 11) event.network.username = ident;
+    });
+
     // handle user joining one of the channels
     kiwi.on('irc.join', (event, net) => {
         if (event.gecos) {

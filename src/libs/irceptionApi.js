@@ -8,6 +8,7 @@
  */
 
 import * as config from '../config.js';
+import { storeIdent } from './irceptionIdent.js';
 
 function apiUrl() {
     let base = config.getSetting('irceptionApiUrl') || '';
@@ -18,11 +19,16 @@ function originId() {
     return config.getSetting('irceptionOrigin');
 }
 
-async function getJson(url, signal) {
-    let response = await fetch(url, { signal });
-    if (!response.ok) {
-        throw new Error('irception: HTTP ' + response.status + ' on ' + url);
-    }
+async function getJson(url, signal, extraHeaders = {}) {
+    const headers = { ...extraHeaders };
+    const ident = window.localStorage?.getItem('irc_ident');
+    if (ident && ident.length === 11) headers['X-Client-Ident'] = ident;
+    const response = await fetch(url, {
+        signal,
+        headers,
+        credentials: 'include',
+    });
+    if (!response.ok) throw new Error('irception: HTTP ' + response.status + ' on ' + url);
     return response.json();
 }
 
@@ -30,12 +36,19 @@ async function getJson(url, signal) {
  * Fetch the form configuration (topics, rules, channelCategories,
  * maxChannels, originPrefixes). Falls back to window.FORM_CONFIG if the
  * host page already injected it (PHP-served pages do this).
+ *
+ * Si data.ident est retourné (récupération via X-Client-Ident ou cookie
+ * irception SameSite=None), tous les tiers sont mis à jour via storeIdent.
  */
 export async function loadFormConfig(options = {}) {
     if (typeof window !== 'undefined' && window.FORM_CONFIG) {
         return window.FORM_CONFIG;
     }
-    return getJson(apiUrl() + '/form/config', options.signal);
+    const data = await getJson(apiUrl() + '/form/config', options.signal);
+    if (data.ident && data.ident.length === 11) {
+        await storeIdent(data.ident, options.kiwiStorage || null);
+    }
+    return data;
 }
 
 /**

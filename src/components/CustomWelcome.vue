@@ -144,7 +144,7 @@
                                 <div class="kiwi-input-icon">
                                     <i class="fa fa-calendar"/>
                                 </div>
-                                <input v-model="age" type="number" min="13" max="99"
+                                <input v-model="age" type="number" min="15" max="99"
                                        :placeholder="$t('plugin-asl:age')"
                                        :class="[
                                            'kiwi-input',
@@ -331,6 +331,7 @@
 import * as config from '../config.js';
 import * as utils from '../libs/utils.js';
 import * as irceptionApi from '../libs/irceptionApi.js';
+import { loadIdent, generateIdent, storeIdent } from '../libs/irceptionIdent.js';
 import { evaluateRules, isTopicHeld } from '../libs/irceptionRules.js';
 import { readWelcomeState, writeWelcomeState } from '../libs/welcomeStorage.js';
 
@@ -349,15 +350,6 @@ let log = Logger.namespace('Welcome.vue');
 
 const RECOMMEND_DEBOUNCE_MS = 300;
 const REVERSE_GEOCODE_DEBOUNCE_MS = 600;
-
-const EMPTY_RULE_RESULT = {
-    disabledTopics: {},
-    hiddenTopics: {},
-    blockedChannels: {},
-    channelsToRemove: [],
-    lockedChannels: [],
-    corrections: [],
-};
 
 function freshRuleResult() {
     return {
@@ -408,7 +400,7 @@ export default {
             formConfig: null,
 
             // Rule evaluation result, refreshed on any state change.
-            ruleResult: { ...EMPTY_RULE_RESULT },
+            ruleResult: freshRuleResult(),
 
             // Error messages from rule corrections (e.g. "Rencontres nécessite 16 ans").
             // Cleared after a short delay like irception's showTopicError.
@@ -678,6 +670,22 @@ export default {
             previousNet = this.$state.getNetworkFromAddress(connectOptions.hostname.trim());
         }
 
+        // Thin adapter for the ident cascade (KiwiStorage tier).
+        // Reads/writes net.settings.pluginAsl[key]. Null when no prior network.
+        this.welcomeStorage = previousNet ? {
+            get(key) {
+                let s = previousNet.settings && previousNet.settings.pluginAsl;
+                return (s && s[key]) || null;
+            },
+            set(key, value) {
+                if (!previousNet.settings) kiwi.Vue.set(previousNet, 'settings', {});
+                if (!previousNet.settings.pluginAsl) {
+                    kiwi.Vue.set(previousNet.settings, 'pluginAsl', {});
+                }
+                kiwi.Vue.set(previousNet.settings.pluginAsl, key, value);
+            },
+        } : null;
+
         if (Misc.queryStringVal('nick')) {
             this.nick = Misc.queryStringVal('nick');
         } else if (previousNet && previousNet.connection.nick) {
@@ -849,11 +857,7 @@ export default {
             this.chatNowMode = true;
         }
     },
-    mounted() {
-        document.addEventListener('mousedown', this.onDocumentClick);
-    },
     beforeDestroy() {
-        document.removeEventListener('mousedown', this.onDocumentClick);
         if (this.debouncedRecommend) this.debouncedRecommend.cancel();
         if (this.debouncedReverseGeocode) this.debouncedReverseGeocode.cancel();
     },
@@ -861,12 +865,19 @@ export default {
         // ---------- Boot helpers ----------
 
         async loadFormConfigAndGeo() {
+            // Tiers plugin : backfill tous les tiers (cookie inclus) + sync localStorage
+            // pour que getJson() puisse envoyer X-Client-Ident sur /form/config.
+            const storedIdent = await loadIdent(this.welcomeStorage);
+            if (storedIdent) {
+                storeIdent(storedIdent, this.welcomeStorage);
+            }
+
             // Best effort: each call is independent so a /form/config failure
             // doesn't prevent GeoIP from pre-filling the location, and an
             // irception outage just leaves the form in basic mode (no chips,
             // no tag cloud, no recommendations) — never a user-facing error.
             let [formConfigResult, geo] = await Promise.all([
-                irceptionApi.loadFormConfig().catch((err) => {
+                irceptionApi.loadFormConfig({ kiwiStorage: this.welcomeStorage }).catch((err) => {
                     log.debug('irception /form/config unavailable:', err);
                     return null;
                 }),
@@ -954,7 +965,7 @@ export default {
                 clearTimeout(this.topicErrorTimer);
                 this.topicErrorTimer = setTimeout(() => {
                     this.topicErrors = [];
-                }, 4000);
+                }, 5500);
             }
         },
 
@@ -1236,10 +1247,6 @@ export default {
         onAgeBlur() {
             this.ageInteracted = true;
         },
-        onDocumentClick() {
-            // Kept for API compatibility; the new components don't expose
-            // dropdowns that need outside-click dismissal.
-        },
         formSubmit() {
             if (this.termsAutoAccept && this.termsContent) {
                 this.termsAccepted = true;
@@ -1248,12 +1255,23 @@ export default {
                 this.startUp();
             }
         },
-        startUp() {
+        async startUp() {
             this.connectErrors = [];
 
             let options = Object.assign({}, this.$state.settings.startupOptions);
             let connectOptions = this.connectOptions();
             let netAddress = _.trim(connectOptions.hostname);
+
+            let ident = await loadIdent(this.welcomeStorage);
+            if (!ident) {
+                let originParam = new URLSearchParams(window.location.search).get('origine');
+                ident = generateIdent(this.channelNames, originParam, this.formConfig);
+                await storeIdent(ident, this.welcomeStorage);
+                // Propager vers irception pour que X-Client-Ident soit enregistré
+                irceptionApi.loadFormConfig({ kiwiStorage: this.welcomeStorage }).catch(() => {});
+            }
+            // Sync localStorage pour le listener network.new dans plugin.js
+            try { localStorage.setItem('irc_ident', ident); } catch (e) { /* unavailable */ }
 
             let net = this.network || this.$state.getNetworkFromAddress(netAddress);
             let password = this.password;
@@ -2065,4 +2083,5 @@ export default {
     text-decoration: none;
     color: var(--brand-default, #004b87),
 }
+
 </style>
