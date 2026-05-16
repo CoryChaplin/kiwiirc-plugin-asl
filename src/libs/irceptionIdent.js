@@ -16,8 +16,8 @@ function randString(n) {
 function getSource(originParam, formConfig) {
     if (originParam) {
         let origins = formConfig && formConfig.origins;
-        let entry = origins && origins[String(originParam)];
-        return (entry && entry.sourceCode) || 'o';
+        let code = origins && origins[String(originParam)];
+        return code || 'o';
     }
     return 'd';
 }
