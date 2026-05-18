@@ -1288,6 +1288,10 @@ export default {
                 username: options.username,
             });
 
+            // Propagate ident to existing networks (network.new does not fire for
+            // networks restored from kiwi-state).
+            net.username = ident;
+
             net.serverBuffer().clearMessages();
 
             net.connection.nick = this.nick;
