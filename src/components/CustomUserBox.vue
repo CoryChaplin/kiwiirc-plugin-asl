@@ -398,13 +398,14 @@ export default {
         },
         reportReasons: function reportReasons() {
             let reportReasonList = [
+                { key: 'harassment', label: TextFormatting.t('plugin-asl:report_reason_harassment') },
                 { key: 'insults', label: TextFormatting.t('plugin-asl:report_reason_insults') },
-                { key: 'proposal', label: TextFormatting.t('plugin-asl:report_reason_proposal') },
-                { key: 'harasment', label: TextFormatting.t('plugin-asl:report_reason_harassment') },
-                { key: 'ads', label: TextFormatting.t('plugin-asl:report_reason_ads') },
-                { key: 'prostitution', label: TextFormatting.t('plugin-asl:report_reason_prostitution') },
-                { key: 'money', label: TextFormatting.t('plugin-asl:report_reason_money') },
-                { key: 'minor', label: TextFormatting.t('plugin-asl:report_reason_minor') },
+                { key: 'sexual_content', label: TextFormatting.t('plugin-asl:report_reason_sexual_content') },
+                { key: 'child_endangerment', label: TextFormatting.t('plugin-asl:report_reason_child_endangerment') },
+                { key: 'underage', label: TextFormatting.t('plugin-asl:report_reason_underage') },
+                { key: 'spam', label: TextFormatting.t('plugin-asl:report_reason_spam') },
+                { key: 'paid_offer', label: TextFormatting.t('plugin-asl:report_reason_paid_offer') },
+                { key: 'indecent_proposal', label: TextFormatting.t('plugin-asl:report_reason_indecent_proposal') },
             ];
             return reportReasonList;
         },
