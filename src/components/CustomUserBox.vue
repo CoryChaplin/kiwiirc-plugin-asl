@@ -94,7 +94,10 @@
                             {{ reason.label }}
                         </option>
                     </select>
-                    <button type="submit">{{ $t('plugin-asl:report_send') }}</button>
+                    <button type="submit" :disabled="report_sending">
+                        <i v-if="report_sending" class="fa fa-spinner fa-spin" aria-hidden="true" />
+                        <template v-else>{{ $t('plugin-asl:report_send') }}</template>
+                    </button>
                 </div>
             </form>
         </div>
@@ -251,6 +254,7 @@ export default {
             whoisLoading: false,
             report_user_display: false,
             report_confirmation: false,
+            report_sending: false,
             report_reasons: '',
             pluginUiButtonElements: GlobalApi.singleton().userboxButtonPlugins,
         };
@@ -453,20 +457,76 @@ export default {
         toggleReportUser: function toggleReportUser() {
             this.report_user_display = !this.report_user_display;
         },
-        submitReportForm: function submitReportForm() {
+        buildConversationLog: function buildConversationLog() {
+            let logLines = config.getSetting('reportLogLines');
+            let msgs = (this.buffer.messagesObj.messages || []).slice(-logLines);
+            return msgs
+                .filter((m) => m.message && m.message.trim().length)
+                .map((m) => {
+                    let text = '';
+                    switch (m.type) {
+                    case 'privmsg':
+                        text = `<${m.nick}> ${m.message}`;
+                        break;
+                    case 'nick':
+                    case 'mode':
+                    case 'action':
+                    case 'traffic':
+                        text = m.message;
+                        break;
+                    default:
+                        text = m.message;
+                    }
+                    if (!text.length) return null;
+                    let ts = (new Date(m.time)).toLocaleTimeString({ hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    return `[${ts}] ${text}`;
+                })
+                .filter(Boolean)
+                .join('\r\n');
+        },
+        submitReportForm: async function submitReportForm() {
+            this.report_sending = true;
             let nickname = this.user.nick;
             let network = this.$state.getActiveNetwork();
             let target = this.$state.getSetting('settings.plugin-asl.reportChannel');
+            let logLines = config.getSetting('reportLogLines');
+
+            let logUrl = null;
+            if (kiwi.fileuploader) {
+                try {
+                    const logText = this.buildConversationLog();
+                    const ts = Date.now();
+                    const result = await kiwi.fileuploader.uploadBlob(logText, {
+                        filename: `report_${nickname}_${ts}.txt`,
+                        mimeType: 'text/plain',
+                        category: 'abuse-report',
+                    });
+                    logUrl = result.url;
+                } catch (e) {
+                    // eslint-disable-next-line no-console
+                    console.error('[plugin-asl] report log upload failed:', e);
+                }
+            }
+
             let msg = TextFormatting.t('plugin-asl:report_msg_intro') + nickname + ' - ' +
                 TextFormatting.t('plugin-asl:report_channels') + ': ' + this.commonChannels.join(', ') + ' - ' +
                 TextFormatting.t('plugin-asl:report_reason') + ': ' + this.report_reasons;
+            if (logUrl) {
+                msg += ' - Log: ' + logUrl;
+            }
             network.ircClient.say(target, msg);
+
+            this.report_sending = false;
             this.report_user_display = false;
             this.report_confirmation = true;
+
+            const confirmMsg = logUrl
+                ? TextFormatting.t('plugin-asl:report_confirm_with_log', { lines: logLines })
+                : TextFormatting.t('plugin-asl:report_confirm');
             this.$state.addMessage(this.$state.getActiveBuffer(),
                 {
                     nick: TextFormatting.t('plugin-asl:system_message'),
-                    message: TextFormatting.t('plugin-asl:report_confirm'),
+                    message: confirmMsg,
                     type: 'notice',
                 });
         },

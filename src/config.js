@@ -90,6 +90,9 @@ const defaultConfig = {
     // Abuse report channel
     reportChannel: '#abuse',
 
+    // Number of conversation lines to include in the abuse report log
+    reportLogLines: 20,
+
     // Display all users in common channels UserBrowser
     browseAllUsers: false,
 
