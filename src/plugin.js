@@ -63,6 +63,20 @@ kiwi.plugin('asl', (kiwi) => {
         });
     });
 
+    // handle a user changing nick. Kiwi core clears user.colour during the nick
+    // change so it can recompute a nick-hash colour, which wipes out the ASL
+    // (sex-based) colour the plugin set. Re-apply it once core has finished.
+    // We defer with nextTick because this handler runs before core's
+    // changeUserNick() in the same synchronous event dispatch.
+    kiwi.on('irc.nick', (event, net) => {
+        kiwi.Vue.nextTick(() => {
+            let userObj = kiwi.state.getUser(net.id, event.new_nick);
+            if (userObj && userObj.asl) {
+                kiwi.Vue.set(userObj, 'colour', utils.getColour(userObj.asl));
+            }
+        });
+    });
+
     function updateUser(net, user) {
         let userObj = kiwi.state.getUser(net.id, user.nick) || kiwi.state.addUser(net, user);
         let parsedGecos = utils.parseGecos(user.realname);
