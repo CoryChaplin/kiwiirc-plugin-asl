@@ -65,13 +65,6 @@
                 <i class="fa fa-question-circle" aria-hidden="true" />
                 {{ $t('more_information') }}
             </a>
-            <a v-if="!isSelf && buffer.isQuery()"
-               class="kiwi-userbox-action"
-               @click="toggleReportUser"
-            >
-                <i class="fa fa-exclamation-circle" aria-hidden="true" />
-                {{ $t('plugin-asl:report') }}
-            </a>
         </div>
         <div v-if="buffer.isQuery() && report_user_display"
              class="kiwi-userbox-basicinfo kiwi-messagelist-message-notice"
@@ -124,12 +117,45 @@
             />
         </div>
 
-        <form v-if="!isSelf" class="u-form kiwi-userbox-ignoreuser">
-            <label>
-                <input v-model="user.ignore" type="checkbox" @click="toggleIgnore">
-                <span> {{ $t('ignore_user') }} </span>
-            </label>
-        </form>
+        <div v-if="!isSelf" class="kiwi-userbox-protect">
+            <div class="kiwi-userbox-protect-head">
+                <i class="fa fa-shield" aria-hidden="true" />
+                {{ $t('plugin-asl:protect_title') }}
+            </div>
+            <p class="kiwi-userbox-protect-text">
+                {{ $t('plugin-asl:protect_intro', { nick: user.nick }) }}
+            </p>
+            <div class="kiwi-userbox-protect-actions">
+                <button
+                    type="button"
+                    class="kiwi-userbox-protect-btn is-block"
+                    :class="{ 'is-on': user.ignore }"
+                    @click="onBlockClick"
+                >
+                    <i class="fa fa-ban" aria-hidden="true" />
+                    {{ user.ignore ? $t('plugin-asl:unblock') : $t('plugin-asl:block') }}
+                </button>
+                <button
+                    v-if="buffer.isQuery()"
+                    type="button"
+                    class="kiwi-userbox-protect-btn is-report"
+                    @click="toggleReportUser"
+                >
+                    <i class="fa fa-flag" aria-hidden="true" />
+                    {{ $t('plugin-asl:report_action') }}
+                </button>
+            </div>
+            <div class="kiwi-userbox-protect-hint">{{ $t('plugin-asl:protect_hint') }}</div>
+        </div>
+        <div v-if="block_toast" class="kiwi-asl-toast">
+            <i class="kiwi-asl-toast-ic fa fa-ban" aria-hidden="true" />
+            <span class="kiwi-asl-toast-msg">
+                {{ $t('plugin-asl:block_toast', { nick: toast_nick }) }}
+            </span>
+            <button type="button" class="kiwi-asl-toast-action" @click="undoBlock">
+                {{ $t('plugin-asl:undo') }}
+            </button>
+        </div>
         <div
             v-if="whoisRequested"
             :class="[whoisLoading?'kiwi-userbox-whois--loading':'']"
@@ -256,6 +282,8 @@ export default {
             report_confirmation: false,
             report_sending: false,
             report_reasons: '',
+            block_toast: false,
+            toast_nick: '',
             pluginUiButtonElements: GlobalApi.singleton().userboxButtonPlugins,
         };
     },
@@ -603,6 +631,34 @@ export default {
             }
             this.user.ignore = !this.user.ignore;
         },
+        onBlockClick: function onBlockClick() {
+            this.toggleIgnore();
+            if (this.user.ignore) {
+                this.showBlockToast(this.user.nick);
+            } else {
+                this.block_toast = false;
+            }
+        },
+        showBlockToast: function showBlockToast(nick) {
+            this.toast_nick = nick;
+            this.block_toast = true;
+            if (this.blockToastTimer) {
+                clearTimeout(this.blockToastTimer);
+            }
+            this.blockToastTimer = setTimeout(() => {
+                this.block_toast = false;
+            }, 5000);
+        },
+        undoBlock: function undoBlock() {
+            // the toasted user is the one currently in the box — unblock if still ignored
+            if (this.user.ignore) {
+                this.toggleIgnore();
+            }
+            this.block_toast = false;
+            if (this.blockToastTimer) {
+                clearTimeout(this.blockToastTimer);
+            }
+        },
     },
 };
 </script>
@@ -830,19 +886,90 @@ export default {
     display: block;
 }
 
-.kiwi-userbox-ignoreuser {
+/* Protection control zone — base styles (theme-agnostic, works on any theme;
+   the EuropNet theme adds the brand look on top). */
+.kiwi-userbox-protect {
+    margin: 0 1em 1.5em;
+    padding: 0.7em 0.75em;
+    border: 1px solid rgba(127, 127, 127, 0.3);
+    border-radius: 0.7em;
+    box-sizing: border-box;
+}
+
+.kiwi-userbox-protect-head {
     display: flex;
-    flex-direction: row;
+    align-items: center;
+    gap: 0.4em;
+    margin-bottom: 0.3em;
+    font-weight: 800;
+}
+
+.kiwi-userbox-protect-text {
+    margin: 0 0 0.6em;
+    font-size: 0.85em;
+    opacity: 0.85;
+}
+
+.kiwi-userbox-protect-actions {
+    display: flex;
+    gap: 0.5em;
+}
+
+.kiwi-userbox-protect-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
     justify-content: center;
+    gap: 0.4em;
+    padding: 0.55em 0.75em;
+    border: 1px solid rgba(127, 127, 127, 0.45);
+    border-radius: 6.1875rem;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
 }
 
-.kiwi-userbox-ignoreuser label {
-    margin: 0 0 1em 0;
+.kiwi-userbox-protect-btn.is-on {
+    background: rgba(127, 127, 127, 0.18);
 }
 
-.kiwi-userbox-ignoreuser span {
-    /* This fixes a vertical align issue between the checkbox and span */
-    float: right;
+.kiwi-userbox-protect-hint {
+    margin-top: 0.5em;
+    font-size: 0.8em;
+    text-align: center;
+    opacity: 0.7;
+}
+
+/* Toast — transient confirmation of the 1-click block (with undo). */
+.kiwi-asl-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 1.5em;
+    transform: translateX(-50%);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    max-width: 90vw;
+    padding: 0.55em 0.6em 0.55em 0.85em;
+    border: 1px solid rgba(127, 127, 127, 0.3);
+    border-radius: 0.5em;
+    background: #fff;
+    color: #222;
+    box-shadow: 0 0.5em 1.5em rgba(0, 0, 0, 0.2);
+}
+
+.kiwi-asl-toast-action {
+    padding: 0.2em 0.4em;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-weight: 800;
+    text-decoration: underline;
+    cursor: pointer;
 }
 
 @media screen and (max-width: 769px) {
