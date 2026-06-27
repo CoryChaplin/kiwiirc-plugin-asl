@@ -40,6 +40,7 @@
             {{ props.nicklist.userModePrefix(props.user) }}
         </span><span
             :style="{ 'color': props.m().userColour() }"
+            :class="props.m().genderClass()"
             class="kiwi-nicklist-user-nick"
         >{{ props.user.nick }}
         </span>
@@ -59,6 +60,9 @@
 /* global kiwi:true */
 /* 'kiwi public'; */
 
+import * as utils from '../libs/utils.js';
+import { getSetting } from '../config.js';
+
 let AwayStatusIndicator = kiwi.require('components/AwayStatusIndicator');
 let TypingStatusIndicator = kiwi.require('components/TypingStatusIndicator');
 let Avatar = kiwi.require('components/Avatar');
@@ -66,6 +70,10 @@ let TextFormatting = kiwi.require('helpers/TextFormatting');
 
 const methods = {
     props: {},
+    genderClass() {
+        if (!getSetting('showGenderGlyph')) return '';
+        return utils.getGenderClass(this.props.user.asl);
+    },
     userColour() {
         let props = this.props;
         if (props.nicklist.useColouredNicks) {
@@ -267,5 +275,35 @@ export default {
 .kiwi-nicklist-user:hover .kiwi-nicklist-user-tooltip {
     visibility: visible;
     opacity: 1;
+}
+
+.kiwi-messagelist-nick.g-f::after,
+.kiwi-nicklist-user-nick.g-f::after,
+.kiwi-messagelist-nick.g-m::after,
+.kiwi-nicklist-user-nick.g-m::after,
+.kiwi-messagelist-nick.g-u::after,
+.kiwi-nicklist-user-nick.g-u::after {
+    font-family: fontAwesome, Helvetica, Arial, Verdana, Tahoma, sans-serif;
+    font-size: 1em;
+    font-weight: bold;
+    opacity: 0.85;
+    margin-left: 0.1em;
+}
+
+.kiwi-messagelist-nick.g-f::after,
+.kiwi-nicklist-user-nick.g-f::after {
+    content: "\f221";
+}
+
+.kiwi-messagelist-nick.g-m::after,
+.kiwi-nicklist-user-nick.g-m::after {
+    content: "\f222";
+}
+
+/* \f224 is fa-transgender in Font Awesome 4, the version KiwiIRC loads — not \f225, which
+   is fa-transgender-alt, a different icon. */
+.kiwi-messagelist-nick.g-u::after,
+.kiwi-nicklist-user-nick.g-u::after {
+    content: "\f224";
 }
 </style>

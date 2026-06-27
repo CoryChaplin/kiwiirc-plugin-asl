@@ -21,6 +21,9 @@ const defaultConfig = {
     // Enable User Browser
     showUserBrowser: true,
 
+    // Show a gender glyph (♀ ♂ ⚧) after the pseudo, in the message list and nicklist
+    showGenderGlyph: true,
+
     // What icon to use for User Browser
     userBrowserIcon: 'fa-heart',
 

@@ -9,10 +9,12 @@ import UserBrowserButton from './components/UserBrowserButton.vue';
 import Locales from './libs/locales.js';
 import * as config from './config.js';
 import * as utils from './libs/utils.js';
+import * as nickGlyphObserver from './libs/nickGlyphObserver.js';
 
 // eslint-disable-next-line no-undef
 kiwi.plugin('asl', (kiwi) => {
     config.setDefaults();
+    nickGlyphObserver.start();
 
     // setup the plugins locales
     let localesPath = kiwi.state.getSetting('settings.plugin-asl.localesPath');
@@ -83,5 +85,8 @@ kiwi.plugin('asl', (kiwi) => {
         kiwi.Vue.set(userObj, 'asl', parsedGecos.asl);
         kiwi.Vue.set(userObj, 'aslRealname', parsedGecos.realname);
         kiwi.Vue.set(userObj, 'colour', utils.getColour(userObj.asl));
+        // Messages may already be rendered in the message list before this ASL data arrives
+        // (e.g. a late WHO response) — reclassify whatever's already on screen for this nick.
+        nickGlyphObserver.reclassifyNick(userObj.nick);
     }
 });

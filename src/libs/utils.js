@@ -64,6 +64,16 @@ export function getColour(asl) {
     return sexes[sex] ? sexes[sex].colour : fallbackColour;
 }
 
+// Declared sex only — an absent/undeclared sex gets no class, no glyph (we don't assume a
+// gender identity that wasn't given).
+export function getGenderClass(asl) {
+    let sex = asl && asl.s ? asl.s : '';
+    if (sex === '_female') return 'g-f';
+    if (sex === '_male') return 'g-m';
+    if (sex === '_other') return 'g-u';
+    return '';
+}
+
 export function getSexChar(sex) {
     let sexes = kiwi.state.getSetting('settings.plugin-asl.sexes');
     return sexes[sex] ? sexes[sex].chars[0] : null;
