@@ -1269,19 +1269,19 @@ export default {
     cursor: pointer;
 }
 
+/* mirrors the DS checkbox atom .cbx (checked = accent-fill, readable in dark) */
 .kiwi-asl-combine-box {
     flex-shrink: 0;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1.25rem;
-    height: 1.25rem;
+    width: 1.15rem;
+    height: 1.15rem;
     margin-top: 0.0625rem;
-    border: 2px solid var(--color-accent, rgba(127, 127, 127, 0.5));
-    border-radius: 0.375rem;
-    font-size: 0.75rem;
-    background: var(--color-surface, #fff);
-    color: var(--color-on-accent, #fff);
+    border: 2px solid var(--color-border-strong, rgba(127, 127, 127, 0.5));
+    border-radius: 0.3rem;
+    font-size: 0.7rem;
+    color: var(--color-on-accent-fill, #fff);
 }
 
 .kiwi-asl-combine-box .fa {
@@ -1289,8 +1289,8 @@ export default {
 }
 
 .kiwi-asl-combine.is-on .kiwi-asl-combine-box {
-    background: var(--color-accent, #555);
-    border-color: var(--color-accent, #555);
+    background: var(--color-accent-fill, #2f6fb0);
+    border-color: var(--color-accent-fill, #2f6fb0);
 }
 
 .kiwi-asl-combine.is-on .kiwi-asl-combine-box .fa {
