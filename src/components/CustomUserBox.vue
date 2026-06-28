@@ -66,39 +66,61 @@
                 {{ $t('more_information') }}
             </a>
         </div>
-        <div v-if="buffer.isQuery() && report_user_display"
-             class="kiwi-userbox-basicinfo kiwi-messagelist-message-notice"
-        >
-            <form
-                class="kiwi-userbox-report"
-                @submit.prevent="submitReportForm"
-            >
-                <div
-                    class="kiwi-userbox-report-inputwrap"
-                ><b>{{ user.nick }}</b> <span v-html="$t('plugin-asl:report_intro')" />
-                    <select
-                        v-model="report_reasons"
-                    >
-                        <option
-                            v-for="reason in reportReasons"
-                            :key="reason.key"
-                            :value="reason.label"
-                        >
-                            {{ reason.label }}
-                        </option>
-                    </select>
-                    <button type="submit" :disabled="report_sending">
-                        <i v-if="report_sending" class="fa fa-spinner fa-spin" aria-hidden="true" />
-                        <template v-else>{{ $t('plugin-asl:report_send') }}</template>
+        <div v-if="report_user_display" ref="ssOverlay" class="kiwi-asl-overlay" @click.self="closeReport">
+            <div class="kiwi-asl-modal" role="dialog" aria-modal="true">
+                <div class="kiwi-asl-modal-head">
+                    <span class="kiwi-asl-modal-icon"><i class="fa fa-flag" aria-hidden="true" /></span>
+                    <span class="kiwi-asl-modal-title">
+                        {{ $t('plugin-asl:report_title', { nick: user.nick }) }}
+                    </span>
+                    <button type="button" class="kiwi-asl-modal-close" @click="closeReport">
+                        <i class="fa fa-times" aria-hidden="true" />
                     </button>
                 </div>
-            </form>
-        </div>
-        <div v-if="report_confirmation"
-             class="kiwi-userbox-basicinfo kiwi-messagelist-message-notice"
-        >
-            <div>
-                {{ $t('plugin-asl:report_confirm') }}
+                <div class="kiwi-asl-modal-body">
+                    <p class="kiwi-asl-modal-intro">{{ $t('plugin-asl:report_modal_intro') }}</p>
+                    <div
+                        v-for="reason in reportReasons"
+                        :key="reason.key"
+                        class="kiwi-asl-reason"
+                        :class="{ 'is-sel': report_reasons === reason.label }"
+                        @click="report_reasons = reason.label"
+                    >
+                        <span class="kiwi-asl-reason-radio" />
+                        {{ reason.label }}
+                    </div>
+                    <div
+                        class="kiwi-asl-combine"
+                        :class="{ 'is-on': report_block_too }"
+                        @click="report_block_too = !report_block_too"
+                    >
+                        <span class="kiwi-asl-combine-box"><i class="fa fa-check" aria-hidden="true" /></span>
+                        <span class="kiwi-asl-combine-text">
+                            <b>{{ $t('plugin-asl:report_block_too', { nick: user.nick }) }}</b>
+                            <span>{{ $t('plugin-asl:report_block_too_hint') }}</span>
+                        </span>
+                    </div>
+                    <div class="kiwi-asl-note">
+                        <i class="fa fa-paperclip" aria-hidden="true" />
+                        {{ $t('plugin-asl:report_log_note') }}
+                    </div>
+                    <div class="kiwi-asl-modal-foot">
+                        <button type="button" class="kiwi-asl-btn is-cancel" @click="closeReport">
+                            {{ $t('plugin-asl:report_cancel') }}
+                        </button>
+                        <button
+                            type="button"
+                            class="kiwi-asl-btn is-send"
+                            :disabled="!report_reasons || report_sending"
+                            @click="submitReportForm"
+                        >
+                            <i v-if="report_sending" class="fa fa-spinner fa-spin" aria-hidden="true" />
+                            <template v-else>
+                                <i class="fa fa-flag" aria-hidden="true" /> {{ $t('plugin-asl:report_send') }}
+                            </template>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="kiwi-userbox-actions kiwi-userbox-plugin-actions">
@@ -145,14 +167,17 @@
                     {{ $t('plugin-asl:report_action') }}
                 </button>
             </div>
-            <div class="kiwi-userbox-protect-hint">{{ $t('plugin-asl:protect_hint') }}</div>
+            <div class="kiwi-userbox-protect-hint" v-html="$t('plugin-asl:protect_hint')" />
         </div>
-        <div v-if="block_toast" class="kiwi-asl-toast">
-            <i class="kiwi-asl-toast-ic fa fa-ban" aria-hidden="true" />
-            <span class="kiwi-asl-toast-msg">
-                {{ $t('plugin-asl:block_toast', { nick: toast_nick }) }}
-            </span>
-            <button type="button" class="kiwi-asl-toast-action" @click="undoBlock">
+        <div v-if="toast_visible" class="kiwi-asl-toast">
+            <i class="kiwi-asl-toast-ic fa" :class="toast_icon" aria-hidden="true" />
+            <span class="kiwi-asl-toast-msg">{{ toast_message }}</span>
+            <button
+                v-if="toast_has_undo"
+                type="button"
+                class="kiwi-asl-toast-action"
+                @click="onToastUndo"
+            >
                 {{ $t('plugin-asl:undo') }}
             </button>
         </div>
@@ -282,10 +307,23 @@ export default {
             report_confirmation: false,
             report_sending: false,
             report_reasons: '',
-            block_toast: false,
-            toast_nick: '',
+            report_block_too: true,
+            toast_visible: false,
+            toast_message: '',
+            toast_icon: '',
+            toast_has_undo: false,
             pluginUiButtonElements: GlobalApi.singleton().userboxButtonPlugins,
         };
+    },
+    mounted: function mounted() {
+        document.addEventListener('keydown', this.onKeydown);
+    },
+    beforeDestroy: function beforeDestroy() {
+        document.removeEventListener('keydown', this.onKeydown);
+        // the overlay may have been portalled out of this component's DOM — clean it up
+        if (this.$refs.ssOverlay && this.$refs.ssOverlay.parentNode) {
+            this.$refs.ssOverlay.parentNode.removeChild(this.$refs.ssOverlay);
+        }
     },
     computed: {
         singleLine() {
@@ -447,6 +485,20 @@ export default {
             this.whoisRequested = false;
             this.whoisLoading = false;
         },
+        report_user_display: function watchReportOpen(open) {
+            // Portal the overlay to the app root so its backdrop-filter blurs the
+            // whole page uniformly (when nested in the userbox it only blurs its
+            // own stacking context — rail/navbar stay sharp).
+            if (!open) {
+                return;
+            }
+            this.$nextTick(() => {
+                let wrap = document.querySelector('.kiwi-wrap');
+                if (wrap && this.$refs.ssOverlay) {
+                    wrap.appendChild(this.$refs.ssOverlay);
+                }
+            });
+        },
     },
     methods: {
         userModeOnThisBuffer: function userModeOnBuffer(user) {
@@ -484,7 +536,20 @@ export default {
             });
         },
         toggleReportUser: function toggleReportUser() {
+            if (!this.report_user_display) {
+                // reset the form each time the modal opens
+                this.report_reasons = '';
+                this.report_block_too = true;
+            }
             this.report_user_display = !this.report_user_display;
+        },
+        closeReport: function closeReport() {
+            this.report_user_display = false;
+        },
+        onKeydown: function onKeydown(e) {
+            if (e.key === 'Escape' && this.report_user_display) {
+                this.closeReport();
+            }
         },
         buildConversationLog: function buildConversationLog() {
             let logLines = config.getSetting('reportLogLines');
@@ -514,6 +579,10 @@ export default {
                 .join('\r\n');
         },
         submitReportForm: async function submitReportForm() {
+            // protection is guaranteed: block right away if requested, even if the report fails
+            if (this.report_block_too && !this.user.ignore) {
+                this.toggleIgnore();
+            }
             this.report_sending = true;
             let nickname = this.user.nick;
             let network = this.$state.getActiveNetwork();
@@ -558,6 +627,8 @@ export default {
                     message: confirmMsg,
                     type: 'notice',
                 });
+
+            this.showToast(TextFormatting.t('plugin-asl:report_toast'), 'fa-flag', null);
         },
         kickUser: function kickUser() {
             let reason = this.$state.setting('buffers.default_kick_reason');
@@ -634,29 +705,72 @@ export default {
         onBlockClick: function onBlockClick() {
             this.toggleIgnore();
             if (this.user.ignore) {
-                this.showBlockToast(this.user.nick);
+                this.notifyBlocked(this.user.nick);
+                this.showToast(
+                    TextFormatting.t('plugin-asl:block_toast', { nick: this.user.nick }),
+                    'fa-ban',
+                    this.undoBlockAction
+                );
             } else {
-                this.block_toast = false;
+                this.notifyUnblocked(this.user.nick);
+                this.showToast(
+                    TextFormatting.t('plugin-asl:unblock_toast', { nick: this.user.nick }),
+                    'fa-ban',
+                    this.undoUnblockAction
+                );
             }
         },
-        showBlockToast: function showBlockToast(nick) {
-            this.toast_nick = nick;
-            this.block_toast = true;
-            if (this.blockToastTimer) {
-                clearTimeout(this.blockToastTimer);
-            }
-            this.blockToastTimer = setTimeout(() => {
-                this.block_toast = false;
-            }, 5000);
-        },
-        undoBlock: function undoBlock() {
-            // the toasted user is the one currently in the box — unblock if still ignored
+        undoBlockAction: function undoBlockAction() {
+            // undo a block = unblock again
             if (this.user.ignore) {
                 this.toggleIgnore();
+                this.notifyUnblocked(this.user.nick);
             }
-            this.block_toast = false;
-            if (this.blockToastTimer) {
-                clearTimeout(this.blockToastTimer);
+        },
+        undoUnblockAction: function undoUnblockAction() {
+            // undo an unblock = block again
+            if (!this.user.ignore) {
+                this.toggleIgnore();
+                this.notifyBlocked(this.user.nick);
+            }
+        },
+        notifyBlocked: function notifyBlocked(nick) {
+            this.addProtectNotice('plugin-asl:block_confirm', nick);
+        },
+        notifyUnblocked: function notifyUnblocked(nick) {
+            this.addProtectNotice('plugin-asl:unblock_confirm', nick);
+        },
+        addProtectNotice: function addProtectNotice(key, nick) {
+            // persistent confirmation in the conversation, like the report flow
+            this.$state.addMessage(this.$state.getActiveBuffer(), {
+                nick: TextFormatting.t('plugin-asl:system_message'),
+                message: TextFormatting.t(key, { nick: nick }),
+                type: 'notice',
+            });
+        },
+        showToast: function showToast(message, icon, undoFn) {
+            this.toast_message = message;
+            this.toast_icon = icon;
+            this.toast_has_undo = !!undoFn;
+            this.toastUndoFn = undoFn || null;
+            this.toast_visible = true;
+            if (this.toastTimer) {
+                clearTimeout(this.toastTimer);
+            }
+            this.toastTimer = setTimeout(() => {
+                this.toast_visible = false;
+            }, 5000);
+        },
+        onToastUndo: function onToastUndo() {
+            if (this.toastUndoFn) {
+                this.toastUndoFn();
+            }
+            this.hideToast();
+        },
+        hideToast: function hideToast() {
+            this.toast_visible = false;
+            if (this.toastTimer) {
+                clearTimeout(this.toastTimer);
             }
         },
     },
@@ -889,30 +1003,32 @@ export default {
 /* Protection control zone — base styles (theme-agnostic, works on any theme;
    the EuropNet theme adds the brand look on top). */
 .kiwi-userbox-protect {
-    margin: 0 1em 1.5em;
-    padding: 0.7em 0.75em;
-    border: 1px solid rgba(127, 127, 127, 0.3);
-    border-radius: 0.7em;
+    margin: 0 1rem 1.5rem;
+    padding: 0.875rem;
+    border-radius: 0.875rem;
+    /* read DS tokens with a neutral fallback so the theme can't be overridden by injection order */
+    background: color-mix(in srgb, var(--color-accent-soft, #8bcbf9) 30%, var(--color-surface, #fff));
     box-sizing: border-box;
 }
 
 .kiwi-userbox-protect-head {
     display: flex;
     align-items: center;
-    gap: 0.4em;
-    margin-bottom: 0.3em;
+    gap: 0.4375rem;
+    margin-bottom: 0.375rem;
+    font-size: 0.75rem;
     font-weight: 800;
 }
 
 .kiwi-userbox-protect-text {
-    margin: 0 0 0.6em;
-    font-size: 0.85em;
-    opacity: 0.85;
+    margin: 0 0 0.625rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
 }
 
 .kiwi-userbox-protect-actions {
     display: flex;
-    gap: 0.5em;
+    gap: 0.5rem;
 }
 
 .kiwi-userbox-protect-btn {
@@ -920,13 +1036,15 @@ export default {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.4em;
-    padding: 0.55em 0.75em;
-    border: 1px solid rgba(127, 127, 127, 0.45);
+    gap: 0.375rem;
+    height: 2.125rem;
+    padding: 0 0.5rem;
+    border: 1px solid var(--color-border-strong, rgba(127, 127, 127, 0.45));
     border-radius: 6.1875rem;
-    background: none;
+    background: var(--color-surface, #fff);
     color: inherit;
-    font: inherit;
+    font-family: inherit;
+    font-size: 0.75rem;
     font-weight: 700;
     cursor: pointer;
 }
@@ -936,40 +1054,332 @@ export default {
 }
 
 .kiwi-userbox-protect-hint {
-    margin-top: 0.5em;
-    font-size: 0.8em;
+    margin-top: 0.5rem;
+    font-size: 0.6875rem;
     text-align: center;
-    opacity: 0.7;
+    color: var(--color-accent, inherit);
+}
+
+.kiwi-userbox-protect-hint em {
+    font-style: normal;
+    font-weight: 800;
 }
 
 /* Toast — transient confirmation of the 1-click block (with undo). */
 .kiwi-asl-toast {
     position: fixed;
     left: 50%;
-    bottom: 1.5em;
+    bottom: 4.5rem;
     transform: translateX(-50%);
-    z-index: 200;
+    z-index: 9990;
     display: flex;
     align-items: center;
     gap: 0.6em;
-    max-width: 90vw;
+    width: max-content;
+    max-width: calc(100vw - 2rem);
     padding: 0.55em 0.6em 0.55em 0.85em;
-    border: 1px solid rgba(127, 127, 127, 0.3);
+    border: 1px solid var(--color-border, rgba(127, 127, 127, 0.3));
     border-radius: 0.5em;
-    background: #fff;
-    color: #222;
+    background: var(--color-surface, #fff);
+    color: var(--color-text-primary, #222);
     box-shadow: 0 0.5em 1.5em rgba(0, 0, 0, 0.2);
+    animation: kiwi-asl-toast-in 0.2s ease-out;
+}
+
+@keyframes kiwi-asl-toast-in {
+    from { opacity: 0; transform: translateX(-50%) translateY(0.75rem); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .kiwi-asl-toast {
+        animation: none;
+    }
 }
 
 .kiwi-asl-toast-action {
     padding: 0.2em 0.4em;
     border: 0;
     background: none;
-    color: inherit;
+    color: var(--color-accent, inherit);
     font: inherit;
     font-weight: 800;
     text-decoration: underline;
     cursor: pointer;
+}
+
+/* Report modal — base styles (theme-agnostic; the EuropNet theme adds the brand look). */
+.kiwi-asl-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: var(--color-scrim, rgba(8, 24, 44, 0.55));
+}
+
+.kiwi-asl-modal {
+    width: 23.75rem;
+    max-width: 92vw;
+    max-height: 86vh;
+    overflow-y: auto;
+    background: var(--color-surface, #fff);
+    color: var(--color-text-primary, #222);
+    border-radius: 1rem;
+    box-shadow: 0 1.25rem 3.75rem rgba(0, 30, 60, 0.35);
+    animation: kiwi-asl-modal-pop 0.18s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@keyframes kiwi-asl-modal-pop {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes kiwi-asl-modal-sheet {
+    from { transform: translateY(100%); }
+    to { transform: none; }
+}
+
+.kiwi-asl-overlay {
+    animation: kiwi-asl-overlay-fade 0.18s ease;
+}
+
+@keyframes kiwi-asl-overlay-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .kiwi-asl-modal,
+    .kiwi-asl-overlay {
+        animation: none;
+    }
+}
+
+.kiwi-asl-modal-head {
+    position: sticky;
+    top: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.875rem 1rem;
+    background: inherit;
+    border-bottom: 1px solid var(--color-border, rgba(127, 127, 127, 0.2));
+}
+
+.kiwi-asl-modal-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.875rem;
+    height: 1.875rem;
+    border-radius: 0.5625rem;
+    font-size: 0.875rem;
+    background: var(--color-danger, #c0392b);
+    color: var(--color-on-danger, #fff);
+}
+
+.kiwi-asl-modal-title {
+    flex: 1;
+    font-size: 0.9375rem;
+    font-weight: 800;
+}
+
+.kiwi-asl-modal-close {
+    flex-shrink: 0;
+    width: 1.875rem;
+    height: 1.875rem;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: inherit;
+    opacity: 0.6;
+    cursor: pointer;
+}
+
+.kiwi-asl-modal-close:hover {
+    opacity: 1;
+}
+
+.kiwi-asl-modal-body {
+    padding: 1rem;
+}
+
+.kiwi-asl-modal-intro {
+    margin: 0 0 0.75rem;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    color: var(--color-text-secondary, inherit);
+}
+
+.kiwi-asl-reason {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin-bottom: 0.3125rem;
+    padding: 0.4375rem 0.75rem;
+    border: 1px solid var(--color-border-strong, rgba(127, 127, 127, 0.4));
+    border-radius: 0.6875rem;
+    font-size: 0.8438rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.kiwi-asl-reason-radio {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.125rem;
+    height: 1.125rem;
+    border: 2px solid rgba(127, 127, 127, 0.5);
+    border-radius: 50%;
+}
+
+.kiwi-asl-reason.is-sel {
+    border-color: var(--color-accent, #555);
+    background: var(--color-bg-raised, rgba(127, 127, 127, 0.12));
+    color: var(--color-accent, inherit);
+    font-weight: 800;
+}
+
+.kiwi-asl-reason.is-sel .kiwi-asl-reason-radio {
+    border-color: var(--color-accent, #555);
+}
+
+.kiwi-asl-reason.is-sel .kiwi-asl-reason-radio::after {
+    content: '';
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--color-accent, #555);
+}
+
+.kiwi-asl-combine {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    margin: 1rem 0 0.5rem;
+    padding: 0.75rem 0.875rem;
+    border-radius: 0.875rem;
+    background: var(--color-bg-raised, rgba(127, 127, 127, 0.1));
+    cursor: pointer;
+}
+
+.kiwi-asl-combine-box {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: 0.0625rem;
+    border: 2px solid var(--color-accent, rgba(127, 127, 127, 0.5));
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    background: var(--color-surface, #fff);
+    color: var(--color-on-accent, #fff);
+}
+
+.kiwi-asl-combine-box .fa {
+    opacity: 0;
+}
+
+.kiwi-asl-combine.is-on .kiwi-asl-combine-box {
+    background: var(--color-accent, #555);
+    border-color: var(--color-accent, #555);
+}
+
+.kiwi-asl-combine.is-on .kiwi-asl-combine-box .fa {
+    opacity: 1;
+}
+
+.kiwi-asl-combine-text {
+    font-size: 0.8125rem;
+    line-height: 1.35;
+}
+
+.kiwi-asl-combine-text b {
+    display: block;
+    font-weight: 800;
+}
+
+.kiwi-asl-combine-text span {
+    font-weight: 600;
+}
+
+.kiwi-asl-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4375rem;
+    margin: 0.875rem 0 0;
+    font-size: 0.6875rem;
+    line-height: 1.4;
+    color: var(--color-text-muted, inherit);
+}
+
+.kiwi-asl-modal-foot {
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    gap: 0.625rem;
+    margin: 1rem -1rem -1rem;
+    padding: 0.875rem 1rem 1rem;
+    border-top: 1px solid var(--color-border, rgba(127, 127, 127, 0.2));
+    background: var(--color-surface, #fff);
+}
+
+.kiwi-asl-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4375rem;
+    height: 2.5rem;
+    padding: 0 1rem;
+    border: 0;
+    border-radius: 6.1875rem;
+    font-family: inherit;
+    font-size: 0.8438rem;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+/* cancel keeps its natural width; send fills the row so its label stays on one line (v16) */
+.kiwi-asl-btn.is-cancel {
+    flex: 0 0 auto;
+    border: 1px solid var(--color-border-strong, rgba(127, 127, 127, 0.4));
+    background: none;
+    color: var(--color-text-secondary, inherit);
+}
+
+.kiwi-asl-btn.is-send {
+    flex: 1;
+    background: var(--color-danger, #c0392b);
+    color: var(--color-on-danger, #fff);
+}
+
+.kiwi-asl-btn.is-send:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+@media (max-width: 560px) {
+    .kiwi-asl-overlay {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .kiwi-asl-modal {
+        width: 100%;
+        max-width: 100%;
+        max-height: 90vh;
+        border-radius: 1em 1em 0 0;
+        animation: kiwi-asl-modal-sheet 0.2s ease-out;
+    }
 }
 
 @media screen and (max-width: 769px) {
