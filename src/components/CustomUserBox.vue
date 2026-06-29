@@ -57,14 +57,24 @@
         </div>
 
         <div class="kiwi-userbox-actions">
-            <a v-if="!isSelf && !buffer.isQuery()" class="kiwi-userbox-action" @click="openQuery">
+            <button
+                v-if="!isSelf && !buffer.isQuery()"
+                type="button"
+                class="kiwi-userbox-action-btn"
+                @click="openQuery"
+            >
                 <i class="fa fa-comment-o" aria-hidden="true" />
                 {{ $t('send_a_message') }}
-            </a>
-            <a v-if="!whoisRequested" class="kiwi-userbox-action" @click="updateWhoisData">
+            </button>
+            <button
+                v-if="!whoisRequested"
+                type="button"
+                class="kiwi-userbox-action-btn"
+                @click="updateWhoisData"
+            >
                 <i class="fa fa-question-circle" aria-hidden="true" />
                 {{ $t('more_information') }}
-            </a>
+            </button>
         </div>
         <div v-if="report_user_display" ref="ssOverlay" class="kiwi-asl-overlay" @click.self="closeReport">
             <div
@@ -967,27 +977,17 @@ export default {
 .kiwi-userbox-actions {
     width: 100%;
     padding: 1em;
-    text-align: center;
     margin: 0;
     user-select: none;
     box-sizing: border-box;
 
-    /* using display flex here to prevent spaces making things uneven */
+    /* flex + gap so the actions line up like the protection row below */
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
+    gap: 0.5rem;
 
-    .kiwi-userbox-action {
-        display: inline-block;
-        border: 1px solid;
-        padding: 0.5em 1em;
-        cursor: pointer;
-        margin: 0 2px;
-        transition: all 0.3s;
-        border-radius: 3px;
-    }
-
-    .kiwi-userbox-action:empty {
+    .kiwi-userbox-action-btn:empty {
         display: none;
     }
 
@@ -1049,10 +1049,6 @@ export default {
     font-size: 1.2em;
 }
 
-.kiwi-userbox-actions a {
-    margin-right: 1em;
-}
-
 .kiwi-userbox-whois {
     line-height: 1.4em;
     padding: 1em;
@@ -1098,6 +1094,9 @@ export default {
     gap: 0.5rem;
 }
 
+/* shared pill button — the top actions and the protection controls speak one
+   button language so the userbox isn't two grammars (DS ghost/ctrl family). */
+.kiwi-userbox-action-btn,
 .kiwi-userbox-protect-btn {
     flex: 1;
     display: inline-flex;
@@ -1501,20 +1500,13 @@ export default {
     }
 
     .kiwi-userbox-actions {
-        padding: 0;
+        padding: 0.75rem;
         width: 100%;
         box-sizing: border-box;
     }
 
     .kiwi-userbox-plugin-actions {
         padding: 0;
-    }
-
-    .kiwi-userbox-actions .kiwi-userbox-action {
-        width: 200px;
-        clear: both;
-        display: block;
-        margin: 0 auto 20px auto;
     }
 }
 </style>
