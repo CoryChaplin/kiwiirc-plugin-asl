@@ -67,39 +67,67 @@
             </a>
         </div>
         <div v-if="report_user_display" ref="ssOverlay" class="kiwi-asl-overlay" @click.self="closeReport">
-            <div class="kiwi-asl-modal" role="dialog" aria-modal="true">
+            <div
+                ref="ssModal"
+                class="kiwi-asl-modal"
+                role="dialog"
+                aria-modal="true"
+                tabindex="-1"
+                :aria-label="$t('plugin-asl:report_title', { nick: user.nick })"
+            >
                 <div class="kiwi-asl-modal-head">
                     <span class="kiwi-asl-modal-icon"><i class="fa fa-flag" aria-hidden="true" /></span>
                     <span class="kiwi-asl-modal-title">
                         {{ $t('plugin-asl:report_title', { nick: user.nick }) }}
                     </span>
-                    <button type="button" class="kiwi-asl-modal-close" @click="closeReport">
+                    <button
+                        type="button"
+                        class="kiwi-asl-modal-close"
+                        :aria-label="$t('plugin-asl:report_close')"
+                        @click="closeReport"
+                    >
                         <i class="fa fa-times" aria-hidden="true" />
                     </button>
                 </div>
                 <div class="kiwi-asl-modal-body">
                     <p class="kiwi-asl-modal-intro">{{ $t('plugin-asl:report_modal_intro') }}</p>
                     <div
-                        v-for="reason in reportReasons"
-                        :key="reason.key"
-                        class="kiwi-asl-reason"
-                        :class="{ 'is-sel': report_reasons === reason.label }"
-                        @click="report_reasons = reason.label"
+                        class="kiwi-asl-reasons"
+                        role="radiogroup"
+                        :aria-label="$t('plugin-asl:report_modal_intro')"
                     >
-                        <span class="kiwi-asl-reason-radio" />
-                        {{ reason.label }}
+                        <label
+                            v-for="reason in reportReasons"
+                            :key="reason.key"
+                            class="kiwi-asl-reason"
+                            :class="{ 'is-sel': report_reasons === reason.label }"
+                        >
+                            <input
+                                v-model="report_reasons"
+                                type="radio"
+                                name="kiwi-asl-report-reason"
+                                class="kiwi-asl-sr-input"
+                                :value="reason.label"
+                            >
+                            <span class="kiwi-asl-reason-radio" aria-hidden="true" />
+                            {{ reason.label }}
+                        </label>
                     </div>
-                    <div
+                    <label
                         class="kiwi-asl-combine"
                         :class="{ 'is-on': report_block_too }"
-                        @click="report_block_too = !report_block_too"
                     >
+                        <input
+                            v-model="report_block_too"
+                            type="checkbox"
+                            class="kiwi-asl-sr-input"
+                        >
                         <span class="kiwi-asl-combine-box"><i class="fa fa-check" aria-hidden="true" /></span>
                         <span class="kiwi-asl-combine-text">
                             <b>{{ $t('plugin-asl:report_block_too', { nick: user.nick }) }}</b>
                             <span>{{ $t('plugin-asl:report_block_too_hint') }}</span>
                         </span>
-                    </div>
+                    </label>
                     <div class="kiwi-asl-note">
                         <i class="fa fa-paperclip" aria-hidden="true" />
                         {{ $t('plugin-asl:report_log_note') }}
@@ -490,12 +518,21 @@ export default {
             // whole page uniformly (when nested in the userbox it only blurs its
             // own stacking context — rail/navbar stay sharp).
             if (!open) {
+                // return focus to the control that opened the modal
+                if (this.reportTrigger && this.reportTrigger.focus) {
+                    this.reportTrigger.focus();
+                }
+                this.reportTrigger = null;
                 return;
             }
             this.$nextTick(() => {
                 let wrap = document.querySelector('.kiwi-wrap');
                 if (wrap && this.$refs.ssOverlay) {
                     wrap.appendChild(this.$refs.ssOverlay);
+                }
+                // move focus into the dialog so keyboard + screen readers land inside it
+                if (this.$refs.ssModal) {
+                    this.$refs.ssModal.focus();
                 }
             });
         },
@@ -540,6 +577,8 @@ export default {
                 // reset the form each time the modal opens
                 this.report_reasons = '';
                 this.report_block_too = true;
+                // remember the control that opened the modal so focus can return to it
+                this.reportTrigger = document.activeElement;
             }
             this.report_user_display = !this.report_user_display;
         },
@@ -547,8 +586,36 @@ export default {
             this.report_user_display = false;
         },
         onKeydown: function onKeydown(e) {
-            if (e.key === 'Escape' && this.report_user_display) {
+            if (!this.report_user_display) {
+                return;
+            }
+            if (e.key === 'Escape') {
                 this.closeReport();
+                return;
+            }
+            if (e.key === 'Tab') {
+                this.trapModalFocus(e);
+            }
+        },
+        trapModalFocus: function trapModalFocus(e) {
+            let modal = this.$refs.ssModal;
+            if (!modal) {
+                return;
+            }
+            let focusable = Array.from(modal.querySelectorAll(
+                'button, input, select, textarea, a[href], [tabindex]:not([tabindex="-1"])'
+            )).filter((el) => !el.disabled && el.offsetParent !== null);
+            if (!focusable.length) {
+                return;
+            }
+            let first = focusable[0];
+            let last = focusable[focusable.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
             }
         },
         buildConversationLog: function buildConversationLog() {
@@ -1213,6 +1280,30 @@ export default {
     font-size: 0.8125rem;
     line-height: 1.4;
     color: var(--color-text-secondary, inherit);
+}
+
+/* the dialog is focused programmatically on open; no ring on the shell itself */
+.kiwi-asl-modal:focus {
+    outline: none;
+}
+
+/* native radio/checkbox drive a11y; visually hidden but kept focusable so
+   keyboard navigation and screen readers work. the styled spans show state. */
+.kiwi-asl-sr-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* keyboard focus lands on the hidden input — surface it on the visible row.
+   theme-agnostic fallback; the EuropNet theme swaps in its brand --focus-ring. */
+.kiwi-asl-reason:focus-within,
+.kiwi-asl-combine:focus-within {
+    outline: 2px solid var(--color-accent, #2f6fb0);
+    outline-offset: 2px;
 }
 
 .kiwi-asl-reason {
