@@ -6,6 +6,9 @@ import CustomWelcome from './components/CustomWelcome.vue';
 import CustomUserBox from './components/CustomUserBox.vue';
 import CustomNicklistUser from './components/CustomNicklistUser.vue';
 import UserBrowserButton from './components/UserBrowserButton.vue';
+import AslProtection from './components/AslProtection.vue';
+import MessageReportButton from './components/MessageReportButton.vue';
+import MessageBlockButton from './components/MessageBlockButton.vue';
 import Locales from './libs/locales.js';
 import * as config from './config.js';
 import * as utils from './libs/utils.js';
@@ -23,6 +26,17 @@ kiwi.plugin('asl', (kiwi) => {
     kiwi.addStartup('plugin-asl', CustomWelcome);
     kiwi.replaceModule('components/UserBox', CustomUserBox);
     kiwi.replaceModule('components/NicklistUser', CustomNicklistUser);
+
+    // shared protection host (report modal + block toast), driven by the kiwi.state
+    // event bus so the gesture works from the userbox fiche AND from a message action.
+    let protectionHost = new kiwi.Vue(AslProtection);
+    protectionHost.$mount();
+    document.body.appendChild(protectionHost.$el);
+
+    // per-message protection actions, injected into the native MessageInfo bar
+    // (text links on any theme; the EuropNet theme adds the DS look).
+    kiwi.addUi('message_info', MessageReportButton);
+    kiwi.addUi('message_info', MessageBlockButton);
 
     // show the user browser if its enabled
     if (kiwi.state.getSetting('settings.plugin-asl.showUserBrowser')) {
