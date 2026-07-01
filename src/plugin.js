@@ -29,9 +29,18 @@ kiwi.plugin('asl', (kiwi) => {
 
     // shared protection host (report modal + block toast), driven by the kiwi.state
     // event bus so the gesture works from the userbox fiche AND from a message action.
-    let protectionHost = new kiwi.Vue(AslProtection);
-    protectionHost.$mount();
-    document.body.appendChild(protectionHost.$el);
+    // Mount it INSIDE .kiwi-wrap so the modal + toast inherit the theme tokens
+    // (a body-level mount falls back to the plugin's neutral defaults — unstyled).
+    (function mountProtectionHost() {
+        let wrap = document.querySelector('.kiwi-wrap');
+        if (!wrap) {
+            setTimeout(mountProtectionHost, 50);
+            return;
+        }
+        let protectionHost = new kiwi.Vue(AslProtection);
+        protectionHost.$mount();
+        wrap.appendChild(protectionHost.$el);
+    })();
 
     // per-message protection actions, injected into the native MessageInfo bar
     // (text links on any theme; the EuropNet theme adds the DS look).
