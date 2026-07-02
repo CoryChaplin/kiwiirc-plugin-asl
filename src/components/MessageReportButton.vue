@@ -1,6 +1,6 @@
 <template>
     <a
-        v-if="isUserMessage && !isSelf"
+        v-if="canProtect"
         class="kiwi-messageinfo-asl kiwi-messageinfo-asl-report"
         :title="label"
         :aria-label="label"

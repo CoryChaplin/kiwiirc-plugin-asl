@@ -43,6 +43,14 @@ export default {
             return (this.message.type === 'privmsg' || this.message.type === 'action') &&
                 !!this.message.nick;
         },
+        isChannel() {
+            return !!(this.buffer.isChannel && this.buffer.isChannel());
+        },
+        // per-message Report/Block only make sense in a channel: in a query the right
+        // sidebar already carries these actions and the context doesn't need per-line ones
+        canProtect() {
+            return this.isUserMessage && this.isChannel && !this.isSelf;
+        },
     },
     methods: {
         // a target the host can act on even after the user has left: fall back to a

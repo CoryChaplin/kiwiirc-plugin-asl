@@ -92,35 +92,6 @@
             />
         </div>
 
-        <div v-if="!isSelf" class="kiwi-userbox-protect">
-            <div class="kiwi-userbox-protect-head">
-                <i class="fa fa-shield" aria-hidden="true" />
-                {{ $t('plugin-asl:protect_title') }}
-            </div>
-            <p class="kiwi-userbox-protect-text">
-                {{ $t('plugin-asl:protect_intro', { nick: user.nick }) }}
-            </p>
-            <div class="kiwi-userbox-protect-actions">
-                <button
-                    type="button"
-                    class="kiwi-userbox-protect-btn is-block"
-                    :class="{ 'is-on': user.ignore }"
-                    @click="onBlockClick"
-                >
-                    <i class="fa" :class="user.ignore ? 'fa-eye' : 'fa-ban'" aria-hidden="true" />
-                    {{ user.ignore ? $t('plugin-asl:unblock') : $t('plugin-asl:block') }}
-                </button>
-                <button
-                    type="button"
-                    class="kiwi-userbox-protect-btn is-report"
-                    @click="toggleReportUser"
-                >
-                    <i class="fa fa-flag" aria-hidden="true" />
-                    {{ $t('plugin-asl:report_action') }}
-                </button>
-            </div>
-            <div class="kiwi-userbox-protect-hint" v-html="$t('plugin-asl:protect_hint')" />
-        </div>
         <div
             v-if="whoisRequested"
             :class="[whoisLoading?'kiwi-userbox-whois--loading':'']"
@@ -169,6 +140,35 @@
             </template>
         </div>
 
+        <div v-if="!isSelf" class="kiwi-userbox-protect">
+            <div class="kiwi-userbox-protect-head">
+                <i class="fa fa-shield" aria-hidden="true" />
+                {{ $t('plugin-asl:protect_title') }}
+            </div>
+            <p class="kiwi-userbox-protect-text">
+                {{ $t('plugin-asl:protect_intro', { nick: user.nick }) }}
+            </p>
+            <div class="kiwi-userbox-protect-actions">
+                <button
+                    type="button"
+                    class="kiwi-userbox-protect-btn is-block"
+                    :class="{ 'is-on': user.ignore }"
+                    @click="onBlockClick"
+                >
+                    <i class="fa" :class="user.ignore ? 'fa-eye' : 'fa-ban'" aria-hidden="true" />
+                    {{ user.ignore ? $t('plugin-asl:unblock') : $t('plugin-asl:block') }}
+                </button>
+                <button
+                    type="button"
+                    class="kiwi-userbox-protect-btn is-report"
+                    @click="toggleReportUser"
+                >
+                    <i class="fa fa-flag" aria-hidden="true" />
+                    {{ $t('plugin-asl:report_action') }}
+                </button>
+            </div>
+            <div class="kiwi-userbox-protect-hint" v-html="$t('plugin-asl:protect_hint')" />
+        </div>
         <div v-if="buffer.isChannel() && areWeAnOp && !isSelf" class="kiwi-userbox-opactions">
             <form class="u-form" @submit.prevent="">
                 <label v-if="isUserOnBuffer">
@@ -720,7 +720,7 @@ export default {
 /* Protection control zone — base styles (theme-agnostic, works on any theme;
    the EuropNet theme adds the brand look on top). */
 .kiwi-userbox-protect {
-    margin: 0 1rem 1.5rem;
+    margin: 1rem 1rem 1.5rem;
     padding: 0.875rem;
     border-radius: 0.875rem;
 
