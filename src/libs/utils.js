@@ -64,6 +64,13 @@ export function getColour(asl) {
     return sexes[sex] ? sexes[sex].colour : fallbackColour;
 }
 
+// channels shared with a user (the fiche lists them; a report attaches them)
+export function commonChannels(networkId, nick) {
+    return kiwi.state.getBuffersWithUser(networkId, nick)
+        .filter((buffer) => buffer.name.substr(0, 1) === '#')
+        .map((buffer) => buffer.name);
+}
+
 export function getSexChar(sex) {
     let sexes = kiwi.state.getSetting('settings.plugin-asl.sexes');
     return sexes[sex] ? sexes[sex].chars[0] : null;

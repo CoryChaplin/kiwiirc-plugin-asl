@@ -107,7 +107,7 @@
                     :class="{ 'is-on': user.ignore }"
                     @click="onBlockClick"
                 >
-                    <i class="fa fa-ban" aria-hidden="true" />
+                    <i class="fa" :class="user.ignore ? 'fa-eye' : 'fa-ban'" aria-hidden="true" />
                     {{ user.ignore ? $t('plugin-asl:unblock') : $t('plugin-asl:block') }}
                 </button>
                 <button
@@ -227,6 +227,7 @@
 
 import * as ipRegex from 'ip-regex';
 import * as config from '../config.js';
+import * as utils from '../libs/utils.js';
 
 let TextFormatting = kiwi.require('helpers/TextFormatting');
 let IrcdDiffs = kiwi.require('helpers/IrcdDiffs');
@@ -368,13 +369,7 @@ export default {
         },
         commonChannels: function commonChannels() {
             let networkId = kiwi.state.getActiveNetwork().id;
-            let channels = [];
-            this.$state.getBuffersWithUser(networkId, this.user.nick).forEach((buffer) => {
-                if (buffer.name.substr(0, 1) === '#') {
-                    channels.push(buffer.name);
-                }
-            });
-            return channels;
+            return utils.commonChannels(networkId, this.user.nick);
         },
         linkifyCommonChannels: function linkifyCommonChannels() {
             let channels = [];
@@ -507,7 +502,6 @@ export default {
             this.$state.$emit('asl.protect.block', {
                 network: this.network,
                 user: this.user,
-                mode: 'toggle',
             });
         },
     },
@@ -729,8 +723,14 @@ export default {
     margin: 0 1rem 1.5rem;
     padding: 0.875rem;
     border-radius: 0.875rem;
+
     /* read DS tokens with a neutral fallback so the theme can't be overridden by injection order */
-    background: color-mix(in srgb, var(--color-accent-soft, #8bcbf9) 30%, var(--color-surface, #fff));
+    background:
+        color-mix(
+            in srgb,
+            var(--color-accent-soft, #8bcbf9) 30%,
+            var(--color-surface, #fff)
+        );
     box-sizing: border-box;
 }
 

@@ -9,6 +9,7 @@ import UserBrowserButton from './components/UserBrowserButton.vue';
 import AslProtection from './components/AslProtection.vue';
 import MessageReportButton from './components/MessageReportButton.vue';
 import MessageBlockButton from './components/MessageBlockButton.vue';
+import MessageKickbanButton from './components/MessageKickbanButton.vue';
 import Locales from './libs/locales.js';
 import * as config from './config.js';
 import * as utils from './libs/utils.js';
@@ -31,21 +32,33 @@ kiwi.plugin('asl', (kiwi) => {
     // event bus so the gesture works from the userbox fiche AND from a message action.
     // Mount it INSIDE .kiwi-wrap so the modal + toast inherit the theme tokens
     // (a body-level mount falls back to the plugin's neutral defaults — unstyled).
-    (function mountProtectionHost() {
+    function mountProtectionHost() {
         let wrap = document.querySelector('.kiwi-wrap');
         if (!wrap) {
-            setTimeout(mountProtectionHost, 50);
             return;
         }
         let protectionHost = new kiwi.Vue(AslProtection);
         protectionHost.$mount();
         wrap.appendChild(protectionHost.$el);
-    })();
+    }
+    // Core emits 'ready' right after the root app (.kiwi-wrap) mounts; plugins init on
+    // 'init' just before, so this fires exactly once with the wrap present — no polling.
+    if (document.querySelector('.kiwi-wrap')) {
+        mountProtectionHost();
+    } else {
+        kiwi.once('ready', mountProtectionHost);
+    }
 
     // per-message protection actions, injected into the native MessageInfo bar
     // (text links on any theme; the EuropNet theme adds the DS look).
     kiwi.addUi('message_info', MessageReportButton);
     kiwi.addUi('message_info', MessageBlockButton);
+    // Kickban (op moderation) lives HERE in the plugin — not in core — on purpose:
+    // it keeps the core footprint minimal and reuses the plugin's anchored-popover
+    // infra for the reason prompt. This is a pragmatic shortcut: kickban is generic
+    // KiwiIRC moderation and SHOULD eventually move into the core MessageInfo
+    // (which we patched only to drop the native Ban+Kick it replaces).
+    kiwi.addUi('message_info', MessageKickbanButton);
 
     // show the user browser if its enabled
     if (kiwi.state.getSetting('settings.plugin-asl.showUserBrowser')) {

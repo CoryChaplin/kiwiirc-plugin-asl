@@ -1,6 +1,11 @@
 <template>
     <div class="kiwi-asl-protection-host">
-        <div v-if="report_user_display" ref="ssOverlay" class="kiwi-asl-overlay" @click.self="closeReport">
+        <div
+            v-if="report_user_display"
+            ref="ssOverlay"
+            class="kiwi-asl-overlay"
+            @click.self="closeReport"
+        >
             <div
                 ref="ssModal"
                 class="kiwi-asl-modal"
@@ -10,7 +15,9 @@
                 :aria-label="t('plugin-asl:report_title', { nick: targetNick })"
             >
                 <div class="kiwi-asl-modal-head">
-                    <span class="kiwi-asl-modal-icon"><i class="fa fa-flag" aria-hidden="true" /></span>
+                    <span class="kiwi-asl-modal-icon">
+                        <i class="fa fa-flag" aria-hidden="true" />
+                    </span>
                     <span class="kiwi-asl-modal-title">
                         {{ t('plugin-asl:report_title', { nick: targetNick }) }}
                     </span>
@@ -56,7 +63,9 @@
                             type="checkbox"
                             class="kiwi-asl-sr-input"
                         >
-                        <span class="kiwi-asl-combine-box"><i class="fa fa-check" aria-hidden="true" /></span>
+                        <span class="kiwi-asl-combine-box">
+                            <i class="fa fa-check" aria-hidden="true" />
+                        </span>
                         <span class="kiwi-asl-combine-text">
                             <b>{{ t('plugin-asl:report_block_too', { nick: targetNick }) }}</b>
                             <span>{{ t('plugin-asl:report_block_too_hint') }}</span>
@@ -76,9 +85,14 @@
                             :disabled="!report_reasons || report_sending"
                             @click="submitReportForm"
                         >
-                            <i v-if="report_sending" class="fa fa-spinner fa-spin" aria-hidden="true" />
+                            <i
+                                v-if="report_sending"
+                                class="fa fa-spinner fa-spin"
+                                aria-hidden="true"
+                            />
                             <template v-else>
-                                <i class="fa fa-flag" aria-hidden="true" /> {{ t('plugin-asl:report_send') }}
+                                <i class="fa fa-flag" aria-hidden="true" />
+                                {{ t('plugin-asl:report_send') }}
                             </template>
                         </button>
                     </div>
@@ -97,6 +111,38 @@
                 {{ t('plugin-asl:undo') }}
             </button>
         </div>
+        <!-- kickban: anchored reason popover; the catcher blocks the list scroll and
+             closes on an outside click while the popover is open -->
+        <div
+            v-if="kickban_open"
+            class="kiwi-asl-kb-catch"
+            @click="closeKickban"
+            @wheel.prevent
+            @touchmove.prevent
+        >
+            <div ref="kbPop" class="kiwi-asl-kb-pop" @click.stop>
+                <div class="kiwi-asl-kb-title">
+                    {{ t('user_kickban') }}
+                    <template v-if="kickban_target"> — {{ kickban_target.user.nick }}</template>
+                </div>
+                <input
+                    ref="kbInput"
+                    v-model="kickban_reason"
+                    type="text"
+                    class="kiwi-asl-kb-input"
+                    :placeholder="t('kick_reason')"
+                    @keydown.enter="confirmKickban"
+                >
+                <div class="kiwi-asl-kb-foot">
+                    <button type="button" class="kiwi-asl-btn is-cancel" @click="closeKickban">
+                        {{ t('plugin-asl:report_cancel') }}
+                    </button>
+                    <button type="button" class="kiwi-asl-btn is-send" @click="confirmKickban">
+                        {{ t('user_kickban') }}
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -105,6 +151,7 @@
 /* global kiwi:true */
 
 import * as config from '../config.js';
+import * as utils from '../libs/utils.js';
 
 let TextFormatting = kiwi.require('helpers/TextFormatting');
 
@@ -114,7 +161,8 @@ let TextFormatting = kiwi.require('helpers/TextFormatting');
 export default {
     data: function data() {
         return {
-            // current target of the gesture, set when an event fires
+            // target of the report modal, set on open and read only by the report
+            // flow (block/kickban act on their own payloads, never this)
             target: null,
             report_user_display: false,
             report_sending: false,
@@ -124,6 +172,10 @@ export default {
             toast_message: '',
             toast_icon: '',
             toast_has_undo: false,
+            // op moderation: anchored reason popover (kickban)
+            kickban_open: false,
+            kickban_reason: '',
+            kickban_target: null,
         };
     },
     computed: {
@@ -170,14 +222,19 @@ export default {
         // event bus: the fiche and the per-message buttons emit here
         this.$state.$on('asl.protect.report', this.onReportRequest);
         this.$state.$on('asl.protect.block', this.onBlockRequest);
+        this.$state.$on('asl.protect.kickban', this.onKickbanRequest);
     },
     mounted: function mounted() {
         document.addEventListener('keydown', this.onKeydown);
     },
     beforeDestroy: function beforeDestroy() {
+        if (this.toastTimer) {
+            clearTimeout(this.toastTimer);
+        }
         document.removeEventListener('keydown', this.onKeydown);
         this.$state.$off('asl.protect.report', this.onReportRequest);
         this.$state.$off('asl.protect.block', this.onBlockRequest);
+        this.$state.$off('asl.protect.kickban', this.onKickbanRequest);
         if (this.$refs.ssOverlay && this.$refs.ssOverlay.parentNode) {
             this.$refs.ssOverlay.parentNode.removeChild(this.$refs.ssOverlay);
         }
@@ -194,34 +251,85 @@ export default {
             this.target = payload;
             this.report_reasons = '';
             this.report_block_too = true;
+            this.report_sending = false;
             this.reportTrigger = payload.trigger || document.activeElement;
             this.report_user_display = true;
         },
         onBlockRequest: function onBlockRequest(payload) {
-            // payload: { network, user } — toggle ignore + reversible toast
-            this.target = payload;
-            this.toggleIgnore();
+            // payload: { network, user } — toggle ignore + reversible toast.
+            // Everything below acts on the captured payload (never this.target), so a
+            // block firing while the report modal is open can't corrupt the report.
+            this.toggleIgnore(payload);
             if (payload.user.ignore) {
-                this.notifyBlocked(payload.user.nick);
+                this.notifyBlocked(payload);
                 this.showToast(
                     TextFormatting.t('plugin-asl:block_toast', { nick: payload.user.nick }),
                     'fa-ban',
-                    this.undoBlockAction
+                    () => this.undoBlockAction(payload)
                 );
             } else {
-                this.notifyUnblocked(payload.user.nick);
+                this.notifyUnblocked(payload);
                 this.showToast(
                     TextFormatting.t('plugin-asl:unblock_toast', { nick: payload.user.nick }),
-                    'fa-ban',
-                    this.undoUnblockAction
+                    'fa-eye',
+                    () => this.undoUnblockAction(payload)
                 );
             }
+        },
+        // ── kickban (op moderation, anchored reason popover) ──
+        onKickbanRequest: function onKickbanRequest(payload) {
+            // payload: { buffer, network, user, anchor: {top,bottom,left,right} }
+            this.kickban_target = payload;
+            this.kickban_reason = '';
+            this.kickban_open = true;
+            this.$nextTick(() => this.placeKickban(payload.anchor));
+        },
+        placeKickban: function placeKickban(anchor) {
+            // clamp the popover to the viewport, flipping above the anchor if it
+            // would overflow the bottom
+            let pop = this.$refs.kbPop;
+            if (!pop) {
+                return;
+            }
+            let gap = 6;
+            let left = Math.max(8, Math.min(anchor.left, window.innerWidth - pop.offsetWidth - 8));
+            let top = anchor.below + gap;
+            if (top + pop.offsetHeight > window.innerHeight - 8) {
+                top = Math.max(8, anchor.above - gap - pop.offsetHeight);
+            }
+            pop.style.top = top + 'px';
+            pop.style.left = left + 'px';
+            if (this.$refs.kbInput) {
+                this.$refs.kbInput.focus();
+            }
+        },
+        confirmKickban: function confirmKickban() {
+            let t = this.kickban_target;
+            if (t) {
+                t.buffer.banKickUser(t.user, this.kickban_reason || undefined);
+            }
+            this.closeKickban();
+        },
+        closeKickban: function closeKickban() {
+            this.kickban_open = false;
+            this.kickban_target = null;
+            this.kickban_reason = '';
         },
         // ── modal a11y ──
         closeReport: function closeReport() {
             this.report_user_display = false;
         },
         onKeydown: function onKeydown(e) {
+            // kickban popover is modal too: trap Tab so focus can't reach the page
+            // behind the full-screen catcher (where Enter could fire a hidden control)
+            if (this.kickban_open) {
+                if (e.key === 'Escape') {
+                    this.closeKickban();
+                } else if (e.key === 'Tab') {
+                    this.trapFocus(e, this.$refs.kbPop);
+                }
+                return;
+            }
             if (!this.report_user_display) {
                 return;
             }
@@ -230,15 +338,14 @@ export default {
                 return;
             }
             if (e.key === 'Tab') {
-                this.trapModalFocus(e);
+                this.trapFocus(e, this.$refs.ssModal);
             }
         },
-        trapModalFocus: function trapModalFocus(e) {
-            let modal = this.$refs.ssModal;
-            if (!modal) {
+        trapFocus: function trapFocus(e, container) {
+            if (!container) {
                 return;
             }
-            let focusable = Array.from(modal.querySelectorAll(
+            let focusable = Array.from(container.querySelectorAll(
                 'button, input, select, textarea, a[href], [tabindex]:not([tabindex="-1"])'
             )).filter((el) => !el.disabled && el.offsetParent !== null);
             if (!focusable.length) {
@@ -255,128 +362,121 @@ export default {
             }
         },
         // ── report ──
-        commonChannels: function commonChannels() {
-            let channels = [];
-            this.$state.getBuffersWithUser(this.target.network.id, this.target.user.nick).forEach((buffer) => {
-                if (buffer.name.substr(0, 1) === '#') {
-                    channels.push(buffer.name);
-                }
-            });
-            return channels;
-        },
-        buildConversationLog: function buildConversationLog() {
+        buildConversationLog: function buildConversationLog(target) {
             let logLines = config.getSetting('reportLogLines');
-            let msgs = (this.target.buffer.messagesObj.messages || []).slice(-logLines);
+            let msgs = (target.buffer.messagesObj.messages || []).slice(-logLines);
             return msgs
                 .filter((m) => m.message && m.message.trim().length)
                 .map((m) => {
-                    let text = '';
-                    switch (m.type) {
-                    case 'privmsg':
-                        text = `<${m.nick}> ${m.message}`;
-                        break;
-                    case 'nick':
-                    case 'mode':
-                    case 'action':
-                    case 'traffic':
-                        text = m.message;
-                        break;
-                    default:
-                        text = m.message;
-                    }
+                    // only privmsg needs the <nick> prefix; every other type is
+                    // already self-describing in m.message
+                    let text = m.type === 'privmsg' ? `<${m.nick}> ${m.message}` : m.message;
                     if (!text.length) return null;
-                    let ts = (new Date(m.time)).toLocaleTimeString({ hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    let ts = (new Date(m.time)).toLocaleTimeString(undefined, {
+                        hour: '2-digit', minute: '2-digit', second: '2-digit',
+                    });
                     return `[${ts}] ${text}`;
                 })
                 .filter(Boolean)
                 .join('\r\n');
         },
         submitReportForm: async function submitReportForm() {
+            // capture the gesture's target now: this.target may be repointed by
+            // another protect event while the log upload is in flight
+            let reportTarget = this.target;
             // protection is guaranteed: block right away if requested, even if the report fails
-            if (this.report_block_too && !this.target.user.ignore) {
-                this.toggleIgnore();
+            if (this.report_block_too && !reportTarget.user.ignore) {
+                this.toggleIgnore(reportTarget);
             }
             this.report_sending = true;
-            let nickname = this.target.user.nick;
-            let network = this.target.network;
+            let nickname = reportTarget.user.nick;
+            let network = reportTarget.network;
             let target = this.$state.getSetting('settings.plugin-asl.reportChannel');
             let logLines = config.getSetting('reportLogLines');
-            let commonChannels = this.commonChannels();
+            let commonChannels = utils.commonChannels(network.id, nickname);
 
-            let logUrl = null;
-            if (kiwi.fileuploader) {
-                try {
-                    const logText = this.buildConversationLog();
-                    const ts = Date.now();
-                    const result = await kiwi.fileuploader.uploadBlob(logText, {
-                        filename: `report_${nickname}_${ts}.txt`,
-                        mimeType: 'text/plain',
-                        category: 'abuse-report',
-                    });
-                    logUrl = result.url;
-                } catch (e) {
-                    // eslint-disable-next-line no-console
-                    console.error('[plugin-asl] report log upload failed:', e);
+            try {
+                let logUrl = null;
+                if (kiwi.fileuploader) {
+                    try {
+                        const logText = this.buildConversationLog(reportTarget);
+                        const ts = Date.now();
+                        const result = await kiwi.fileuploader.uploadBlob(logText, {
+                            filename: `report_${nickname}_${ts}.txt`,
+                            mimeType: 'text/plain',
+                            category: 'abuse-report',
+                        });
+                        logUrl = result.url;
+                    } catch (e) {
+                        // eslint-disable-next-line no-console
+                        console.error('[plugin-asl] report log upload failed:', e);
+                    }
                 }
+
+                let msg = TextFormatting.t('plugin-asl:report_msg_intro') + nickname + ' - ' +
+                    TextFormatting.t('plugin-asl:report_channels') + ': ' + commonChannels.join(', ') + ' - ' +
+                    TextFormatting.t('plugin-asl:report_reason') + ': ' + this.report_reasons;
+                if (logUrl) {
+                    msg += ' - Log: ' + logUrl;
+                }
+                network.ircClient.say(target, msg);
+
+                this.report_user_display = false;
+
+                const confirmMsg = logUrl
+                    ? TextFormatting.t('plugin-asl:report_confirm_with_log', { lines: logLines })
+                    : TextFormatting.t('plugin-asl:report_confirm');
+                this.$state.addMessage(reportTarget.buffer,
+                    {
+                        nick: TextFormatting.t('plugin-asl:system_message'),
+                        message: confirmMsg,
+                        type: 'notice',
+                    });
+
+                this.showToast(TextFormatting.t('plugin-asl:report_toast'), 'fa-flag', null);
+            } finally {
+                // never leave the send button dead if say()/addMessage throws
+                this.report_sending = false;
             }
-
-            let msg = TextFormatting.t('plugin-asl:report_msg_intro') + nickname + ' - ' +
-                TextFormatting.t('plugin-asl:report_channels') + ': ' + commonChannels.join(', ') + ' - ' +
-                TextFormatting.t('plugin-asl:report_reason') + ': ' + this.report_reasons;
-            if (logUrl) {
-                msg += ' - Log: ' + logUrl;
-            }
-            network.ircClient.say(target, msg);
-
-            this.report_sending = false;
-            this.report_user_display = false;
-
-            const confirmMsg = logUrl
-                ? TextFormatting.t('plugin-asl:report_confirm_with_log', { lines: logLines })
-                : TextFormatting.t('plugin-asl:report_confirm');
-            this.$state.addMessage(this.target.buffer,
-                {
-                    nick: TextFormatting.t('plugin-asl:system_message'),
-                    message: confirmMsg,
-                    type: 'notice',
-                });
-
-            this.showToast(TextFormatting.t('plugin-asl:report_toast'), 'fa-flag', null);
         },
         // ── block ──
-        toggleIgnore: function toggleIgnore() {
-            let user = this.target.user;
-            let network = this.target.network;
+        toggleIgnore: function toggleIgnore(target) {
+            let user = target.user;
+            let network = target.network;
             if (user.ignore) {
-                network.ignored_list.pop(user.nick);
+                // ignored_list is the filtering source of truth (IgnoreMiddleware);
+                // remove the right entry, not the last one pushed
+                network.ignored_list = network.ignored_list.filter(
+                    (n) => n.toLowerCase() !== user.nick.toLowerCase()
+                );
             } else {
                 network.ignored_list.push(user.nick);
             }
             user.ignore = !user.ignore;
         },
-        undoBlockAction: function undoBlockAction() {
-            if (this.target.user.ignore) {
-                this.toggleIgnore();
-                this.notifyUnblocked(this.target.user.nick);
+        undoBlockAction: function undoBlockAction(target) {
+            if (target.user.ignore) {
+                this.toggleIgnore(target);
+                this.notifyUnblocked(target);
             }
         },
-        undoUnblockAction: function undoUnblockAction() {
-            if (!this.target.user.ignore) {
-                this.toggleIgnore();
-                this.notifyBlocked(this.target.user.nick);
+        undoUnblockAction: function undoUnblockAction(target) {
+            if (!target.user.ignore) {
+                this.toggleIgnore(target);
+                this.notifyBlocked(target);
             }
         },
-        notifyBlocked: function notifyBlocked(nick) {
-            this.addProtectNotice('plugin-asl:block_confirm', nick);
+        notifyBlocked: function notifyBlocked(target) {
+            this.addProtectNotice('plugin-asl:block_confirm', target);
         },
-        notifyUnblocked: function notifyUnblocked(nick) {
-            this.addProtectNotice('plugin-asl:unblock_confirm', nick);
+        notifyUnblocked: function notifyUnblocked(target) {
+            this.addProtectNotice('plugin-asl:unblock_confirm', target);
         },
-        addProtectNotice: function addProtectNotice(key, nick) {
+        addProtectNotice: function addProtectNotice(key, target) {
             // persistent confirmation in the conversation the gesture acted from
-            this.$state.addMessage(this.target.buffer || this.$state.getActiveBuffer(), {
+            this.$state.addMessage(target.buffer || this.$state.getActiveBuffer(), {
                 nick: TextFormatting.t('plugin-asl:system_message'),
-                message: TextFormatting.t(key, { nick: nick }),
+                message: TextFormatting.t(key, { nick: target.user.nick }),
                 type: 'notice',
             });
         },
@@ -433,8 +533,15 @@ export default {
 }
 
 @keyframes kiwi-asl-toast-in {
-    from { opacity: 0; transform: translateX(-50%) translateY(0.75rem); }
-    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(0.75rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -480,8 +587,15 @@ export default {
 }
 
 @keyframes kiwi-asl-modal-pop {
-    from { opacity: 0; transform: scale(0.96); }
-    to { opacity: 1; transform: none; }
+    from {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
 }
 
 @keyframes kiwi-asl-modal-sheet {
@@ -747,5 +861,53 @@ export default {
         border-radius: 1em 1em 0 0;
         animation: kiwi-asl-modal-sheet 0.2s ease-out;
     }
+}
+
+/* Kickban reason popover — base (theme-agnostic). JS sets its top/left inline;
+   the catcher blocks list scroll + outside clicks while it is open. */
+.kiwi-asl-kb-catch {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+}
+
+.kiwi-asl-kb-pop {
+    position: fixed;
+    top: 20%;
+    left: 20%;
+    box-sizing: border-box;
+    width: 19rem;
+    max-width: calc(100vw - 1rem);
+    padding: 0.75rem;
+    border: 1px solid var(--color-border, rgba(127, 127, 127, 0.3));
+    border-radius: 0.7rem;
+    background: var(--color-surface, #fff);
+    color: var(--color-text-primary, #222);
+    box-shadow: 0 0.6rem 1.6rem rgba(0, 30, 60, 0.28);
+    z-index: 9999;
+}
+
+.kiwi-asl-kb-title {
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 800;
+}
+
+.kiwi-asl-kb-input {
+    box-sizing: border-box;
+    width: 100%;
+    margin-bottom: 0.6rem;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid var(--color-border-strong, rgba(127, 127, 127, 0.4));
+    border-radius: 0.4rem;
+    background: var(--color-bg-input, #fff);
+    color: inherit;
+    font: inherit;
+}
+
+.kiwi-asl-kb-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
 }
 </style>
