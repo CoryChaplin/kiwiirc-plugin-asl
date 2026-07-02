@@ -60,6 +60,21 @@ kiwi.plugin('asl', (kiwi) => {
     // (which we patched only to drop the native Ban+Kick it replaces).
     kiwi.addUi('message_info', MessageKickbanButton);
 
+    // The per-message action bar opens on hover (desktop) via the global core
+    // setting, but the hover reveal is styled only in the EuropNet theme. Gate it
+    // to the configured themes so every other theme keeps KiwiIRC's native
+    // behaviour at the source (no hover bar, no thread dim) — cleaner than masking
+    // each effect in CSS. Theme is resolved before plugins load, so apply now and
+    // on every theme change.
+    function applyHoverActionGate() {
+        let themes = config.getSetting('hoverActionThemes') || [];
+        let current = (kiwi.state.setting('theme') || '').toLowerCase();
+        let enabled = themes.some((name) => String(name).toLowerCase() === current);
+        kiwi.state.setting('buffers.show_message_info_on_hover', enabled);
+    }
+    applyHoverActionGate();
+    kiwi.state.$watch(() => kiwi.state.setting('theme'), applyHoverActionGate);
+
     // show the user browser if its enabled
     if (kiwi.state.getSetting('settings.plugin-asl.showUserBrowser')) {
         // add a button to channel headers to open the sidebar component

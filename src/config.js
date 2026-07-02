@@ -18,6 +18,12 @@ const defaultConfig = {
     // If should show realname input box on welcome screen
     showRealname: false,
 
+    // Themes on which the premium per-message action bar opens on hover (desktop).
+    // Empty by default: the plugin stays theme-agnostic, so no theme gets the hover
+    // reveal unless the client config lists it explicitly. Any theme not listed keeps
+    // KiwiIRC's native behaviour. Names must match the client config themes[] names.
+    hoverActionThemes: [],
+
     // Enable User Browser
     showUserBrowser: true,
 
