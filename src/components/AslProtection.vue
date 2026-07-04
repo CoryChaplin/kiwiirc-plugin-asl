@@ -482,17 +482,18 @@ export default {
                 }
 
                 // One line for the moderation channel, alongside its other traffic.
-                // A leading 🚩 marks it as a report; the rest is plain text — the room
-                // name (or the private-message label) already tells the two apart. A
-                // channel report also quotes the reported message and its time, so
-                // moderators can triage without opening the attached log.
-                let head = '🚩 ' + (isChannelReport
-                    ? buffer.name
-                    : TextFormatting.t('plugin-asl:report_pv_label'));
-                // reported nick in IRC red (\x03 04 … \x0F reset) so it stands out in
-                // the moderation channel's traffic
-                let redNick = '\x0304@' + nickname + '\x0F';
-                let parts = [head, redNick];
+                // 🚩 marks it as a report; 👥 a channel / ✉️ a private message. The
+                // reported nick is bold red and the reason bold purple (IRC codes) so
+                // both jump out; a channel report also quotes the reported message and
+                // its time, so moderators can triage without opening the attached log.
+                let redNick = '\x02\x0304@' + nickname + '\x0F';
+                let parts;
+                if (isChannelReport) {
+                    parts = ['🚩 👥 ' + buffer.name, redNick];
+                } else {
+                    // ✉️ already reads as "private message" — glue the nick to it, no dot
+                    parts = ['🚩 ✉️ ' + redNick];
+                }
                 if (reported) {
                     let quote = (reported.message || '').replace(/\s+/g, ' ').trim();
                     if (quote.length > 80) {
@@ -502,7 +503,8 @@ export default {
                         parts.push('«' + quote + '»');
                     }
                 }
-                parts.push(this.report_reasons);
+                // reason in bold purple (IRC 06) to pair with the bold-red nick
+                parts.push('\x02\x0306' + this.report_reasons + '\x0F');
                 if (reported) {
                     parts.push(this.formatLogTime(reported));
                 }
@@ -517,7 +519,7 @@ export default {
                     }
                 }
                 if (logUrl) {
-                    parts.push(logUrl);
+                    parts.push('📎 ' + logUrl);
                 }
                 network.ircClient.say(target, parts.join(' · '));
 
