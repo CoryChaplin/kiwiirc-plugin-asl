@@ -489,7 +489,10 @@ export default {
                 let head = '🚩 ' + (isChannelReport
                     ? buffer.name
                     : TextFormatting.t('plugin-asl:report_pv_label'));
-                let parts = [head, '@' + nickname];
+                // reported nick in IRC red (\x03 04 … \x0F reset) so it stands out in
+                // the moderation channel's traffic
+                let redNick = '\x0304@' + nickname + '\x0F';
+                let parts = [head, redNick];
                 if (reported) {
                     let quote = (reported.message || '').replace(/\s+/g, ' ').trim();
                     if (quote.length > 80) {
