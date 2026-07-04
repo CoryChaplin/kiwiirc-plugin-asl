@@ -155,9 +155,9 @@ import * as utils from '../libs/utils.js';
 
 let TextFormatting = kiwi.require('helpers/TextFormatting');
 
-// Shared protection host: owns the report modal + the block toast, so the gesture
-// can be triggered from the userbox fiche OR from a per-message action without
-// duplicating the logic. Driven by a small kiwi.state event bus.
+// Single owner of the report modal and the block toast, so the same actions can be
+// triggered from the userbox or from a per-message button without duplicating logic.
+// Wired through a small kiwi.state event bus.
 export default {
     data: function data() {
         return {
@@ -219,7 +219,7 @@ export default {
         },
     },
     created: function created() {
-        // event bus: the fiche and the per-message buttons emit here
+        // event bus: the userbox and the per-message buttons emit here
         this.$state.$on('asl.protect.report', this.onReportRequest);
         this.$state.$on('asl.protect.block', this.onBlockRequest);
         this.$state.$on('asl.protect.kickban', this.onKickbanRequest);
@@ -362,20 +362,80 @@ export default {
             }
         },
         // ── report ──
+        // Picks the messages attached to a report. When the report points at a
+        // message, the window is centred on it so its context survives the channel
+        // scrolling on; otherwise it falls back to the last N lines.
+        selectLogMessages: function selectLogMessages(target) {
+            let all = target.buffer.messagesObj.messages || [];
+            let maxLines = config.getSetting('reportLogLines');
+            if (maxLines <= 0) {
+                // 0 disables the log; return early so slice(-0) can't return everything
+                return [];
+            }
+            if (!target.message || !all.length) {
+                return all.slice(-maxLines);
+            }
+            // match by id (stable logical identity) rather than object reference,
+            // which can drift on message-list rebuilds; indexOf as a last resort
+            let idx = all.findIndex((m) => m.id === target.message.id);
+            if (idx === -1) {
+                idx = all.indexOf(target.message);
+            }
+            if (idx === -1) {
+                // reported message trimmed from scrollback: don't fail the report
+                return all.slice(-maxLines);
+            }
+            let t0 = all[idx].server_time || all[idx].time;
+            let msBefore = config.getSetting('reportLogSecondsBefore') * 1000;
+            let msAfter = config.getSetting('reportLogSecondsAfter') * 1000;
+            let time = (m) => (m.server_time || m.time);
+            // grow the window outward from the reported message by time
+            let start = idx;
+            while (start > 0 && (t0 - time(all[start - 1])) <= msBefore) {
+                start--;
+            }
+            let end = idx;
+            while (end < all.length - 1 && (time(all[end + 1]) - t0) <= msAfter) {
+                end++;
+            }
+            // floor: always keep a few lines before, even if older than the window
+            let minBefore = config.getSetting('reportLogMinLinesBefore');
+            if (idx - start < minBefore) {
+                start = Math.max(0, idx - minBefore);
+            }
+            let msgs = all.slice(start, end + 1);
+            // cap: never exceed maxLines, keeping the reported message centred
+            if (msgs.length > maxLines) {
+                let rel = idx - start;
+                let capStart = Math.max(0, rel - Math.floor(maxLines / 2));
+                capStart = Math.min(capStart, msgs.length - maxLines);
+                msgs = msgs.slice(capStart, capStart + maxLines);
+            }
+            return msgs;
+        },
+        // HH:MM:SS of a message, from m.time so the notice timestamp matches the
+        // reported line's timestamp in the attached log (moderators cross-reference)
+        formatLogTime: function formatLogTime(m) {
+            return (new Date(m.time)).toLocaleTimeString(undefined, {
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+            });
+        },
         buildConversationLog: function buildConversationLog(target) {
-            let logLines = config.getSetting('reportLogLines');
-            let msgs = (target.buffer.messagesObj.messages || []).slice(-logLines);
-            return msgs
+            let reportedId = target.message ? target.message.id : null;
+            let flag = '>>> [' + TextFormatting.t('plugin-asl:report_log_flag') + '] ';
+            return this.selectLogMessages(target)
                 .filter((m) => m.message && m.message.trim().length)
                 .map((m) => {
                     // only privmsg needs the <nick> prefix; every other type is
                     // already self-describing in m.message
                     let text = m.type === 'privmsg' ? `<${m.nick}> ${m.message}` : m.message;
                     if (!text.length) return null;
-                    let ts = (new Date(m.time)).toLocaleTimeString(undefined, {
-                        hour: '2-digit', minute: '2-digit', second: '2-digit',
-                    });
-                    return `[${ts}] ${text}`;
+                    let line = `[${this.formatLogTime(m)}] ${text}`;
+                    // flag the reported line so moderators spot it in the context
+                    if (reportedId !== null && m.id === reportedId) {
+                        line = flag + line;
+                    }
+                    return line;
                 })
                 .filter(Boolean)
                 .join('\r\n');
@@ -392,40 +452,87 @@ export default {
             let nickname = reportTarget.user.nick;
             let network = reportTarget.network;
             let target = this.$state.getSetting('settings.plugin-asl.reportChannel');
-            let logLines = config.getSetting('reportLogLines');
-            let commonChannels = utils.commonChannels(network.id, nickname);
+            let buffer = reportTarget.buffer;
+            // guard against a missing buffer: throwing here, before the try below,
+            // would leave report_sending stuck and disable the send button
+            let isChannelReport = !!(buffer && buffer.isChannel && buffer.isChannel());
+            let reported = reportTarget.message;
 
             try {
                 let logUrl = null;
                 if (kiwi.fileuploader) {
                     try {
                         const logText = this.buildConversationLog(reportTarget);
-                        const ts = Date.now();
-                        const result = await kiwi.fileuploader.uploadBlob(logText, {
-                            filename: `report_${nickname}_${ts}.txt`,
-                            mimeType: 'text/plain',
-                            category: 'abuse-report',
-                        });
-                        logUrl = result.url;
+                        // no lines to attach (e.g. reportLogLines <= 0): skip the upload
+                        // so "no log" means no URL, and the confirmation doesn't claim
+                        // context that isn't there
+                        if (logText) {
+                            const ts = Date.now();
+                            const result = await kiwi.fileuploader.uploadBlob(logText, {
+                                filename: `report_${nickname}_${ts}.txt`,
+                                mimeType: 'text/plain',
+                                category: 'abuse-report',
+                            });
+                            logUrl = result.url;
+                        }
                     } catch (e) {
                         // eslint-disable-next-line no-console
                         console.error('[plugin-asl] report log upload failed:', e);
                     }
                 }
 
-                let msg = TextFormatting.t('plugin-asl:report_msg_intro') + nickname + ' - ' +
-                    TextFormatting.t('plugin-asl:report_channels') + ': ' + commonChannels.join(', ') + ' - ' +
-                    TextFormatting.t('plugin-asl:report_reason') + ': ' + this.report_reasons;
-                if (logUrl) {
-                    msg += ' - Log: ' + logUrl;
+                // One line for the moderation channel, alongside its other traffic.
+                // A leading 🚩 marks it as a report; the rest is plain text — the room
+                // name (or the private-message label) already tells the two apart. A
+                // channel report also quotes the reported message and its time, so
+                // moderators can triage without opening the attached log.
+                let head = '🚩 ' + (isChannelReport
+                    ? buffer.name
+                    : TextFormatting.t('plugin-asl:report_pv_label'));
+                let parts = [head, '@' + nickname];
+                if (reported) {
+                    let quote = (reported.message || '').replace(/\s+/g, ' ').trim();
+                    if (quote.length > 80) {
+                        quote = quote.substr(0, 79) + '…';
+                    }
+                    if (quote) {
+                        parts.push('«' + quote + '»');
+                    }
                 }
-                network.ircClient.say(target, msg);
+                parts.push(this.report_reasons);
+                if (reported) {
+                    parts.push(this.formatLogTime(reported));
+                }
+                // without a specific message, the channels shared with this user are the
+                // main clue for moderators; a message-anchored report already gives the
+                // room and line, so it's the only case that leaves them out
+                if (!reported) {
+                    let commonChannels = utils.commonChannels(network.id, nickname);
+                    if (commonChannels.length) {
+                        parts.push(TextFormatting.t('plugin-asl:report_common_label') +
+                            ': ' + commonChannels.join(' '));
+                    }
+                }
+                if (logUrl) {
+                    parts.push(logUrl);
+                }
+                network.ircClient.say(target, parts.join(' · '));
 
                 this.report_user_display = false;
 
-                const confirmMsg = logUrl
-                    ? TextFormatting.t('plugin-asl:report_confirm_with_log', { lines: logLines })
-                    : TextFormatting.t('plugin-asl:report_confirm');
+                // confirmation matches how the log was built: anchored on the message
+                // (channel), or the last lines of the room / of the private conversation
+                let confirmKey;
+                if (!logUrl) {
+                    confirmKey = 'report_confirm';
+                } else if (reported) {
+                    confirmKey = 'report_confirm_with_log';
+                } else if (isChannelReport) {
+                    confirmKey = 'report_confirm_with_log_channel';
+                } else {
+                    confirmKey = 'report_confirm_with_log_pv';
+                }
+                const confirmMsg = TextFormatting.t('plugin-asl:' + confirmKey);
                 this.$state.addMessage(reportTarget.buffer,
                     {
                         nick: TextFormatting.t('plugin-asl:system_message'),

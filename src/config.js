@@ -96,8 +96,18 @@ const defaultConfig = {
     // Abuse report channel
     reportChannel: '#abuse',
 
-    // Number of conversation lines to include in the abuse report log
+    // Max lines attached to an abuse report. Also caps the time window below, and is
+    // the plain line count used when a report has no message to anchor on.
     reportLogLines: 20,
+
+    // When a report points at a specific message, attach the messages within this many
+    // seconds before/after it instead of a flat line count. The "after" side is taken
+    // at send time (whatever has arrived), since reporting happens after the fact.
+    reportLogSecondsBefore: 120,
+    reportLogSecondsAfter: 60,
+    // Keep at least this many lines before the reported message even when they fall
+    // outside the window above, so a quiet channel still carries some context.
+    reportLogMinLinesBefore: 5,
 
     // Display all users in common channels UserBrowser
     browseAllUsers: false,
