@@ -60,11 +60,11 @@
             <button
                 v-if="!isSelf && !buffer.isQuery()"
                 type="button"
-                class="kiwi-userbox-action-btn"
+                class="kiwi-userbox-action-btn btn-cta"
                 @click="openQuery"
             >
                 <i class="fa fa-comment-o" aria-hidden="true" />
-                {{ $t('send_a_message') }}
+                {{ $t('plugin-asl:pm_action') }}
             </button>
             <button
                 v-if="!whoisRequested"
@@ -140,35 +140,6 @@
             </template>
         </div>
 
-        <div v-if="!isSelf" class="kiwi-userbox-protect">
-            <div class="kiwi-userbox-protect-head">
-                <i class="fa fa-shield" aria-hidden="true" />
-                {{ $t('plugin-asl:protect_title') }}
-            </div>
-            <p class="kiwi-userbox-protect-text">
-                {{ $t('plugin-asl:protect_intro', { nick: user.nick }) }}
-            </p>
-            <div class="kiwi-userbox-protect-actions">
-                <button
-                    type="button"
-                    class="kiwi-userbox-protect-btn is-block"
-                    :class="{ 'is-on': user.ignore }"
-                    @click="onBlockClick"
-                >
-                    <i class="fa" :class="user.ignore ? 'fa-eye' : 'fa-ban'" aria-hidden="true" />
-                    {{ user.ignore ? $t('plugin-asl:unblock') : $t('plugin-asl:block') }}
-                </button>
-                <button
-                    type="button"
-                    class="kiwi-userbox-protect-btn is-report"
-                    @click="toggleReportUser"
-                >
-                    <i class="fa fa-flag" aria-hidden="true" />
-                    {{ $t('plugin-asl:report_action') }}
-                </button>
-            </div>
-            <div class="kiwi-userbox-protect-hint" v-html="$t('plugin-asl:protect_hint')" />
-        </div>
         <div v-if="buffer.isChannel() && areWeAnOp && !isSelf" class="kiwi-userbox-opactions">
             <form class="u-form" @submit.prevent="">
                 <label v-if="isUserOnBuffer">
@@ -217,6 +188,43 @@
                     </button>
                 </label>
             </form>
+        </div>
+        <div v-if="!isSelf" class="kiwi-userbox-protect">
+            <div class="kiwi-userbox-protect-head">
+                <i class="fa fa-shield" aria-hidden="true" />
+                {{ $t('plugin-asl:protect_title') }}
+            </div>
+            <p class="kiwi-userbox-protect-text">
+                {{ $t('plugin-asl:protect_intro', { nick: user.nick }) }}
+            </p>
+            <div class="kiwi-userbox-protect-actions">
+                <button
+                    type="button"
+                    class="kiwi-userbox-protect-btn is-block"
+                    :class="{ 'is-on': user.ignore }"
+                    @click="onBlockClick"
+                >
+                    <i class="fa" :class="user.ignore ? 'fa-eye' : 'fa-ban'" aria-hidden="true" />
+                    {{ user.ignore ? $t('plugin-asl:unblock') : $t('plugin-asl:block') }}
+                </button>
+                <!-- report only in a private chat: in a channel there's no specific
+                     message to attach and no conversation to report — the per-message
+                     bar handles reporting a channel message instead -->
+                <button
+                    v-if="buffer.isQuery()"
+                    type="button"
+                    class="kiwi-userbox-protect-btn is-report"
+                    @click="toggleReportUser"
+                >
+                    <i class="fa fa-flag" aria-hidden="true" />
+                    {{ $t('plugin-asl:report_action') }}
+                </button>
+            </div>
+            <div
+                v-if="buffer.isQuery()"
+                class="kiwi-userbox-protect-hint"
+                v-html="$t('plugin-asl:protect_hint')"
+            />
         </div>
     </div>
 </template>

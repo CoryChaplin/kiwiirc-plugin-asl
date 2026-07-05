@@ -32,6 +32,7 @@
     "report_confirm_with_log_pv": "C'est envoyé à la modération, avec les derniers messages de ta conversation pour le contexte. On regarde et on te répond. Tu as bien fait de signaler.",
     "report_common_label": "salon(s)",
     "report_action": "Signaler",
+    "pm_action": "Message privé",
     "block": "Bloquer",
     "unblock": "Débloquer",
     "block_toast": "C'est fait, {{nick}} ne te dérangera plus.",
