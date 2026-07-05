@@ -484,8 +484,8 @@ export default {
                 // One line for the moderation channel, alongside its other traffic.
                 // 🚩 marks it as a report; 👥 a channel / ✉️ a private message. The
                 // reported nick is bold red and the reason bold purple (IRC codes) so
-                // both jump out; a channel report also quotes the reported message and
-                // its time, so moderators can triage without opening the attached log.
+                // both jump out; a channel report also quotes the reported message (💬)
+                // so moderators can triage without opening the attached log.
                 let redNick = '\x02\x0304@' + nickname + '\x0F';
                 let parts;
                 if (isChannelReport) {
@@ -500,14 +500,11 @@ export default {
                         quote = quote.substr(0, 79) + '…';
                     }
                     if (quote) {
-                        parts.push('«' + quote + '»');
+                        parts.push('💬 «' + quote + '»');
                     }
                 }
                 // reason in bold purple (IRC 06) to pair with the bold-red nick
                 parts.push('\x02\x0306' + this.report_reasons + '\x0F');
-                if (reported) {
-                    parts.push(this.formatLogTime(reported));
-                }
                 // without a specific message, the channels shared with this user are the
                 // main clue for moderators; a message-anchored report already gives the
                 // room and line, so it's the only case that leaves them out
