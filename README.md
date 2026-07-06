@@ -51,7 +51,7 @@ note: the variables starting with _ are treated as translation keys
     "showUserBrowser": true,
     "userBrowserIcon": "fa-heart",
     "fallbackColour": "default",
-    "singleLineUserbox": false,
+    "singleLineUserbox": true,
     "singleLineString": {
         "age": "%a years",
         "sex": "%s",
@@ -98,7 +98,7 @@ note: the variables starting with _ are treated as translation keys
 | `showUserBrowser` | boolean | `true` | Enable User Browser panel |
 | `userBrowserIcon` | string | `"fa-heart"` | FontAwesome icon for User Browser button |
 | `fallbackColour` | string | `"default"` | Colour when sex is not provided. `"default"` = CSS default, `""` = random |
-| `singleLineUserbox` | boolean | `false` | Show ASL as single line in UserBox |
+| `singleLineUserbox` | boolean | `true` | Show A/S/L as one line in the userbox; `false` = one row per fact |
 | `singleLineString` | object | | Template for single-line display. `%a` = age, `%s` = sex, `%l` = location |
 | `allowedAge` | object | `{"min": 18, "max": 99}` | Age range for the Connect button to be enabled |
 | `ageRanges` | array | | Age filter options in User Browser. Values: `"all"`, `"<N"`, `">N"`, `"N-N"` |

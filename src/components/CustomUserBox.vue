@@ -4,54 +4,73 @@
             {{ $t('user_you') }}
         </span>
         <div class="kiwi-userbox-header">
-            <i v-if="user.asl && user.asl.s.substr(0, 2) === '_m'"
-               :style="{ color: user.getColour() }"
-               class="fa fa-male kiwi-userbox-icon" aria-hidden="true"
-            />
-            <i v-else-if="user.asl && user.asl.s.substr(0, 2) === '_f'"
-               :style="{ color: user.getColour() }"
-               class="fa fa-female kiwi-userbox-icon" aria-hidden="true"
-            />
-            <i v-else :style="{ color: user.getColour() }"
-               class="fa fa-user kiwi-userbox-icon" aria-hidden="true"
-            />
-            <h3>
-                <span :style="{'color': user.getColour()}">{{ user.nick }}</span>
-                <span v-if="userMode" class="kiwi-userbox-modestring">+{{ userMode }}</span>
-            </h3>
-            <div class="kiwi-userbox-usermask">{{ user.username }}@{{ user.host }}</div>
+            <div class="kiwi-userbox-avatar">
+                <user-avatar
+                    :user="user"
+                    :network="network"
+                    size="large"
+                    :force-show-status="true"
+                />
+            </div>
+            <div class="kiwi-userbox-userinfo">
+                <span
+                    class="kiwi-userbox-nick"
+                    :class="genderClass"
+                    :style="{ color: user.getColour() }"
+                >{{ user.nick }}</span>
+                <span class="kiwi-userbox-usermask">{{ user.username }}@{{ user.host }}</span>
+            </div>
         </div>
 
         <div class="kiwi-userbox-basicinfo">
-            <div v-if="user.asl && singleLine">
-                <span class="kiwi-userbox-basicinfo-title">{{ $t('plugin-asl:info') }}:</span>
-                <span class="kiwi-userbox-basicinfo-data">{{ aslString }}</span>
-            </div>
-            <div v-else-if="user.asl">
-                <div v-if="user.asl.a">
-                    <span><b>{{ $t('plugin-asl:age') }}: </b>{{ user.asl.a }}</span>
-                </div>
-                <div v-if="user.asl.s">
-                    <span><b>{{ $t('plugin-asl:sex') }}: </b>
-                        {{
-                            user.asl.s[0] === '_' ?
-                                $t('plugin-asl:' + user.asl.s.substr(1)) :
-                                user.asl.s
-                        }}
+            <!-- A/S/L — pictos label each fact. One line (·) or one row per fact (setting). -->
+            <div
+                v-if="aslParts.length"
+                class="kiwi-userbox-asl"
+                :class="{ 'kiwi-userbox-asl--multi': !singleLine }"
+            >
+                <template v-for="(part, i) in aslParts">
+                    <span
+                        v-if="i > 0 && singleLine"
+                        :key="'s' + i"
+                        class="kiwi-userbox-asl-sep"
+                    >·</span>
+                    <span :key="i" class="kiwi-userbox-asl-item">
+                        <i :class="'fa ' + part.icon" aria-hidden="true" />
+                        {{ part.value }}
                     </span>
-                </div>
-                <div v-if="user.asl.l">
-                    <span><b>{{ $t('plugin-asl:location') }}: </b>{{ user.asl.l }}</span>
-                </div>
+                </template>
             </div>
-            <div v-if="user.aslRealname">
-                <span class="kiwi-userbox-basicinfo-title">{{ $t('whois_realname') }}:</span>
-                <span class="kiwi-userbox-basicinfo-data" v-html="formattedRealname" />
+
+            <!-- realname under a human label — fallback / complement to A/S/L -->
+            <div v-if="user.aslRealname" class="kiwi-userbox-bio">
+                <span class="kiwi-userbox-label">{{ $t('plugin-asl:presentation') }}</span>
+                <span class="kiwi-userbox-bio-text" v-html="formattedRealname" />
             </div>
-            <div>
-                <b>{{ $t('plugin-asl:common_channels') }}:</b>
-                <span @click="onChannelsClick($event)"
-                      v-html="linkifyCommonChannels"
+            <div v-else-if="!aslParts.length" class="kiwi-userbox-asl kiwi-userbox-asl--empty">
+                {{ $t('plugin-asl:profile_empty') }}
+            </div>
+
+            <!-- status badges — known without a whois (whoFlags + away) -->
+            <div v-if="statusFlags.length" class="kiwi-userbox-flags">
+                <span
+                    v-for="flag in statusFlags"
+                    :key="flag.type"
+                    class="kiwi-userbox-flag"
+                    :class="'kiwi-userbox-flag--' + flag.type"
+                >
+                    <i :class="'fa ' + flag.icon" aria-hidden="true" />
+                    {{ $t('plugin-asl:' + flag.label) }}
+                </span>
+            </div>
+
+            <!-- channels in common — sober label + hero chips -->
+            <div v-if="commonChannels.length" class="kiwi-userbox-common">
+                <span class="kiwi-userbox-label">{{ $t('plugin-asl:common_channels') }}</span>
+                <span
+                    class="kiwi-userbox-common-list"
+                    @click="onChannelsClick($event)"
+                    v-html="linkifyCommonChannels"
                 />
             </div>
         </div>
@@ -95,48 +114,76 @@
         <div
             v-if="whoisRequested"
             :class="[whoisLoading?'kiwi-userbox-whois--loading':'']"
-            class="kiwi-userbox-whois"
+            class="kiwi-userbox-whois kiwi-userbox-details"
         >
             <template v-if="whoisLoading">
                 <i class="fa fa-spinner" aria-hidden="true" />
             </template>
             <template v-else>
-                <span class="kiwi-userbox-whois-line">
-                    {{ user.away ?
-                        $t('whois_status') + ': ' + user.away :
-                        $t('whois_status_available')
-                    }}
-                </span>
-                <span v-if="user.account" class="kiwi-userbox-whois-line">
-                    {{ $t('user_account', {user: user.account}) }}
-                </span>
-                <span class="kiwi-userbox-whois-line">
-                    {{ $t('user_realname', {realname: user.realname}) }}
-                </span>
-                <span v-if="user.whois.bot" class="kiwi-userbox-whois-line">
-                    {{ $t('user_bot') }}
-                </span>
-                <span v-if="user.whois.helpop" class="kiwi-userbox-whois-line">
-                    {{ $t('user_help') }}
-                </span>
-                <span v-if="user.whois.operator" class="kiwi-userbox-whois-line">
-                    {{ $t('user_op') }}
-                </span>
-                <span v-if="user.whois.server" class="kiwi-userbox-whois-line">
-                    {{ $t('user_server', {
-                        server: user.whois.server,
-                        info: (user.whois.server_info ? `(${user.whois.server_info})` : '')
-                    }) }}
-                </span>
-                <span v-if="user.whois.secure" class="kiwi-userbox-whois-line">
-                    {{ $t('user_secure') }}
-                </span>
-                <span
-                    v-if="user.whois.channels"
-                    class="kiwi-userbox-whois-line"
-                    @click="onChannelsClick($event)"
-                    v-html="$t('user_channels', {channels: userChannels})"
-                />
+                <!-- away only (offline is the presence dot's job, not an away message) -->
+                <div v-if="user.isAway()" class="kiwi-userbox-det-row">
+                    <i class="fa fa-moon-o" aria-hidden="true" />
+                    <span>{{ user.away }}</span>
+                </div>
+
+                <!-- registered account name (badge shows the status; mods need the name) -->
+                <div v-if="user.account" class="kiwi-userbox-det-block">
+                    <span class="kiwi-userbox-label">{{ $t('plugin-asl:whois_account') }}</span>
+                    <div class="kiwi-userbox-det-row">
+                        <i class="fa fa-id-card-o" aria-hidden="true" />
+                        <span class="kiwi-userbox-det-val">{{ user.account }}</span>
+                    </div>
+                </div>
+
+                <!-- realname fallback when there was no join-time data (e.g. PM-only user) -->
+                <div
+                    v-if="user.realname && !user.aslRealname && !aslParts.length"
+                    class="kiwi-userbox-det-block"
+                >
+                    <span class="kiwi-userbox-label">{{ $t('plugin-asl:presentation') }}</span>
+                    <span class="kiwi-userbox-bio-text">{{ user.realname }}</span>
+                </div>
+
+                <!-- network helper (helpop) — whois-only -->
+                <div v-if="user.whois.helpop" class="kiwi-userbox-det-row">
+                    <i class="fa fa-life-ring" aria-hidden="true" />
+                    <span>{{ $t('plugin-asl:whois_assistance') }}</span>
+                </div>
+
+                <!-- connection: server + secure -->
+                <div
+                    v-if="user.whois.server || user.whois.secure"
+                    class="kiwi-userbox-det-block"
+                >
+                    <span class="kiwi-userbox-label">{{ $t('plugin-asl:whois_connection') }}</span>
+                    <div v-if="user.whois.server" class="kiwi-userbox-det-row">
+                        <i class="fa fa-server" aria-hidden="true" />
+                        <span class="kiwi-userbox-det-val">{{ serverLabel }}</span>
+                    </div>
+                    <div
+                        v-if="user.whois.secure"
+                        class="kiwi-userbox-det-row kiwi-userbox-det-row--secure"
+                    >
+                        <i class="fa fa-lock" aria-hidden="true" />
+                        <span>{{ $t('plugin-asl:whois_secure') }}</span>
+                    </div>
+                </div>
+
+                <!-- their channels — full list, common ones highlighted -->
+                <div v-if="allChannels.length" class="kiwi-userbox-det-block">
+                    <span class="kiwi-userbox-label">
+                        {{ $t('plugin-asl:whois_channels_all') }}
+                    </span>
+                    <span class="kiwi-userbox-channels-list" @click="onChannelsClick($event)">
+                        <a
+                            v-for="ch in allChannels"
+                            :key="ch.name"
+                            class="kiwi-channel"
+                            :class="{ 'kiwi-channel--common': ch.common }"
+                            :data-channel-name="ch.name"
+                        >{{ ch.name }}</a>
+                    </span>
+                </div>
             </template>
         </div>
 
@@ -242,9 +289,11 @@ let IrcdDiffs = kiwi.require('helpers/IrcdDiffs');
 let GlobalApi = kiwi.require('libs/GlobalApi');
 let toHtml = kiwi.require('libs/renderers/Html');
 let parseMessage = kiwi.require('libs/MessageParser');
+let UserAvatar = kiwi.require('components/UserAvatar');
 
 export default {
     components: {
+        UserAvatar,
     },
     props: ['buffer', 'network', 'user'],
     data: function data() {
@@ -256,28 +305,118 @@ export default {
         };
     },
     computed: {
+        // A/S/L layout: true = one line (pictos separated by ·), false = one row per fact.
         singleLine() {
             return config.getSetting('singleLineUserbox');
         },
-        aslString() {
-            let parts = config.getSetting('singleLineString');
-            let out = [];
-            if (this.user.asl.a) {
-                let ageTpl = parts.age[0] === '_' ?
-                    TextFormatting.t('plugin-asl:' + parts.age.substr(1)) :
-                    parts.age;
-                out.push(ageTpl.replace('%a', this.user.asl.a));
+        // Gender = glyph shape after the nick (identity = colour, gender = form).
+        // Bare "other" (no age/location) counts as not declared → no glyph (see utils).
+        genderClass() {
+            return utils.getGenderClass(this.user.asl);
+        },
+        // Human-readable sex label (canonical _m/_f/… via locale, else the raw value).
+        sexLabel() {
+            let s = this.user.asl && this.user.asl.s;
+            if (!s) {
+                return '';
             }
-            if (this.user.asl.s) {
-                let sex = this.user.asl.s[0] === '_' ?
-                    TextFormatting.t('plugin-asl:' + this.user.asl.s.substr(1)) :
-                    this.user.asl.s;
-                out.push(parts.sex.replace('%s', sex));
+            return s[0] === '_' ? TextFormatting.t('plugin-asl:' + s.substr(1)) : s;
+        },
+        // A/S/L rendered as ONE line, each present fact prefixed by its FA4 picto.
+        aslParts() {
+            let asl = this.user.asl;
+            if (!asl) {
+                return [];
             }
-            if (this.user.asl.l) {
-                out.push(parts.location.replace('%l', this.user.asl.l));
+            let parts = [];
+            if (asl.a) {
+                parts.push({ icon: 'fa-birthday-cake', value: asl.a });
             }
-            return out.join(parts.separator);
+            // skip a bare "other" (no glyph) — it means gender was not really declared
+            if (asl.s && this.genderClass) {
+                parts.push({ icon: 'fa-venus-mars', value: this.sexLabel });
+            }
+            if (asl.l) {
+                parts.push({ icon: 'fa-map-marker', value: asl.l });
+            }
+            return parts;
+        },
+        serverLabel() {
+            let w = this.user.whois;
+            return w.server + (w.server_info ? ' (' + w.server_info + ')' : '');
+        },
+        // Status badges known WITHOUT a whois: WHOX whoFlags (registered/operator/bot) + away.
+        // whoFlags props are non-enumerable/non-reactive → we read hasWhoFlags to anchor reactivity
+        // (it flips true when the WHO reply lands). Moderator is prepended separately.
+        statusFlags() {
+            let user = this.user;
+            let ready = user.hasWhoFlags;
+            let wf = user.whoFlags || {};
+            let flags = [];
+            if (this.isModerator) {
+                flags.push({ type: 'mod', icon: 'fa-shield', label: 'flag_moderator' });
+            }
+            if (ready && wf.operator) {
+                flags.push({ type: 'op', icon: 'fa-shield', label: 'flag_netop' });
+            }
+            if ((ready && wf.registered) || user.account) {
+                flags.push({ type: 'reg', icon: 'fa-check-circle', label: 'flag_registered' });
+            }
+            if (ready && wf.bot) {
+                flags.push({ type: 'bot', icon: 'fa-android', label: 'flag_robot' });
+            }
+            if (user.isAway()) {
+                flags.push({ type: 'away', icon: 'fa-moon-o', label: 'flag_away' });
+            }
+            return flags;
+        },
+        // Whois « Ses salons » : full channel list, common ones flagged for the hero chip.
+        allChannels() {
+            let opts = this.network.ircClient.network.options;
+            let parsed = utils.parseWhoisChannels(this.user.whois.channels, opts && opts.CHANTYPES);
+            let commonSet = new Set(this.commonChannels.map((c) => c.toLowerCase()));
+            return parsed.map((ch) => ({
+                name: ch.name,
+                common: commonSet.has(ch.name.toLowerCase()),
+            }));
+        },
+        // Moderator = op or higher (not voice) of an official channel. Derived, not a server flag.
+        // (a) pre-whois: op-or-higher in a shared official channel (BufferState.isUserAnOp counts
+        // Y/y/q/a/o/h) ; (b) post-whois: an op-or-higher prefix (~ & @ %) on an official channel.
+        // No official list → never derived (no false positive).
+        isModerator() {
+            let official = this.$state.pluginASL && this.$state.pluginASL.officialChannels;
+            if (!official || !official.size) {
+                return false;
+            }
+            // read the reactive whois flag so branch (b) re-evaluates when whois data lands
+            let hasWhois = this.user.hasWhois;
+
+            let netBuffers = this.network.buffers || [];
+            for (let bi = 0; bi < netBuffers.length; bi++) {
+                let buf = netBuffers[bi];
+                if (!buf || !buf.name || !buf.isChannel()) {
+                    continue;
+                }
+                if (official.has(utils.normalizeChannelName(buf.name)) &&
+                    buf.isUserAnOp(this.user.nick)) {
+                    return true;
+                }
+            }
+
+            if (hasWhois && this.user.whois.channels) {
+                let opts = this.network.ircClient.network.options;
+                let chantypes = opts && opts.CHANTYPES;
+                let parsed = utils.parseWhoisChannels(this.user.whois.channels, chantypes);
+                for (let pi = 0; pi < parsed.length; pi++) {
+                    let ch = parsed[pi];
+                    if (official.has(utils.normalizeChannelName(ch.name)) &&
+                        /[~&@%]/.test(ch.prefix)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         },
         // Channel modes differ on some IRCds so get them from the network options
         availableChannelModes: function availableChannelModes() {
@@ -309,9 +448,6 @@ export default {
             }
 
             return this.buffer.isUserAnOp(this.buffer.getNetwork().nick);
-        },
-        realname() {
-            return (this.user.realname || '').trim();
         },
         formattedRealname() {
             let blocks = parseMessage(this.user.aslRealname || '', { extras: false });
@@ -368,13 +504,6 @@ export default {
                 client.raw(params);
             },
         },
-        userChannels() {
-            let channels = this.user.whois.channels.trim().split(' ');
-            for (let i = 0; i < channels.length; i++) {
-                channels[i] = TextFormatting.linkifyChannels(channels[i]);
-            }
-            return channels.join(' ');
-        },
         commonChannels: function commonChannels() {
             let networkId = kiwi.state.getActiveNetwork().id;
             return utils.commonChannels(networkId, this.user.nick);
@@ -384,7 +513,7 @@ export default {
             this.commonChannels.forEach((channel) => {
                 channels.push(TextFormatting.linkifyChannels(channel));
             });
-            return channels.join(', ');
+            return channels.join(' ');
         },
         isSelf() {
             return this.user === this.network.currentUser();
@@ -528,112 +657,230 @@ export default {
     height: 100%;
 }
 
+/* « C'est toi » pill (.prof-self) — tokens with neutral fallbacks for any theme. */
 .kiwi-userbox-selfprofile {
     display: block;
-    margin: 0 auto;
-    width: 100%;
-    padding: 1em;
+    margin: 0 0 0.75rem;
+    padding: 0.25rem 0;
     text-align: center;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-pill, 9999px);
+    background: var(--color-chip-bg-hero, #cde9fc);
+    color: var(--color-accent, #004b87);
+    font-size: var(--text-xs, 0.6875rem);
+    font-weight: var(--weight-extrabold, 800);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     box-sizing: border-box;
 }
 
+/* identity row: avatar (identity disc + initials fallback / image later) | nick + mask */
 .kiwi-userbox-header {
-    position: relative;
-    padding: 0.5em 1em;
-    box-sizing: border-box;
     display: flex;
-    flex-direction: column;
-}
-
-.kiwi-userbox-header h3 {
-    margin: 0 0 0 40px;
-    padding: 0;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 1rem 1rem 0.6rem;
+    box-sizing: border-box;
 }
 
 .kiwi-userbox-avatar {
     position: relative;
-    margin: 1em;
-    width: 100px;
-    height: 100px;
+    width: 3.25rem;
+    height: 3.25rem;
     flex-shrink: 0;
+    margin: 0;
 }
 
-.kiwi-userbox-avatar .kiwi-avatar-inner {
-    font-size: 3em;
-    border-width: 3px;
-}
-
-.kiwi-userbox-avatar .kiwi-awaystatusindicator {
-    width: 16px;
-    height: 16px;
-    top: 4px;
-    right: 2px;
-    position: absolute;
+.kiwi-userbox-avatar .kiwi-avatar {
+    display: block;
+    width: 100%;
+    height: 100%;
 }
 
 .kiwi-userbox-userinfo {
     box-sizing: border-box;
-    margin-top: 1.2em;
-    flex-grow: 1;
+    min-width: 0;
+    flex: 1;
+    margin: 0;
 }
 
+/* inline (not inline-flex) so a long nick + its gender glyph wrap together as text;
+   overflow-wrap:anywhere breaks unbroken tokens (___SadiqueDominant) cleanly at the edge. */
 .kiwi-userbox-nick {
-    font-weight: 800;
-    font-size: 1.4em;
+    display: inline;
+    font-weight: var(--weight-extrabold, 800);
+    font-size: 1.1rem;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
-.kiwi-userbox-icon {
-    font-size: 2.8em;
-    margin-right: 0.3em;
-    position: absolute;
+/* gender glyph after the nick (identity = colour, gender = form). FA4 (KiwiIRC):
+   venus \f221 · mars \f222 · transgender \f224. No glyph when ASL sex is absent. */
+.kiwi-userbox-nick.g-f::after,
+.kiwi-userbox-nick.g-m::after,
+.kiwi-userbox-nick.g-u::after {
+    /* stylelint-disable-next-line font-family-no-missing-generic-family-keyword */
+    font-family: 'FontAwesome';
+    font-size: 0.72em;
+    opacity: 0.85;
+    margin-left: 0.32rem;
 }
 
-.fa-user.kiwi-userbox-icon {
-    display: inline-block;
-    font-size: 2em;
-}
+.kiwi-userbox-nick.g-f::after { content: '\f221'; }
+.kiwi-userbox-nick.g-m::after { content: '\f222'; }
+.kiwi-userbox-nick.g-u::after { content: '\f224'; }
 
-.kiwi-userbox-modestring {
-    font-weight: normal;
-    font-size: 0.8em;
-    margin-left: 6px;
-}
-
+/* username@host — IRC plumbing: kept but quiet (faint, small, under the nick) */
 .kiwi-userbox-usermask {
     display: block;
-    margin: 0 0 0 40px;
-    font-size: 0.9em;
+    margin: 0.2rem 0 0;
+    font-size: var(--text-xs, 0.6875rem);
+    color: var(--color-text-faint, #9aa6b6);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.kiwi-userbox-basicinfo {
+/* .kiwi-userbox prefix beats the base.css basicinfo hairline (DS: no hard lines) */
+.kiwi-userbox .kiwi-userbox-basicinfo {
     width: 100%;
     margin: 0;
-    display: block;
-    padding: 0.5em 1em;
+    padding: 0 1rem 0.85rem;
     box-sizing: border-box;
+    border: 0;
 }
 
-.kiwi-userbox-basicinfo-title,
-.kiwi-userbox-basicinfo-data {
+/* sober section micro-label (.prof-h) : « Présentation », « Salons en commun » */
+.kiwi-userbox-label {
     display: block;
-    width: 100%;
-    cursor: default;
-    margin: 0;
+    margin: 0 0 0.35rem;
+    font-size: var(--text-2xs, 0.625rem);
+    font-weight: var(--weight-extrabold, 800);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-faint, #9aa6b6);
 }
 
-.kiwi-userbox-basicinfo-title {
-    font-size: 1em;
-    line-height: 1em;
-    padding: 0;
-    text-align: left;
-    font-weight: 900;
+/* A/S/L on ONE line — each fact prefixed by its picto (quiet, faint) */
+.kiwi-userbox-asl {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.15rem;
+    font-size: var(--text-sm, 0.8125rem);
+    font-weight: var(--weight-medium, 600);
+    color: var(--color-text-secondary, #56616f);
 }
 
-.kiwi-userbox-basicinfo-data {
-    margin-bottom: 1em;
-    font-weight: 100;
-    opacity: 1;
+/* one row per fact (singleLineUserbox = false) */
+.kiwi-userbox-asl--multi {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+}
+
+.kiwi-userbox-asl-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.32rem;
+}
+
+.kiwi-userbox-asl-item i {
+    font-size: 0.85em;
+    color: var(--color-text-faint, #9aa6b6);
+}
+
+.kiwi-userbox-asl-sep {
+    margin: 0 0.3rem;
+    color: var(--color-text-faint, #9aa6b6);
+}
+
+.kiwi-userbox-asl--empty {
+    font-style: italic;
+    font-weight: var(--weight-regular, 400);
+    color: var(--color-text-faint, #9aa6b6);
+}
+
+/* realname under « Présentation » */
+.kiwi-userbox-bio {
+    margin-top: 0.75rem;
+}
+
+.kiwi-userbox-bio-text {
+    font-size: var(--text-sm, 0.8125rem);
+    line-height: 1.45;
+    color: var(--color-text-secondary, #56616f);
+}
+
+/* salons en commun — hero chips */
+.kiwi-userbox-common {
+    margin-top: 0.9rem;
+}
+
+.kiwi-userbox-common-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.kiwi-userbox-common-list .kiwi-channel {
+    display: inline-flex;
+    align-items: center;
+    height: 1.55rem;
+    padding: 0 0.6rem;
+    border-radius: var(--radius-pill, 9999px);
+    background: var(--color-chip-bg-hero, #cde9fc);
+    color: var(--color-accent, #004b87);
+    border: 1px solid var(--color-accent-soft, #8bcbf9);
+    font-size: var(--text-xs, 0.6875rem);
+    font-weight: var(--weight-extrabold, 800);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* status badges — neutral pill, picto coloured by meaning. mod + op = same shield (both protect) */
+.kiwi-userbox-flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.65rem;
+}
+
+/* surface fill + defined border so the pill detaches from the tinted fiche background
+   (--color-chip-bg was too close to the sidebar canvas in light mode) */
+.kiwi-userbox-flag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    height: 1.45rem;
+    padding: 0 0.55rem;
+    border-radius: var(--radius-pill, 9999px);
+    background: var(--color-surface, #fff);
+    border: 1px solid var(--color-border-strong, #d7e3f2);
+    color: var(--color-text-secondary, #56616f);
+    font-size: var(--text-2xs, 0.625rem);
+    font-weight: var(--weight-extrabold, 800);
+}
+
+.kiwi-userbox-flag i {
+    font-size: 0.95em;
+}
+
+.kiwi-userbox-flag--reg i {
+    color: var(--color-success-text, #15803d);
+}
+
+.kiwi-userbox-flag--mod i,
+.kiwi-userbox-flag--op i {
+    color: var(--color-accent, #004b87);
+}
+
+.kiwi-userbox-flag--bot i {
+    color: var(--color-bot, #7c3aed);
+}
+
+.kiwi-userbox-flag--away i {
+    color: var(--color-presence-away, #b98b52);
 }
 
 .kiwi-userbox-actions {
@@ -711,18 +958,85 @@ export default {
     font-size: 1.2em;
 }
 
-.kiwi-userbox-whois {
-    line-height: 1.4em;
-    padding: 1em;
-    width: 90%;
-    margin: 0 5% 20px 5%;
+/* whois « Plus d'infos » — grouped picto rows (.prof-details grammar). 2-class selector
+   beats base.css `.kiwi-userbox-whois` hairline border (DS: no hard lines). */
+.kiwi-userbox-whois.kiwi-userbox-details {
+    width: auto;
+    margin: 0;
+    padding: 0 1rem 0.5rem;
     background: none;
+    border: 0;
     box-sizing: border-box;
-    border-radius: 2px;
 }
 
-.kiwi-userbox-whois-line {
-    display: block;
+.kiwi-userbox-details.kiwi-userbox-whois--loading {
+    padding: 1rem;
+    text-align: center;
+}
+
+.kiwi-userbox-det-block {
+    margin-top: 0.9rem;
+}
+
+.kiwi-userbox-det-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.2rem 0;
+    font-size: var(--text-sm, 0.8125rem);
+    line-height: 1.4;
+    color: var(--color-text-secondary, #56616f);
+}
+
+.kiwi-userbox-det-row i {
+    width: 1rem;
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+    text-align: center;
+    color: var(--color-text-faint, #9aa6b6);
+}
+
+.kiwi-userbox-det-val {
+    color: var(--color-text-primary, #22231f);
+    font-weight: var(--weight-bold, 700);
+    word-break: break-word;
+}
+
+/* « Connexion sécurisée » — green text (AA), matching lock icon */
+.kiwi-userbox-det-row--secure,
+.kiwi-userbox-det-row--secure i {
+    color: var(--color-success-text, #15803d);
+    font-weight: var(--weight-bold, 700);
+}
+
+/* Ses salons — neutral chips, common ones promoted to hero (same language as the header block) */
+.kiwi-userbox-channels-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.35rem;
+}
+
+.kiwi-userbox-channels-list .kiwi-channel {
+    display: inline-flex;
+    align-items: center;
+    height: 1.55rem;
+    padding: 0 0.6rem;
+    border-radius: var(--radius-pill, 9999px);
+    background: var(--color-surface, #fff);
+    color: var(--color-text-secondary, #56616f);
+    border: 1px solid var(--color-border-strong, #d7e3f2);
+    font-size: var(--text-xs, 0.6875rem);
+    font-weight: var(--weight-bold, 700);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.kiwi-userbox-channels-list .kiwi-channel--common {
+    background: var(--color-chip-bg-hero, #cde9fc);
+    color: var(--color-accent, #004b87);
+    border-color: var(--color-accent-soft, #8bcbf9);
+    font-weight: var(--weight-extrabold, 800);
 }
 
 /* Protection control zone — base styles (theme-agnostic, works on any theme;
@@ -815,10 +1129,6 @@ export default {
 
     .kiwi-userbox .kiwi-userbox-header {
         padding-left: 10px;
-    }
-
-    .kiwi-userbox .kiwi-userbox-header i {
-        display: block;
     }
 
     .kiwi-userbox .kiwi-userbox-basicinfo {

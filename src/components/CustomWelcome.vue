@@ -885,6 +885,8 @@ export default {
             ]);
             if (formConfigResult) {
                 this.formConfig = formConfigResult;
+                // enrich the official-channels set (userbox Moderator badge) from the same load
+                config.addOfficialChannels(formConfigResult);
             }
             if (geo) {
                 if (!this.location && geo.city) this.location = geo.city;

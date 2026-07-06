@@ -1,6 +1,8 @@
 /* global kiwi:true */
 /* global _:true */
 
+import { normalizeChannelName } from './libs/utils.js';
+
 const basePath = getBasePath();
 const configBase = 'plugin-asl';
 
@@ -24,6 +26,12 @@ const defaultConfig = {
     // KiwiIRC's native behaviour. Names must match the client config themes[] names.
     hoverActionThemes: [],
 
+    // Channels considered "official" — a user who is op/halfop of one of these gets the
+    // "Moderator" badge in the userbox. Declared in the client config; leading sigils
+    // optional. Empty → no Moderator badge is derived. The form-config endpoint, when
+    // reachable, enriches this list at runtime (best-effort); it is not required.
+    officialChannels: [],
+
     // Enable User Browser
     showUserBrowser: true,
 
@@ -35,8 +43,8 @@ const defaultConfig = {
     // '' for random
     fallbackColour: 'default',
 
-    // If should show asl as single line in UserBox
-    singleLineUserbox: false,
+    // Show A/S/L as one line (pictos separated by ·) in the userbox; false = one row per fact.
+    singleLineUserbox: true,
 
     // Single line string builder
     // age/sex/location (if they exist) are joined by the separator
@@ -139,6 +147,12 @@ export function setDefaults() {
     // Set internal defaults
     const pluginASL = kiwi.state.pluginASL = Object.create(null);
 
+    // Set of official channel names (bare, lowercase) for the Moderator badge — seeded from
+    // the officialChannels config list; the form-config endpoint may add more at runtime.
+    pluginASL.officialChannels = new Set(
+        (getSetting('officialChannels') || []).map(normalizeChannelName)
+    );
+
     const ageRanges = getSetting('ageRanges');
     pluginASL.selectedAgeRange = ageRanges[0].value;
 
@@ -171,6 +185,19 @@ export function setDefaults() {
     });
 
     pluginASL.userFilter = '';
+}
+
+// Merge a form-config's channel categories into the official-channels set (best-effort
+// enrichment on top of the officialChannels config list). Called wherever form-config loads.
+export function addOfficialChannels(formConfig) {
+    let official = kiwi.state.pluginASL.officialChannels;
+    ((formConfig && formConfig.channelCategories) || []).forEach((cat) => {
+        (cat.channels || []).forEach((ch) => {
+            if (ch) {
+                official.add(normalizeChannelName(ch));
+            }
+        });
+    });
 }
 
 export function setting(name) {
