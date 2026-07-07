@@ -832,6 +832,7 @@ export default {
     background: var(--color-chip-bg-hero, #cde9fc);
     color: var(--color-accent, #004b87);
     border: 1px solid var(--color-accent-soft, #8bcbf9);
+    box-shadow: var(--shadow-raised, 0 0.0625rem 0.125rem rgba(8, 32, 60, 0.1), 0 0.0625rem 0.1875rem rgba(8, 32, 60, 0.06));
     font-size: var(--text-xs, 0.6875rem);
     font-weight: var(--weight-extrabold, 800);
     text-decoration: none;
@@ -846,8 +847,9 @@ export default {
     margin-top: 0.65rem;
 }
 
-/* surface fill + defined border so the pill detaches from the tinted fiche background
-   (--color-chip-bg was too close to the sidebar canvas in light mode) */
+/* "posed token" grammar (shared with chips + secondary buttons): tinted fill + soft
+   border + soft shadow. The border crisps the edge, the shadow lifts it off the panel —
+   readable without white (white stays for input / raised controls). */
 .kiwi-userbox-flag {
     display: inline-flex;
     align-items: center;
@@ -855,8 +857,9 @@ export default {
     height: 1.45rem;
     padding: 0 0.55rem;
     border-radius: var(--radius-pill, 9999px);
-    background: var(--color-surface, #fff);
+    background: var(--color-chip-bg, #e7f1fc);
     border: 1px solid var(--color-border-strong, #d7e3f2);
+    box-shadow: var(--shadow-raised, 0 0.0625rem 0.125rem rgba(8, 32, 60, 0.1), 0 0.0625rem 0.1875rem rgba(8, 32, 60, 0.06));
     color: var(--color-text-secondary, #56616f);
     font-size: var(--text-2xs, 0.625rem);
     font-weight: var(--weight-extrabold, 800);
@@ -1023,9 +1026,10 @@ export default {
     height: 1.55rem;
     padding: 0 0.6rem;
     border-radius: var(--radius-pill, 9999px);
-    background: var(--color-surface, #fff);
+    background: var(--color-chip-bg, #e7f1fc);
     color: var(--color-text-secondary, #56616f);
     border: 1px solid var(--color-border-strong, #d7e3f2);
+    box-shadow: var(--shadow-raised, 0 0.0625rem 0.125rem rgba(8, 32, 60, 0.1), 0 0.0625rem 0.1875rem rgba(8, 32, 60, 0.06));
     font-size: var(--text-xs, 0.6875rem);
     font-weight: var(--weight-bold, 700);
     text-decoration: none;
@@ -1089,7 +1093,8 @@ export default {
     padding: 0 0.5rem;
     border: 1px solid var(--color-border-strong, rgba(127, 127, 127, 0.45));
     border-radius: 6.1875rem;
-    background: var(--color-surface, #fff);
+    background: var(--color-surface, #fff);     /* secondaire posé : surface + filet + ombre (grammaire commune) */
+    box-shadow: var(--shadow-raised, 0 0.0625rem 0.125rem rgba(8, 32, 60, 0.1), 0 0.0625rem 0.1875rem rgba(8, 32, 60, 0.06));
     color: inherit;
     font-family: inherit;
     font-size: 0.75rem;
