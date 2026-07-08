@@ -187,54 +187,52 @@
             </template>
         </div>
 
-        <div v-if="buffer.isChannel() && areWeAnOp && !isSelf" class="kiwi-userbox-opactions">
-            <form class="u-form" @submit.prevent="">
-                <label v-if="isUserOnBuffer">
-                    {{ $t('user_access') }} <select v-model="userMode">
-                        <option
-                            v-for="mode in availableChannelModes"
-                            :key="mode.mode"
-                            :value="mode.mode"
-                        >
-                            {{ mode.description }}
-                        </option>
-                        <option value="">{{ $t('user_normal') }}</option>
-                    </select>
-                </label>
-                <label v-if="isUserOnBuffer">
-                    <button
-                        type="button"
-                        class="u-button u-button-secondary
-                               kiwi-userbox-opaction-kick kiwi-userbox-opaction"
-                        @click="kickUser"
+        <div v-if="buffer.isChannel() && areWeAnOp && !isSelf" class="kiwi-userbox-mod">
+            <div class="kiwi-userbox-mod-head">
+                <i class="fa fa-gavel" aria-hidden="true" />
+                {{ $t('plugin-asl:mod_title') }}
+            </div>
+            <label v-if="isUserOnBuffer" class="kiwi-userbox-mod-field">
+                <span class="kiwi-userbox-mod-lbl">{{ $t('user_access') }}</span>
+                <select v-model="userMode" class="kiwi-userbox-mod-select">
+                    <option
+                        v-for="mode in availableChannelModes"
+                        :key="mode.mode"
+                        :value="mode.mode"
                     >
-                        <i class="fa fa-sign-out" aria-hidden="true" />
-                        {{ $t('user_kick') }}
-                    </button>
-                </label>
-                <label>
-                    <button
-                        type="button"
-                        class="u-button u-button-secondary
-                               kiwi-userbox-opaction-ban kiwi-userbox-opaction"
-                        @click="banUser"
-                    >
-                        <i class="fa fa-ban" aria-hidden="true" />
-                        {{ $t('user_ban') }}
-                    </button>
-                </label>
-                <label v-if="isUserOnBuffer">
-                    <button
-                        type="button"
-                        class="u-button u-button-secondary
-                               kiwi-userbox-opaction-kickban kiwi-userbox-opaction"
-                        @click="kickbanUser"
-                    >
-                        <i class="fa fa-exclamation-triangle" aria-hidden="true" />
-                        {{ $t('user_kickban') }}
-                    </button>
-                </label>
-            </form>
+                        {{ mode.description }}
+                    </option>
+                    <option value="">{{ $t('user_normal') }}</option>
+                </select>
+            </label>
+            <div class="kiwi-userbox-mod-sanctions">
+                <button
+                    v-if="isUserOnBuffer"
+                    type="button"
+                    class="kiwi-userbox-mod-btn btn-cta"
+                    @click="kickUser"
+                >
+                    <i class="fa fa-sign-out" aria-hidden="true" />
+                    {{ $t('user_kick') }}
+                </button>
+                <button
+                    type="button"
+                    class="kiwi-userbox-mod-btn btn-cta"
+                    @click="banUser"
+                >
+                    <i class="fa fa-ban" aria-hidden="true" />
+                    {{ $t('user_ban') }}
+                </button>
+                <button
+                    v-if="isUserOnBuffer"
+                    type="button"
+                    class="kiwi-userbox-mod-btn btn-cta"
+                    @click="kickbanUser"
+                >
+                    <i class="fa fa-exclamation-triangle" aria-hidden="true" />
+                    {{ $t('user_kickban') }}
+                </button>
+            </div>
         </div>
         <div v-if="!isSelf" class="kiwi-userbox-protect">
             <div class="kiwi-userbox-protect-head">
@@ -918,47 +916,95 @@ export default {
     padding: 0;
 }
 
-.kiwi-userbox-opactions {
-    width: 100%;
-    text-align: center;
+/* Moderation zone (ops only) — sister card to the protection zone below:
+   same tinted card + picto header. Sanctions are sized here and skinned by
+   the theme's .btn-cta (plain raised pills on themes without that skin). */
+.kiwi-userbox-mod {
+    margin: 1rem 1rem 0;
+    padding: 0.875rem;
+    border-radius: 0.875rem;
+    background:
+        color-mix(
+            in srgb,
+            var(--color-accent-soft, #8bcbf9) 30%,
+            var(--color-surface, #fff)
+        );
     box-sizing: border-box;
-    margin: 0 0 1em 0;
-    border-top: 1px solid;
-    padding: 1em;
 }
 
-.kiwi-userbox-opactions label {
-    width: 100%;
-    font-size: 1.2em;
-    font-weight: 600;
-    display: block;
-    margin-bottom: 0.7em;
+.kiwi-userbox-mod-head {
+    display: flex;
+    align-items: center;
+    gap: 0.4375rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 800;
 }
 
-.kiwi-userbox-opactions label select {
+.kiwi-userbox-mod-field {
     display: block;
-    clear: both;
-    padding: 10px;
-    border-radius: 0.25em;
-    box-shadow: none;
-    border: 1px solid;
+    margin: 0 0 0.625rem;
+}
+
+.kiwi-userbox-mod-lbl {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: var(--color-text-secondary, inherit);
+}
+
+/* the select is input, so it alone keeps the white input skin on the tinted card */
+.kiwi-userbox-mod-select {
     width: 100%;
-    margin-top: 10px;
+    height: 2.125rem;
+    padding: 0 1.8rem 0 0.75rem;
+    border: 1px solid var(--color-border-strong, rgba(127, 127, 127, 0.45));
+    border-radius: 6.1875rem;
+    background-color: var(--color-bg-input, #fff);
+    box-shadow: var(--shadow-input, none);
+    color: var(--color-text-primary, #333);
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
     cursor: pointer;
 }
 
-.kiwi-userbox-opaction {
-    width: 100%;
-    padding: 0 1em;
-    text-align: left;
-    border: none;
-    line-height: 2.2em;
-    font-size: 0.8em;
+/* one sanction per row: full labels stay readable on narrow mobile sidebars */
+.kiwi-userbox-mod-sanctions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
 }
 
-.kiwi-userbox-opaction i {
-    margin-right: 0.2em;
-    font-size: 1.2em;
+.kiwi-userbox-mod-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    height: 2.125rem;
+    padding: 0 0.5rem;
+    border: 1px solid var(--color-border-strong, rgba(127, 127, 127, 0.45));
+    border-radius: 6.1875rem;
+    background: var(--color-surface, #fff);
+    box-shadow: var(--shadow-raised, 0 0.0625rem 0.125rem rgba(8, 32, 60, 0.1), 0 0.0625rem 0.1875rem rgba(8, 32, 60, 0.06));
+    color: inherit;
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.kiwi-userbox-mod-select:focus-visible,
+.kiwi-userbox-mod-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring, 0 0 0 0.1875rem rgba(139, 203, 249, 0.6));
 }
 
 /* whois « Plus d'infos » — grouped picto rows (.prof-details grammar). 2-class selector

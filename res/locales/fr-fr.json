@@ -53,6 +53,7 @@
     "block_confirm": "{{nick}} ne pourra plus te déranger, et tu ne verras plus ses messages. C'est réversible quand tu veux.",
     "unblock_confirm": "{{nick}} peut de nouveau t'écrire, et tu reverras ses messages.",
     "undo": "Annuler",
+    "mod_title": "Modération",
     "protect_title": "Tu gardes le contrôle",
     "protect_intro": "Tu choisis qui peut t'écrire. Si {{nick}} te dérange, c'est à ta main :",
     "protect_hint": "Tu peux signaler <em>et</em> bloquer d'un coup.",

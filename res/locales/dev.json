@@ -52,6 +52,7 @@
     "block_confirm": "{{nick}} can't reach you anymore, and you won't see their messages. You can undo this whenever you want.",
     "unblock_confirm": "{{nick}} can message you again, and you'll see their messages.",
     "undo": "Undo",
+    "mod_title": "Moderation",
     "protect_title": "You're in control",
     "protect_intro": "You choose who can message you. If {{nick}} bothers you, it's your call:",
     "protect_hint": "You can report <em>and</em> block in one go.",
