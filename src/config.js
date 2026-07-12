@@ -101,8 +101,13 @@ const defaultConfig = {
     // Restore last ASL from state persistence
     welcomeUsesLocalStorage: true,
 
-    // Abuse report channel
+    // Abuse report channel (fallback)
     reportChannel: '#abuse',
+
+    // Moderation bot nick. When set, reports are sent as a private message to this bot
+    // while it is online, and fall back to reportChannel when it is offline.
+    // Empty → reports go straight to the channel (historical behaviour).
+    reportBot: '',
 
     // Max lines attached to an abuse report. Also caps the time window below, and is
     // the plain line count used when a report has no message to anchor on.

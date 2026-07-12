@@ -440,6 +440,32 @@ export default {
                 .filter(Boolean)
                 .join('\r\n');
         },
+        // Where to send the report: a private message to the moderation bot when it is
+        // online, otherwise the fallback channel. A WHOIS would notify the target; WHO is
+        // silent and its callback returns an empty user list when the nick is offline. A
+        // timeout guarantees the report still goes out (channel fallback) if WHO stalls.
+        resolveReportTarget: function resolveReportTarget(network) {
+            let channel = config.getSetting('reportChannel');
+            let bot = config.getSetting('reportBot');
+            if (!bot) {
+                return Promise.resolve(channel);
+            }
+            return new Promise((resolve) => {
+                let settled = false;
+                let finish = (target) => {
+                    if (settled) {
+                        return;
+                    }
+                    settled = true;
+                    clearTimeout(timer);
+                    resolve(target);
+                };
+                let timer = setTimeout(() => finish(channel), 4000);
+                network.ircClient.who(bot, (event) => {
+                    finish(event.users && event.users.length ? bot : channel);
+                });
+            });
+        },
         submitReportForm: async function submitReportForm() {
             // capture the gesture's target now: this.target may be repointed by
             // another protect event while the log upload is in flight
@@ -451,7 +477,6 @@ export default {
             this.report_sending = true;
             let nickname = reportTarget.user.nick;
             let network = reportTarget.network;
-            let target = this.$state.getSetting('settings.plugin-asl.reportChannel');
             let buffer = reportTarget.buffer;
             // guard against a missing buffer: throwing here, before the try below,
             // would leave report_sending stuck and disable the send button
@@ -518,6 +543,8 @@ export default {
                 if (logUrl) {
                     parts.push('📎 ' + logUrl);
                 }
+                // PM to the moderation bot when online, otherwise fall back to the channel
+                const target = await this.resolveReportTarget(network);
                 network.ircClient.say(target, parts.join(' · '));
 
                 this.report_user_display = false;
