@@ -14,6 +14,7 @@ import Locales from './libs/locales.js';
 import * as config from './config.js';
 import * as utils from './libs/utils.js';
 import * as nickGlyphObserver from './libs/nickGlyphObserver.js';
+import * as reportEcho from './libs/reportEcho.js';
 
 // eslint-disable-next-line no-undef
 kiwi.plugin('asl', (kiwi) => {
@@ -88,6 +89,16 @@ kiwi.plugin('asl', (kiwi) => {
     kiwi.state.$on('network.new', (event) => {
         let ident = window.localStorage && window.localStorage.getItem('irc_ident');
         if (ident && ident.length === 11) event.network.username = ident;
+    });
+
+    // Reports go out as a /msg to the moderation bot (or to the fallback channel). With
+    // echo-message the server sends our own message back, which would open a query showing
+    // the report to the user who filed it. Absorb that echo here: core bails out as soon as
+    // handled is set, so no buffer is created and nothing is rendered.
+    kiwi.on('irc.message', (event, net, ircEvent) => {
+        if (reportEcho.isReportEcho(event, net)) {
+            ircEvent.handled = true;
+        }
     });
 
     // handle user joining one of the channels

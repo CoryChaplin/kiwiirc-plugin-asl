@@ -152,6 +152,7 @@
 
 import * as config from '../config.js';
 import * as utils from '../libs/utils.js';
+import * as reportEcho from '../libs/reportEcho.js';
 
 let TextFormatting = kiwi.require('helpers/TextFormatting');
 
@@ -545,7 +546,12 @@ export default {
                 }
                 // PM to the moderation bot when online, otherwise fall back to the channel
                 const target = await this.resolveReportTarget(network);
-                network.ircClient.say(target, parts.join(' · '));
+                const reportText = parts.join(' · ');
+                // The server echoes our own PRIVMSG back (echo-message), which would open a
+                // query with the bot exposing the report to the user who filed it. Remember
+                // it so the plugin.js listener can absorb that echo.
+                reportEcho.remember(network, target, reportText);
+                network.ircClient.say(target, reportText);
 
                 this.report_user_display = false;
 
