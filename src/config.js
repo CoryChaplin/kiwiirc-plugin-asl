@@ -110,6 +110,11 @@ const defaultConfig = {
     // Moderation bot nick. When set, reports are sent as a private message to this bot
     // while it is online, and fall back to reportChannel when it is offline.
     // Empty → reports go straight to the channel (historical behaviour).
+    //
+    // Careful: EVERYTHING we send to this nick is hidden from the sender (see
+    // libs/reportEcho.js) so a report can't be read back by the user who filed it. Point
+    // this at a bot, never at a real user — a query with that person would show their
+    // replies but silently swallow ours.
     reportBot: '',
 
     // How long the Report button stays disabled for a nick after a report was sent, so a
