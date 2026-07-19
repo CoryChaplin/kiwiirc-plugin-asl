@@ -50,7 +50,7 @@
     "unblock_toast": "{{nick}} can message you again.",
     "report_toast": "Sent — we're on it.",
     "report_cooldown_toast": "You've already reported {{nick}} — moderation is on it.",
-    "report_cooldown_hint": "Already reported — you can report again in {{minutes}} min.",
+    "report_cooldown_hint": "Already reported — you can report again in a few minutes.",
     "block_confirm": "{{nick}} can't reach you anymore, and you won't see their messages. You can undo this whenever you want.",
     "unblock_confirm": "{{nick}} can message you again, and you'll see their messages.",
     "undo": "Undo",

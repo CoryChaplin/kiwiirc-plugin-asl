@@ -34,16 +34,14 @@ export default {
             return reportCooldown.isActive(this.network, this.message.nick);
         },
         cooldownHint() {
-            return TextFormatting.t('plugin-asl:report_cooldown_hint', {
-                minutes: reportCooldown.minutesLeft(this.network, this.message.nick),
-            });
+            return TextFormatting.t('plugin-asl:report_cooldown_hint');
         },
     },
     methods: {
+        // The click still goes through while on cooldown: the host answers with the
+        // "already reported" toast instead of opening the form, which beats a dead link
+        // (and is the only feedback available on touch, where there is no tooltip).
         onClick(e) {
-            if (this.onCooldown) {
-                return;
-            }
             this.$state.$emit('asl.protect.report', {
                 network: this.network,
                 buffer: this.buffer,

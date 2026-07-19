@@ -11,8 +11,15 @@ const store = kiwi.Vue.observable({ until: {} });
 // key => timeout id, so an expiring entry drops out of the reactive store
 const timers = {};
 
-function entryKey(networkid, nick) {
-    return networkid + ' ' + String(nick || '').toLowerCase();
+// Fold the nick the way the network compares nicks (rfc1459 folds []\ onto {}|), so
+// Foo[x] and foo{x} share one entry instead of two. Same rule as client.caseCompare,
+// which the rest of the plugin uses; plain lowercase if the client isn't reachable.
+function entryKey(network, nick) {
+    let client = network.ircClient;
+    let folded = client && client.caseLower ?
+        client.caseLower(String(nick)) :
+        String(nick).toLowerCase();
+    return network.id + ' ' + folded;
 }
 
 /**
@@ -25,7 +32,7 @@ export function start(network, nick) {
         return;
     }
 
-    let key = entryKey(network.id, nick);
+    let key = entryKey(network, nick);
     kiwi.Vue.set(store.until, key, Date.now() + seconds * 1000);
     if (timers[key]) {
         clearTimeout(timers[key]);
@@ -40,19 +47,6 @@ export function isActive(network, nick) {
     if (!network || !nick) {
         return false;
     }
-    let expiry = store.until[entryKey(network.id, nick)];
+    let expiry = store.until[entryKey(network, nick)];
     return !!expiry && expiry > Date.now();
-}
-
-// Whole minutes left, at least 1 while the cooldown is running. For the wording of
-// the hint shown when the button is disabled.
-export function minutesLeft(network, nick) {
-    if (!network || !nick) {
-        return 0;
-    }
-    let expiry = store.until[entryKey(network.id, nick)];
-    if (!expiry) {
-        return 0;
-    }
-    return Math.max(1, Math.ceil((expiry - Date.now()) / 60000));
 }

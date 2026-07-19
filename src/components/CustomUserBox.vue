@@ -255,11 +255,15 @@
                 <!-- report only in a private chat: in a channel there's no specific
                      message to attach and no conversation to report — the per-message
                      bar handles reporting a channel message instead -->
+                <!-- on cooldown the button reads as inert but stays clickable: the host
+                     answers with the "already reported" toast, the only feedback that
+                     works on touch (no tooltip, and a [disabled] button eats the click) -->
                 <button
                     v-if="buffer.isQuery()"
                     type="button"
                     class="kiwi-userbox-protect-btn is-report"
-                    :disabled="reportOnCooldown"
+                    :class="{ 'is-cooldown': reportOnCooldown }"
+                    :aria-disabled="reportOnCooldown ? 'true' : 'false'"
                     :title="reportOnCooldown ? reportCooldownHint : null"
                     @click="toggleReportUser"
                 >
@@ -312,9 +316,7 @@ export default {
             return reportCooldown.isActive(this.network, this.user.nick);
         },
         reportCooldownHint() {
-            return TextFormatting.t('plugin-asl:report_cooldown_hint', {
-                minutes: reportCooldown.minutesLeft(this.network, this.user.nick),
-            });
+            return TextFormatting.t('plugin-asl:report_cooldown_hint');
         },
         // A/S/L layout: true = one line (pictos separated by ·), false = one row per fact.
         singleLine() {
@@ -1166,7 +1168,7 @@ export default {
 }
 
 /* report cooldown: the button stays in place, visibly inert */
-.kiwi-userbox-protect-btn[disabled] {
+.kiwi-userbox-protect-btn.is-cooldown {
     opacity: 0.45;
     cursor: default;
     box-shadow: none;
