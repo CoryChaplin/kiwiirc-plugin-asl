@@ -50,6 +50,8 @@
     "block_toast": "C'est fait, {{nick}} ne te dérangera plus.",
     "unblock_toast": "{{nick}} peut de nouveau t'écrire.",
     "report_toast": "C'est envoyé, on s'en occupe.",
+    "report_cooldown_toast": "Tu as déjà signalé {{nick}} — la modération s'en occupe.",
+    "report_cooldown_hint": "Déjà signalé — tu pourras signaler à nouveau dans {{minutes}} min.",
     "block_confirm": "{{nick}} ne pourra plus te déranger, et tu ne verras plus ses messages. C'est réversible quand tu veux.",
     "unblock_confirm": "{{nick}} peut de nouveau t'écrire, et tu reverras ses messages.",
     "undo": "Annuler",

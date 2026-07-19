@@ -112,6 +112,11 @@ const defaultConfig = {
     // Empty → reports go straight to the channel (historical behaviour).
     reportBot: '',
 
+    // How long the Report button stays disabled for a nick after a report was sent, so a
+    // user can't file the same report over and over while moderation is looking at it.
+    // Session-only (a reload clears it). 0 → no cooldown.
+    reportCooldownSeconds: 600,
+
     // Max lines attached to an abuse report. Also caps the time window below, and is
     // the plain line count used when a report has no message to anchor on.
     reportLogLines: 20,

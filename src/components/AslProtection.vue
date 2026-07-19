@@ -153,6 +153,7 @@
 import * as config from '../config.js';
 import * as utils from '../libs/utils.js';
 import * as reportEcho from '../libs/reportEcho.js';
+import * as reportCooldown from '../libs/reportCooldown.js';
 
 let TextFormatting = kiwi.require('helpers/TextFormatting');
 
@@ -249,6 +250,18 @@ export default {
         // ── bus handlers ──
         onReportRequest: function onReportRequest(payload) {
             // payload: { network, buffer, user, trigger? }
+            // A report on this nick just went out: don't reopen the form. The buttons are
+            // already disabled, this covers every other way in (keyboard, stale UI).
+            if (reportCooldown.isActive(payload.network, payload.user.nick)) {
+                this.showToast(
+                    TextFormatting.t('plugin-asl:report_cooldown_toast', {
+                        nick: payload.user.nick,
+                    }),
+                    'fa-flag',
+                    null
+                );
+                return;
+            }
             this.target = payload;
             this.report_reasons = '';
             this.report_block_too = true;
@@ -552,6 +565,10 @@ export default {
                 // it so the plugin.js listener can absorb that echo.
                 reportEcho.remember(network, target, reportText);
                 network.ircClient.say(target, reportText);
+
+                // hold the Report button on this nick for a while: moderation is now
+                // looking at it, re-sending the same report only adds noise
+                reportCooldown.start(network, nickname);
 
                 this.report_user_display = false;
 

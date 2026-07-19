@@ -259,6 +259,8 @@
                     v-if="buffer.isQuery()"
                     type="button"
                     class="kiwi-userbox-protect-btn is-report"
+                    :disabled="reportOnCooldown"
+                    :title="reportOnCooldown ? reportCooldownHint : null"
                     @click="toggleReportUser"
                 >
                     <i class="fa fa-flag" aria-hidden="true" />
@@ -281,6 +283,7 @@
 import * as ipRegex from 'ip-regex';
 import * as config from '../config.js';
 import * as utils from '../libs/utils.js';
+import * as reportCooldown from '../libs/reportCooldown.js';
 
 let TextFormatting = kiwi.require('helpers/TextFormatting');
 let IrcdDiffs = kiwi.require('helpers/IrcdDiffs');
@@ -303,6 +306,16 @@ export default {
         };
     },
     computed: {
+        // A report on this nick just went out — hold the button (reactive: the shared
+        // store drops the entry when the cooldown expires)
+        reportOnCooldown() {
+            return reportCooldown.isActive(this.network, this.user.nick);
+        },
+        reportCooldownHint() {
+            return TextFormatting.t('plugin-asl:report_cooldown_hint', {
+                minutes: reportCooldown.minutesLeft(this.network, this.user.nick),
+            });
+        },
         // A/S/L layout: true = one line (pictos separated by ·), false = one row per fact.
         singleLine() {
             return config.getSetting('singleLineUserbox');
@@ -1150,6 +1163,13 @@ export default {
 
 .kiwi-userbox-protect-btn.is-on {
     background: rgba(127, 127, 127, 0.18);
+}
+
+/* report cooldown: the button stays in place, visibly inert */
+.kiwi-userbox-protect-btn[disabled] {
+    opacity: 0.45;
+    cursor: default;
+    box-shadow: none;
 }
 
 .kiwi-userbox-protect-hint {
