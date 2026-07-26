@@ -578,6 +578,12 @@ export default {
                 .filter((c) => c.source === 'manual' || c.source === 'stored')
                 .map((c) => c.name);
         },
+        // Everything the user picked himself, tag cloud included.
+        chosenChannelNames() {
+            return this.selectedChannelEntries
+                .filter((c) => c.source !== 'auto')
+                .map((c) => c.name);
+        },
         maxChannels() {
             return (this.formConfig && this.formConfig.maxChannels) || 8;
         },
@@ -993,7 +999,7 @@ export default {
                 this.geoCountry || '',
                 position,
                 this.selectedTopics.slice().sort().join(','),
-                this.manualChannelNames.slice().sort().join(','),
+                this.chosenChannelNames.slice().sort().join(','),
             ].join('|');
             if (key === this.previousSuggestionKey) return;
             this.previousSuggestionKey = key;
@@ -1006,6 +1012,7 @@ export default {
                     position,
                     topics: this.selectedTopics,
                     manualChannels: this.manualChannelNames,
+                    chosenChannels: this.chosenChannelNames,
                 });
                 this.applyRecommendations(data);
             } catch (err) {

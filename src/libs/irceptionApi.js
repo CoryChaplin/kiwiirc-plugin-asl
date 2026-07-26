@@ -63,7 +63,8 @@ export async function loadGeoIP(options = {}) {
 /**
  * Build the query string for /recommend/json.
  * `state` mirrors the irception form fields:
- *   { age, gender, location, country, position, topics, manualChannels }
+ *   { age, gender, location, country, position, topics, manualChannels,
+ *     chosenChannels }
  */
 export function buildRecommendParams(state) {
     let params = {
@@ -79,6 +80,9 @@ export function buildRecommendParams(state) {
     }
     if (state.manualChannels && state.manualChannels.length) {
         params.manual_channels = state.manualChannels.join(',');
+    }
+    if (state.chosenChannels && state.chosenChannels.length) {
+        params.chosen_channels = state.chosenChannels.join(',');
     }
     return params;
 }
