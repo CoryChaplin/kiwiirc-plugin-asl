@@ -652,6 +652,8 @@ export default {
         },
         selectedChannelEntries() {
             this.applyRules();
+            // Manual channels are part of the recommend key (autoChannelsSuppressAt).
+            this.scheduleRecommend();
         },
     },
     created: function created() {
@@ -991,6 +993,7 @@ export default {
                 this.geoCountry || '',
                 position,
                 this.selectedTopics.slice().sort().join(','),
+                this.manualChannelNames.slice().sort().join(','),
             ].join('|');
             if (key === this.previousSuggestionKey) return;
             this.previousSuggestionKey = key;
