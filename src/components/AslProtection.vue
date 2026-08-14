@@ -73,7 +73,7 @@
                     </label>
                     <div class="kiwi-asl-note">
                         <i class="fa fa-paperclip" aria-hidden="true" />
-                        {{ t('plugin-asl:report_log_note') }}
+                        {{ logNote }}
                     </div>
                     <div class="kiwi-asl-modal-foot">
                         <button type="button" class="kiwi-asl-btn is-cancel" @click="closeReport">
@@ -183,6 +183,14 @@ export default {
     computed: {
         targetNick() {
             return this.target && this.target.user ? this.target.user.nick : '';
+        },
+        // the form must promise what will actually be attached, which differs for a
+        // notice (this person's own messages, not the conversation around them)
+        logNote() {
+            let key = this.target && this.usesSenderLog(this.target) ?
+                'report_log_note_sender' :
+                'report_log_note';
+            return TextFormatting.t('plugin-asl:' + key);
         },
         reportReasons: function reportReasons() {
             return [
@@ -376,6 +384,74 @@ export default {
             }
         },
         // ── report ──
+        // A notice never belongs to the conversation it was dropped into: core routes a
+        // private notice to whatever buffer happens to be active, so the lines around it
+        // are unrelated third-party talk that has no business going to moderation. Those
+        // reports attach the sender's own messages instead.
+        usesSenderLog: function usesSenderLog(target) {
+            return !!(target && target.message && target.message.type === 'notice');
+        },
+        selectReportMessages: function selectReportMessages(target) {
+            return this.usesSenderLog(target) ?
+                this.selectSenderMessages(target) :
+                this.selectLogMessages(target);
+        },
+        // Every line this person sent us: their notices — wherever core happened to drop
+        // each one — and their side of a private conversation, gathered across ALL the
+        // network's buffers, since successive notices land in different buffers depending
+        // on what was active at the time. Only messages they authored are collected, so a
+        // report can never leak a third party's conversation.
+        selectSenderMessages: function selectSenderMessages(target) {
+            let maxLines = config.getSetting('reportLogLines');
+            if (maxLines <= 0) {
+                // 0 disables the log; return early so slice(-0) can't return everything
+                return [];
+            }
+            let network = target.network;
+            let nick = target.user.nick;
+            let reportedId = target.message ? target.message.id : null;
+            let seen = Object.create(null);
+            let picked = [];
+            network.buffers.forEach((buffer) => {
+                let isQuery = !(buffer.isChannel && buffer.isChannel());
+                (buffer.messagesObj.messages || []).forEach((m) => {
+                    if (seen[m.id] || !utils.sameName(network, m.nick, nick)) {
+                        return;
+                    }
+                    // their notices, their side of a private chat, and the reported line
+                    let keep = m.type === 'notice' ||
+                        (isQuery && (m.type === 'privmsg' || m.type === 'action')) ||
+                        m.id === reportedId;
+                    if (!keep) {
+                        return;
+                    }
+                    seen[m.id] = true;
+                    picked.push(m);
+                });
+            });
+            // buffers are walked one after another: rebuild the real chronology, falling
+            // back to creation order for lines that share a timestamp
+            picked.sort((a, b) => ((a.server_time || a.time) - (b.server_time || b.time)) ||
+                (a.instance_num - b.instance_num));
+            // No time window here (unlike selectLogMessages): notices can be hours apart
+            // and that spacing is exactly the pattern moderators are looking for.
+            return this.capAround(picked, picked.findIndex((m) => m.id === reportedId), maxLines);
+        },
+        // Keep at most maxLines, centred on the reported line so its context survives on
+        // both sides; the last maxLines when there is no line to centre on.
+        capAround: function capAround(msgs, idx, maxLines) {
+            if (msgs.length <= maxLines) {
+                return msgs;
+            }
+            if (idx === -1) {
+                return msgs.slice(-maxLines);
+            }
+            let start = Math.min(
+                Math.max(0, idx - Math.floor(maxLines / 2)),
+                msgs.length - maxLines
+            );
+            return msgs.slice(start, start + maxLines);
+        },
         // Picks the messages attached to a report. When the report points at a
         // message, the window is centred on it so its context survives the channel
         // scrolling on; otherwise it falls back to the last N lines.
@@ -417,15 +493,8 @@ export default {
             if (idx - start < minBefore) {
                 start = Math.max(0, idx - minBefore);
             }
-            let msgs = all.slice(start, end + 1);
             // cap: never exceed maxLines, keeping the reported message centred
-            if (msgs.length > maxLines) {
-                let rel = idx - start;
-                let capStart = Math.max(0, rel - Math.floor(maxLines / 2));
-                capStart = Math.min(capStart, msgs.length - maxLines);
-                msgs = msgs.slice(capStart, capStart + maxLines);
-            }
-            return msgs;
+            return this.capAround(all.slice(start, end + 1), idx - start, maxLines);
         },
         // HH:MM:SS of a message, from m.time so the notice timestamp matches the
         // reported line's timestamp in the attached log (moderators cross-reference)
@@ -437,12 +506,20 @@ export default {
         buildConversationLog: function buildConversationLog(target) {
             let reportedId = target.message ? target.message.id : null;
             let flag = '>>> [' + TextFormatting.t('plugin-asl:report_log_flag') + '] ';
-            return this.selectLogMessages(target)
+            return this.selectReportMessages(target)
                 .filter((m) => m.message && m.message.trim().length)
                 .map((m) => {
-                    // only privmsg needs the <nick> prefix; every other type is
-                    // already self-describing in m.message
-                    let text = m.type === 'privmsg' ? `<${m.nick}> ${m.message}` : m.message;
+                    let text;
+                    if (m.type === 'privmsg') {
+                        text = `<${m.nick}> ${m.message}`;
+                    } else if (m.nick && m.type === 'notice') {
+                        // a rendered notice keeps its '[NOTICE]' prefix but has lost its
+                        // sender: put it back, irssi style
+                        text = `-${m.nick}- ${m.message}`;
+                    } else {
+                        // every other type is already self-describing in m.message
+                        text = m.message;
+                    }
                     if (!text.length) return null;
                     let line = `[${this.formatLogTime(m)}] ${text}`;
                     // flag the reported line so moderators spot it in the context
@@ -492,10 +569,16 @@ export default {
             let nickname = reportTarget.user.nick;
             let network = reportTarget.network;
             let buffer = reportTarget.buffer;
+            let reported = reportTarget.message;
+            // A notice is never reported as room traffic, even when it landed in a
+            // channel: core drops a private notice into whatever buffer was active, so
+            // that buffer says nothing about where this happened. It reads as what it is
+            // — something this person sent straight to the user.
+            let isNoticeReport = !!(reported && reported.type === 'notice');
             // guard against a missing buffer: throwing here, before the try below,
             // would leave report_sending stuck and disable the send button
-            let isChannelReport = !!(buffer && buffer.isChannel && buffer.isChannel());
-            let reported = reportTarget.message;
+            let isChannelReport = !isNoticeReport &&
+                !!(buffer && buffer.isChannel && buffer.isChannel());
 
             try {
                 let logUrl = null;
@@ -521,10 +604,13 @@ export default {
                 }
 
                 // One line for the moderation channel, alongside its other traffic.
-                // 🚩 marks it as a report; 👥 a channel / ✉️ a private message. The
-                // reported nick is bold red and the reason bold purple (IRC codes) so
-                // both jump out; a channel report also quotes the reported message (💬)
-                // so moderators can triage without opening the attached log.
+                // 🚩 marks it as a report, the next glyph says WHERE (👥 a channel /
+                // ✉️ straight at the user) and the quote glyph says WHAT was said
+                // (💬 a message / 📢 a notice) — two independent axes, so a reported
+                // notice reads "🚩 ✉️ … 📢 «…»": out of nowhere, straight at the user.
+                // The reported nick is bold red and the reason bold purple (IRC codes) so
+                // both jump out, and the quote lets moderators triage without opening the
+                // attached log.
                 let redNick = '\x02\x0304@' + nickname + '\x0F';
                 let parts;
                 if (isChannelReport) {
@@ -539,15 +625,16 @@ export default {
                         quote = quote.substr(0, 79) + '…';
                     }
                     if (quote) {
-                        parts.push('💬 «' + quote + '»');
+                        parts.push((isNoticeReport ? '📢 «' : '💬 «') + quote + '»');
                     }
                 }
                 // reason in bold purple (IRC 06) to pair with the bold-red nick
                 parts.push('\x02\x0306' + this.report_reasons + '\x0F');
                 // without a specific message, the channels shared with this user are the
                 // main clue for moderators; a message-anchored report already gives the
-                // room and line, so it's the only case that leaves them out
-                if (!reported) {
+                // room and line, so it's the only case that leaves them out — except for
+                // a notice, which names no room at all
+                if (!reported || isNoticeReport) {
                     let commonChannels = utils.commonChannels(network.id, nickname);
                     if (commonChannels.length) {
                         parts.push(TextFormatting.t('plugin-asl:report_common_label') +
@@ -577,6 +664,9 @@ export default {
                 let confirmKey;
                 if (!logUrl) {
                     confirmKey = 'report_confirm';
+                } else if (isNoticeReport) {
+                    // the attached log is this person's own messages, not a room's thread
+                    confirmKey = 'report_confirm_with_log_notice';
                 } else if (reported) {
                     confirmKey = 'report_confirm_with_log';
                 } else if (isChannelReport) {

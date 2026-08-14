@@ -1,3 +1,10 @@
+/* global kiwi:true */
+
+import * as config from '../config.js';
+import * as utils from './utils.js';
+
+let TextFormatting = kiwi.require('helpers/TextFormatting');
+
 // Shared logic for the per-message protection actions (Report / Block / Kickban)
 // injected into the native MessageInfo bar. Resolves the target from the message
 // (honouring IRC casemapping) and decides whether an action applies, so the three
@@ -43,13 +50,47 @@ export default {
             return (this.message.type === 'privmsg' || this.message.type === 'action') &&
                 !!this.message.nick;
         },
+        // A notice sent by a real user. Server notices carry no nick, and the plugin's own
+        // confirmations use the system_message label as their nick — a value with a space
+        // in it, which no IRC nick can ever be.
+        isUserNotice() {
+            return this.message.type === 'notice' &&
+                !!this.message.nick &&
+                this.message.nick !== TextFormatting.t('plugin-asl:system_message');
+        },
+        // The sender's host: from the tag plugin.js stashes on reception, which is the only
+        // source for someone we share no channel with, falling back to the user object.
+        targetHost() {
+            let tagged = this.message.tags && this.message.tags['asl/host'];
+            return tagged || (this.targetUser && this.targetUser.host) || '';
+        },
+        // Services talk to everybody in notices: reporting them helps nobody, and blocking
+        // one would silently swallow the user's own login notices. Same for the moderation
+        // bot, whose answers come back as notices in whatever buffer is active.
+        isExemptSender() {
+            let bot = config.getSetting('reportBot');
+            if (bot && utils.sameName(this.network, bot, this.message.nick)) {
+                return true;
+            }
+            return utils.isExemptHost(this.targetHost);
+        },
         isChannel() {
             return !!(this.buffer.isChannel && this.buffer.isChannel());
         },
-        // per-message Report/Block only make sense in a channel: in a query the right
-        // sidebar already carries these actions and the context doesn't need per-line ones
         canProtect() {
-            return this.isUserMessage && this.isChannel && !this.isSelf;
+            if (this.isSelf || this.isExemptSender) {
+                return false;
+            }
+            // Notices are the exception to the channel rule below: core drops a private
+            // notice into whatever buffer happens to be active (a channel, someone else's
+            // query, or the server tab), where the right sidebar points at another person
+            // — or at nobody. The per-message action is then the only way in.
+            if (this.isUserNotice) {
+                return true;
+            }
+            // otherwise per-message Report/Block only make sense in a channel: in a query
+            // the right sidebar already carries these actions
+            return this.isUserMessage && this.isChannel;
         },
     },
     methods: {

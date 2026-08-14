@@ -117,6 +117,15 @@ const defaultConfig = {
     // replies but silently swallow ours.
     reportBot: '',
 
+    // Hosts of the official services (and of the bots behind them). Senders on these
+    // hosts are never reportable nor blockable: a Report button on NickServ's lines is
+    // noise, and blocking a service would silently swallow the user's own login notices.
+    // A nick list would be unworkable here — BotServ alone runs ~150 of them, and a new
+    // bot can be added any day; the host is what actually identifies them.
+    // Matched on a label boundary (see utils.isExemptHost): the exact host or a
+    // subdomain of it, so a user vhost under the same domain stays reportable.
+    reportExemptHosts: ['services.europnet.org'],
+
     // How long the Report button stays disabled for a nick after a report was sent, so a
     // user can't file the same report over and over while moderation is looking at it.
     // Session-only (a reload clears it). 0 → no cooldown.

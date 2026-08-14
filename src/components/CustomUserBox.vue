@@ -234,7 +234,9 @@
                 </button>
             </div>
         </div>
-        <div v-if="!isSelf" class="kiwi-userbox-protect">
+        <!-- no protection actions against the services: reporting them helps nobody, and
+             blocking one would swallow the user's own login notices -->
+        <div v-if="!isSelf && !isExemptSender" class="kiwi-userbox-protect">
             <div class="kiwi-userbox-protect-head">
                 <i class="fa fa-shield" aria-hidden="true" />
                 {{ $t('plugin-asl:protect_title') }}
@@ -317,6 +319,15 @@ export default {
         },
         reportCooldownHint() {
             return TextFormatting.t('plugin-asl:report_cooldown_hint');
+        },
+        // Official services (and the bots behind them) are never reported nor blocked —
+        // same rule as the per-message actions, see libs/messageActionTarget.js
+        isExemptSender() {
+            let bot = config.getSetting('reportBot');
+            if (bot && utils.sameName(this.network, bot, this.user.nick)) {
+                return true;
+            }
+            return utils.isExemptHost(this.user.host);
         },
         // A/S/L layout: true = one line (pictos separated by ·), false = one row per fact.
         singleLine() {

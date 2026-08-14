@@ -98,6 +98,20 @@ kiwi.plugin('asl', (kiwi) => {
     kiwi.on('irc.message', (event, net, ircEvent) => {
         if (reportEcho.isReportEcho(event, net)) {
             ircEvent.handled = true;
+            return;
+        }
+        // Core drops ident/hostname when it turns the event into a Message, and a sender
+        // we share no channel with (a service, a drive-by notice) has no user object to
+        // read the host from either — so the protection actions couldn't tell a service
+        // apart from a user. tags is the only field the Message keeps by reference from
+        // this event, so stash the host there: it then lives exactly as long as the line
+        // it describes, with no cache to bound or evict. The key is always set or cleared,
+        // never left alone, so an incoming tag of the same name can't be read as ours.
+        event.tags = event.tags || {};
+        if (event.hostname) {
+            event.tags['asl/host'] = event.hostname;
+        } else {
+            delete event.tags['asl/host'];
         }
     });
 

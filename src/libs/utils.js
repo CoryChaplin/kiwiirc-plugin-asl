@@ -81,6 +81,35 @@ export function getColour(asl) {
     return sexes[sex] ? sexes[sex].colour : fallbackColour;
 }
 
+// Compare two nicks the way the network does (casemapping), with the same safety
+// fallback the rest of the plugin uses when the client isn't reachable yet.
+export function sameName(network, a, b) {
+    if (!a || !b) {
+        return false;
+    }
+    let client = network && network.ircClient;
+    if (client && client.caseCompare) {
+        return client.caseCompare(a, b);
+    }
+    return String(a).toLowerCase() === String(b).toLowerCase();
+}
+
+// Is this host one of the official services' (see the reportExemptHosts setting)?
+// Matched on a label boundary — exact host, or a subdomain of a listed one — never a
+// substring: a user vhost like joe.users.europnet.org, or a lookalike host ending in
+// services.europnet.org.attacker.net, must stay reportable.
+export function isExemptHost(host) {
+    let lower = String(host || '').toLowerCase();
+    if (!lower) {
+        return false;
+    }
+    let exempt = kiwi.state.getSetting('settings.plugin-asl.reportExemptHosts') || [];
+    return exempt.some((entry) => {
+        let suffix = String(entry || '').toLowerCase();
+        return !!suffix && (lower === suffix || lower.endsWith('.' + suffix));
+    });
+}
+
 // channels shared with a user (the fiche lists them; a report attaches them)
 export function commonChannels(networkId, nick) {
     return kiwi.state.getBuffersWithUser(networkId, nick)
