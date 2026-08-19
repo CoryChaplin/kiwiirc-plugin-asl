@@ -3,35 +3,35 @@
         <div
             v-if="report_user_display"
             ref="ssOverlay"
-            class="kiwi-asl-overlay"
+            class="overlay open"
             @click.self="closeReport"
         >
             <div
                 ref="ssModal"
-                class="kiwi-asl-modal"
+                class="modal"
                 role="dialog"
                 aria-modal="true"
                 tabindex="-1"
                 :aria-label="t('plugin-asl:report_title', { nick: targetNick })"
             >
-                <div class="kiwi-asl-modal-head">
-                    <span class="kiwi-asl-modal-icon">
+                <div class="modal-head">
+                    <span class="modal-sh danger">
                         <i class="fa fa-flag" aria-hidden="true" />
                     </span>
-                    <span class="kiwi-asl-modal-title">
+                    <span class="modal-title">
                         {{ t('plugin-asl:report_title', { nick: targetNick }) }}
                     </span>
                     <button
                         type="button"
-                        class="kiwi-asl-modal-close"
+                        class="modal-x"
                         :aria-label="t('plugin-asl:report_close')"
                         @click="closeReport"
                     >
                         <i class="fa fa-times" aria-hidden="true" />
                     </button>
                 </div>
-                <div class="kiwi-asl-modal-body">
-                    <p class="kiwi-asl-modal-intro">{{ t('plugin-asl:report_modal_intro') }}</p>
+                <div class="modal-body">
+                    <p class="report-intro">{{ t('plugin-asl:report_modal_intro') }}</p>
                     <div
                         class="kiwi-asl-reasons"
                         role="radiogroup"
@@ -40,48 +40,48 @@
                         <label
                             v-for="reason in reportReasons"
                             :key="reason.key"
-                            class="kiwi-asl-reason"
-                            :class="{ 'is-sel': report_reasons === reason.label }"
+                            class="reason"
+                            :class="{ sel: report_reasons === reason.label }"
                         >
                             <input
                                 v-model="report_reasons"
                                 type="radio"
                                 name="kiwi-asl-report-reason"
-                                class="kiwi-asl-sr-input"
+                                class="sr-only"
                                 :value="reason.label"
                             >
-                            <span class="kiwi-asl-reason-radio" aria-hidden="true" />
+                            <span class="rk" aria-hidden="true" />
                             {{ reason.label }}
                         </label>
                     </div>
                     <label
-                        class="kiwi-asl-combine"
-                        :class="{ 'is-on': report_block_too }"
+                        class="rcombine"
+                        :class="{ on: report_block_too }"
                     >
                         <input
                             v-model="report_block_too"
                             type="checkbox"
-                            class="kiwi-asl-sr-input"
+                            class="sr-only"
                         >
-                        <span class="kiwi-asl-combine-box">
+                        <span class="rcombine-box">
                             <i class="fa fa-check" aria-hidden="true" />
                         </span>
-                        <span class="kiwi-asl-combine-text">
+                        <span class="rcombine-txt">
                             <b>{{ t('plugin-asl:report_block_too', { nick: targetNick }) }}</b>
                             <span>{{ t('plugin-asl:report_block_too_hint') }}</span>
                         </span>
                     </label>
-                    <div class="kiwi-asl-note">
+                    <div class="report-note">
                         <i class="fa fa-paperclip" aria-hidden="true" />
                         {{ logNote }}
                     </div>
-                    <div class="kiwi-asl-modal-foot">
-                        <button type="button" class="kiwi-asl-btn is-cancel" @click="closeReport">
+                    <div class="btns end">
+                        <button type="button" class="btn-ghost" @click="closeReport">
                             {{ t('plugin-asl:report_cancel') }}
                         </button>
                         <button
                             type="button"
-                            class="kiwi-asl-btn is-send"
+                            class="kiwi-asl-send btn-cta danger"
                             :disabled="!report_reasons || report_sending"
                             @click="submitReportForm"
                         >
@@ -99,17 +99,19 @@
                 </div>
             </div>
         </div>
-        <div v-if="toast_visible" class="kiwi-asl-toast">
-            <i class="kiwi-asl-toast-ic fa" :class="toast_icon" aria-hidden="true" />
-            <span class="kiwi-asl-toast-msg">{{ toast_message }}</span>
-            <button
-                v-if="toast_has_undo"
-                type="button"
-                class="kiwi-asl-toast-action"
-                @click="onToastUndo"
-            >
-                {{ t('plugin-asl:undo') }}
-            </button>
+        <div v-if="toast_visible" class="kiwi-asl-toast-host">
+            <div class="toast">
+                <i class="ic fa" :class="toast_icon" aria-hidden="true" />
+                <span class="msg">{{ toast_message }}</span>
+                <button
+                    v-if="toast_has_undo"
+                    type="button"
+                    class="act"
+                    @click="onToastUndo"
+                >
+                    {{ t('plugin-asl:undo') }}
+                </button>
+            </div>
         </div>
         <!-- kickban: anchored reason popover; the catcher blocks the list scroll and
              closes on an outside click while the popover is open -->
@@ -760,26 +762,6 @@ export default {
 </script>
 
 <style lang="less">
-/* Toast — transient confirmation of the 1-click block (with undo). */
-.kiwi-asl-toast {
-    position: fixed;
-    left: 50%;
-    bottom: 4.5rem;
-    transform: translateX(-50%);
-    z-index: 9990;
-    display: flex;
-    align-items: center;
-    gap: 0.6em;
-    width: max-content;
-    max-width: calc(100vw - 2rem);
-    padding: 0.55em 0.6em 0.55em 0.85em;
-    border: 1px solid var(--color-border, rgba(127, 127, 127, 0.3));
-    border-radius: 0.5em;
-    background: var(--color-surface, #fff);
-    color: var(--color-text-primary, #222);
-    box-shadow: 0 0.5em 1.5em rgba(0, 0, 0, 0.2);
-    animation: kiwi-asl-toast-in 0.2s ease-out;
-}
 
 @keyframes kiwi-asl-toast-in {
     from {
@@ -791,48 +773,6 @@ export default {
         opacity: 1;
         transform: translateX(-50%) translateY(0);
     }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .kiwi-asl-toast {
-        animation: none;
-    }
-}
-
-.kiwi-asl-toast-action {
-    padding: 0.2em 0.4em;
-    border: 0;
-    background: none;
-    color: var(--color-accent, inherit);
-    font: inherit;
-    font-weight: 800;
-    text-decoration: underline;
-    cursor: pointer;
-}
-
-/* Report modal — base styles (theme-agnostic; the EuropNet theme adds the brand look). */
-.kiwi-asl-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    background: var(--color-scrim, rgba(8, 24, 44, 0.55));
-    animation: kiwi-asl-overlay-fade 0.18s ease;
-}
-
-.kiwi-asl-modal {
-    width: 23.75rem;
-    max-width: 92vw;
-    max-height: 86vh;
-    overflow-y: auto;
-    background: var(--color-surface, #fff);
-    color: var(--color-text-primary, #222);
-    border-radius: 1rem;
-    box-shadow: 0 1.25rem 3.75rem rgba(0, 30, 60, 0.35);
-    animation: kiwi-asl-modal-pop 0.18s cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
 @keyframes kiwi-asl-modal-pop {
@@ -855,211 +795,6 @@ export default {
 @keyframes kiwi-asl-overlay-fade {
     from { opacity: 0; }
     to { opacity: 1; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .kiwi-asl-modal,
-    .kiwi-asl-overlay {
-        animation: none;
-    }
-}
-
-.kiwi-asl-modal-head {
-    position: sticky;
-    top: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
-    padding: 0.875rem 1rem;
-    background: inherit;
-    border-bottom: 1px solid var(--color-border, rgba(127, 127, 127, 0.2));
-}
-
-.kiwi-asl-modal-icon {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.875rem;
-    height: 1.875rem;
-    border-radius: 0.5625rem;
-    font-size: 0.875rem;
-    background: var(--color-danger, #c0392b);
-    color: var(--color-on-danger, #fff);
-}
-
-.kiwi-asl-modal-title {
-    flex: 1;
-    font-size: 0.9375rem;
-    font-weight: 800;
-}
-
-.kiwi-asl-modal-close {
-    flex-shrink: 0;
-    width: 1.875rem;
-    height: 1.875rem;
-    border: 0;
-    border-radius: 50%;
-    background: none;
-    color: inherit;
-    opacity: 0.6;
-    cursor: pointer;
-}
-
-.kiwi-asl-modal-close:hover {
-    opacity: 1;
-}
-
-.kiwi-asl-modal-body {
-    padding: 1rem;
-}
-
-.kiwi-asl-modal-intro {
-    margin: 0 0 0.75rem;
-    font-size: 0.8125rem;
-    line-height: 1.4;
-    color: var(--color-text-secondary, inherit);
-}
-
-/* the dialog is focused programmatically on open; no ring on the shell itself */
-.kiwi-asl-modal:focus {
-    outline: none;
-}
-
-/* native radio/checkbox drive a11y; visually hidden but kept focusable so
-   keyboard navigation and screen readers work. the styled spans show state. */
-.kiwi-asl-sr-input {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: 0;
-    opacity: 0;
-    pointer-events: none;
-}
-
-/* keyboard focus lands on the hidden input — surface it on the visible row.
-   theme-agnostic fallback; the EuropNet theme swaps in its brand --focus-ring. */
-.kiwi-asl-reason:focus-within,
-.kiwi-asl-combine:focus-within {
-    outline: 2px solid var(--color-accent, #2f6fb0);
-    outline-offset: 2px;
-}
-
-.kiwi-asl-reason {
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
-    margin-bottom: 0.3125rem;
-    padding: 0.4375rem 0.75rem;
-    border: 1px solid var(--color-border-strong, rgba(127, 127, 127, 0.4));
-    border-radius: 0.6875rem;
-    font-size: 0.8438rem;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.kiwi-asl-reason-radio {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.125rem;
-    height: 1.125rem;
-    border: 2px solid rgba(127, 127, 127, 0.5);
-    border-radius: 50%;
-}
-
-.kiwi-asl-reason.is-sel {
-    border-color: var(--color-accent, #555);
-    background: var(--color-bg-raised, rgba(127, 127, 127, 0.12));
-    color: var(--color-accent, inherit);
-    font-weight: 800;
-}
-
-.kiwi-asl-reason.is-sel .kiwi-asl-reason-radio {
-    border-color: var(--color-accent, #555);
-}
-
-.kiwi-asl-reason.is-sel .kiwi-asl-reason-radio::after {
-    content: '';
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 50%;
-    background: var(--color-accent, #555);
-}
-
-.kiwi-asl-combine {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.625rem;
-    margin: 1rem 0 0.5rem;
-    padding: 0.75rem 0.875rem;
-    border-radius: 0.875rem;
-    background: var(--color-bg-raised, rgba(127, 127, 127, 0.1));
-    cursor: pointer;
-}
-
-/* mirrors the DS checkbox atom .cbx (checked = accent-fill, readable in dark) */
-.kiwi-asl-combine-box {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.15rem;
-    height: 1.15rem;
-    margin-top: 0.0625rem;
-    border: 2px solid var(--color-border-strong, rgba(127, 127, 127, 0.5));
-    border-radius: 0.3rem;
-    font-size: 0.7rem;
-    color: var(--color-on-accent-fill, #fff);
-}
-
-.kiwi-asl-combine-box .fa {
-    opacity: 0;
-}
-
-.kiwi-asl-combine.is-on .kiwi-asl-combine-box {
-    background: var(--color-accent-fill, #2f6fb0);
-    border-color: var(--color-accent-fill, #2f6fb0);
-}
-
-.kiwi-asl-combine.is-on .kiwi-asl-combine-box .fa {
-    opacity: 1;
-}
-
-.kiwi-asl-combine-text {
-    font-size: 0.8125rem;
-    line-height: 1.35;
-}
-
-.kiwi-asl-combine-text b {
-    display: block;
-    font-weight: 800;
-}
-
-.kiwi-asl-combine-text span {
-    font-weight: 600;
-}
-
-.kiwi-asl-note {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.4375rem;
-    margin: 0.875rem 0 0;
-    font-size: 0.6875rem;
-    line-height: 1.4;
-    color: var(--color-text-muted, inherit);
-}
-
-.kiwi-asl-modal-foot {
-    position: sticky;
-    bottom: 0;
-    display: flex;
-    gap: 0.625rem;
-    margin: 1rem -1rem -1rem;
-    padding: 0.875rem 1rem 1rem;
-    border-top: 1px solid var(--color-border, rgba(127, 127, 127, 0.2));
-    background: var(--color-surface, #fff);
 }
 
 .kiwi-asl-btn {
@@ -1095,21 +830,6 @@ export default {
 .kiwi-asl-btn.is-send:disabled {
     opacity: 0.45;
     cursor: not-allowed;
-}
-
-@media (max-width: 560px) {
-    .kiwi-asl-overlay {
-        align-items: flex-end;
-        padding: 0;
-    }
-
-    .kiwi-asl-modal {
-        width: 100%;
-        max-width: 100%;
-        max-height: 90vh;
-        border-radius: 1em 1em 0 0;
-        animation: kiwi-asl-modal-sheet 0.2s ease-out;
-    }
 }
 
 /* Kickban reason popover — base (theme-agnostic). JS sets its top/left inline;
@@ -1159,4 +879,198 @@ export default {
     justify-content: flex-end;
     gap: 0.5rem;
 }
+
+/* Send button geometry: the footer layout is this screen's business, the skin comes
+   from the design system. Matches .btn-ghost so both footer buttons line up. */
+.kiwi-asl-send {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 2.375rem;
+    padding: 0 1.125rem;
+    border: 0;
+    border-radius: 6.1875rem;
+    font-family: inherit;
+    white-space: nowrap;
+}
+
+.kiwi-asl-send:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* Toast placement on this screen: clears the composer. The card itself is a
+   design-system object; only where it sits belongs here. */
+.kiwi-asl-toast-host {
+    position: fixed;
+    left: 50%;
+    bottom: 4.5rem;
+    transform: translateX(-50%);
+    z-index: 9990;
+    display: flex;
+    pointer-events: none;
+}
+
+.kiwi-asl-toast-host > * {
+    pointer-events: auto;
+}
+
+/* Functional floor for themes that do not ship the design-system objects: enough
+   for the dialog to be usable, never its appearance. An unlayered rule always wins
+   over a layered one, so the theme takes over untouched wherever it is active. */
+@layer asl-fallback {
+    /* Structure only: what the dialog needs to be usable when the active theme does
+       not ship the design-system objects. No colours beyond the surfaces that must be
+       opaque to stay legible, and no control drawing — the native inputs show through
+       on their own, since .sr-only is part of the same missing set. */
+    .overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 9989;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        background: rgba(8, 24, 44, 0.55);
+    }
+
+    .modal {
+        display: flex;
+        flex-direction: column;
+        width: 23.75rem;
+        max-width: 92vw;
+        max-height: 90vh;
+        overflow: auto;
+        border-radius: 1rem;
+        background: var(--brand-default-bg, #fff);
+        color: var(--brand-default-fg, #1f2937);
+    }
+
+    .modal-head {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        padding: 0.875rem 1rem;
+        border-bottom: 1px solid var(--comp-border, rgba(127, 127, 127, 0.3));
+    }
+
+    .modal-sh {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.875rem;
+        height: 1.875rem;
+    }
+
+    .modal-title {
+        flex: 1;
+        min-width: 0;
+        font-weight: 700;
+    }
+
+    .modal-x {
+        flex-shrink: 0;
+        width: 1.875rem;
+        height: 1.875rem;
+        border: 0;
+        background: none;
+        cursor: pointer;
+    }
+
+    .modal-body {
+        padding: 1rem;
+    }
+
+    /* Each of these is a flex row in the design system; without a display they collapse
+       into one inline run and the dialog loses its line breaks. */
+    .report-intro {
+        margin: 0 0 0.75rem;
+    }
+
+    .reason {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        margin-bottom: 0.3125rem;
+        padding: 0.4375rem 0.75rem;
+        border: 1px solid var(--comp-border, rgba(127, 127, 127, 0.3));
+        border-radius: 0.6875rem;
+        cursor: pointer;
+    }
+
+    .rcombine {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.625rem;
+        margin: 1rem 0 0.5rem;
+        cursor: pointer;
+    }
+
+    .rcombine-txt {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+    }
+
+    .report-note {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        margin: 0.5rem 0 0.9rem;
+    }
+
+    .btns {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.625rem;
+    }
+
+    .btns.end {
+        justify-content: flex-end;
+    }
+
+    .btn-ghost {
+        height: 2.375rem;
+        padding: 0 1.125rem;
+        border: 1px solid var(--comp-border, rgba(127, 127, 127, 0.3));
+        border-radius: 6.1875rem;
+        background: none;
+        color: inherit;
+        cursor: pointer;
+    }
+
+    /* The primary action must stay visible: without the design system this button has
+       geometry from the plugin but no fill of its own. */
+    .btn-cta {
+        background: var(--brand-primary, #1d4ed8);
+        color: var(--brand-default-bg, #fff);
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .btn-cta.danger {
+        background: var(--brand-error, #c0392b);
+        color: #fff;
+    }
+
+    .toast {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.55rem 0.8rem;
+        border-radius: 0.5rem;
+        background: var(--brand-default-bg, #fff);
+        color: var(--brand-default-fg, #1f2937);
+        box-shadow: 0 0.5em 1.5em rgba(0, 0, 0, 0.2);
+    }
+
+    .toast .msg {
+        flex: 1;
+    }
+}
+
 </style>
