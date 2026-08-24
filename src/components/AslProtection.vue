@@ -31,7 +31,7 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <p class="report-intro">{{ t('plugin-asl:report_modal_intro') }}</p>
+                    <p class="surface-intro">{{ t('plugin-asl:report_modal_intro') }}</p>
                     <div
                         class="kiwi-asl-reasons"
                         role="radiogroup"
@@ -40,8 +40,8 @@
                         <label
                             v-for="reason in reportReasons"
                             :key="reason.key"
-                            class="reason"
-                            :class="{ sel: report_reasons === reason.label }"
+                            class="opt-row pick boxed"
+                            :class="{ on: report_reasons === reason.label }"
                         >
                             <input
                                 v-model="report_reasons"
@@ -50,28 +50,27 @@
                                 class="sr-only"
                                 :value="reason.label"
                             >
-                            <span class="rk" aria-hidden="true" />
+                            <span class="rdo" aria-hidden="true" />
                             {{ reason.label }}
                         </label>
                     </div>
-                    <label
-                        class="rcombine"
-                        :class="{ on: report_block_too }"
-                    >
+                    <label class="opt-row check hero kiwi-asl-block-too">
                         <input
                             v-model="report_block_too"
                             type="checkbox"
                             class="sr-only"
                         >
-                        <span class="rcombine-box">
+                        <span class="cbx">
                             <i class="fa fa-check" aria-hidden="true" />
                         </span>
-                        <span class="rcombine-txt">
-                            <b>{{ t('plugin-asl:report_block_too', { nick: targetNick }) }}</b>
-                            <span>{{ t('plugin-asl:report_block_too_hint') }}</span>
+                        <span class="opt-label">
+                            {{ t('plugin-asl:report_block_too', { nick: targetNick }) }}
+                            <span class="opt-hint">
+                                {{ t('plugin-asl:report_block_too_hint') }}
+                            </span>
                         </span>
                     </label>
-                    <div class="report-note">
+                    <div class="inline-note bare kiwi-asl-log-note">
                         <i class="fa fa-paperclip" aria-hidden="true" />
                         {{ logNote }}
                     </div>
@@ -917,6 +916,16 @@ export default {
     pointer-events: auto;
 }
 
+/* Where the two design-system rows sit in this dialog. The rows themselves are
+   design-system objects; only their spacing belongs to this screen. */
+.kiwi-asl-block-too {
+    margin: 1rem 0 0.5rem;
+}
+
+.kiwi-asl-log-note {
+    margin: 0.5rem 0 0.9rem;
+}
+
 /* Functional floor for themes that do not ship the design-system objects: enough
    for the dialog to be usable, never its appearance. An unlayered rule always wins
    over a layered one, so the theme takes over untouched wherever it is active. */
@@ -984,42 +993,24 @@ export default {
         padding: 1rem;
     }
 
-    /* Each of these is a flex row in the design system; without a display they collapse
-       into one inline run and the dialog loses its line breaks. */
-    .report-intro {
-        margin: 0 0 0.75rem;
-    }
-
-    .reason {
+    /* The native radio and checkbox show through here, since .sr-only belongs to the
+       same missing set. What does break is the layout: a <label> is inline, so the
+       option rows collapse into one run of prose and the hint joins its label. Fixed
+       on the very properties the theme uses, so an active theme still wins the cascade. */
+    .opt-row {
         display: flex;
         align-items: center;
         gap: 0.625rem;
-        margin-bottom: 0.3125rem;
-        padding: 0.4375rem 0.75rem;
-        border: 1px solid var(--comp-border, rgba(127, 127, 127, 0.3));
-        border-radius: 0.6875rem;
-        cursor: pointer;
     }
 
-    .rcombine {
-        display: flex;
-        align-items: flex-start;
-        gap: 0.625rem;
-        margin: 1rem 0 0.5rem;
-        cursor: pointer;
+    .opt-hint {
+        display: block;
     }
 
-    .rcombine-txt {
-        display: flex;
-        flex-direction: column;
-        gap: 0.15rem;
-    }
-
-    .report-note {
-        display: flex;
-        align-items: flex-start;
-        gap: 0.5rem;
-        margin: 0.5rem 0 0.9rem;
+    /* The native checkbox already carries the state here, so the glyph stays hidden.
+       The theme, unlayered, still wins and lights it when it is active. */
+    .cbx i {
+        opacity: 0;
     }
 
     .btns {
