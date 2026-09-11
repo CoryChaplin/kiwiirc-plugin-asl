@@ -131,9 +131,22 @@
                     v-model="kickban_reason"
                     type="text"
                     class="kiwi-asl-kb-input"
-                    :placeholder="t('kick_reason')"
+                    :placeholder="t('plugin-asl:mod_reason_placeholder')"
+                    :aria-label="t('plugin-asl:mod_reason_placeholder')"
                     @keydown.enter="confirmKickban"
                 >
+                <div v-if="kickbanReasons.length" class="kiwi-asl-kb-reasons">
+                    <button
+                        v-for="item in kickbanReasons"
+                        :key="item.alias"
+                        type="button"
+                        class="kiwi-asl-kb-reason"
+                        @click="confirmKickban(item.reason)"
+                    >
+                        <span class="kiwi-asl-kb-reason-text">{{ item.reason }}</span>
+                        <span class="kiwi-asl-kb-reason-alias">{{ item.alias }}</span>
+                    </button>
+                </div>
                 <div class="kiwi-asl-kb-foot">
                     <button type="button" class="kiwi-asl-btn is-cancel" @click="closeKickban">
                         {{ t('plugin-asl:report_cancel') }}
@@ -155,6 +168,7 @@ import * as config from '../config.js';
 import * as utils from '../libs/utils.js';
 import * as reportEcho from '../libs/reportEcho.js';
 import * as reportCooldown from '../libs/reportCooldown.js';
+import * as modAliases from '../libs/modAliases.js';
 
 let TextFormatting = kiwi.require('helpers/TextFormatting');
 
@@ -192,6 +206,9 @@ export default {
                 'report_log_note_sender' :
                 'report_log_note';
             return TextFormatting.t('plugin-asl:' + key);
+        },
+        kickbanReasons() {
+            return modAliases.listReasons(this.$state.setting('aliases'), 'kb');
         },
         reportReasons: function reportReasons() {
             return [
@@ -326,10 +343,12 @@ export default {
                 this.$refs.kbInput.focus();
             }
         },
-        confirmKickban: function confirmKickban() {
+        confirmKickban: function confirmKickban(reason) {
             let t = this.kickban_target;
+            let r = typeof reason === 'string' ? reason : this.kickban_reason;
+            r = (r || '').trim();
             if (t) {
-                t.buffer.banKickUser(t.user, this.kickban_reason || undefined);
+                t.buffer.banKickUser(t.user, r || undefined);
             }
             this.closeKickban();
         },
@@ -864,13 +883,57 @@ export default {
 .kiwi-asl-kb-input {
     box-sizing: border-box;
     width: 100%;
-    margin-bottom: 0.6rem;
+    margin-bottom: 0.5rem;
     padding: 0.4rem 0.55rem;
     border: 1px solid var(--color-border-strong, rgba(127, 127, 127, 0.4));
     border-radius: 0.4rem;
     background: var(--color-bg-input, #fff);
     color: inherit;
     font: inherit;
+}
+
+.kiwi-asl-kb-reasons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    max-height: 12rem;
+    margin-bottom: 0.6rem;
+    overflow-y: auto;
+}
+
+.kiwi-asl-kb-reason {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.4rem 0.5rem;
+    border: 0;
+    border-radius: 0.4rem;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+.kiwi-asl-kb-reason:hover,
+.kiwi-asl-kb-reason:focus-visible {
+    background: var(--color-chip-bg, #e7f1fc);
+}
+
+.kiwi-asl-kb-reason-text {
+    min-width: 0;
+    flex: 1;
+}
+
+.kiwi-asl-kb-reason-alias {
+    flex-shrink: 0;
+    color: var(--color-text-faint, #9aa6b6);
+    font-size: 0.6875rem;
+    font-weight: 700;
 }
 
 .kiwi-asl-kb-foot {

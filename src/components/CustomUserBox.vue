@@ -206,15 +206,15 @@
                 </select>
             </label>
             <div class="kiwi-userbox-mod-sanctions">
-                <button
+                <mod-reason-menu
                     v-if="isUserOnBuffer"
-                    type="button"
-                    class="kiwi-userbox-mod-btn btn-cta"
-                    @click="kickUser"
-                >
-                    <i class="fa fa-sign-out" aria-hidden="true" />
-                    {{ $t('user_kick') }}
-                </button>
+                    :label="$t('user_kick')"
+                    icon="fa-sign-out"
+                    :reasons="kickReasons"
+                    :open="openModMenu === 'kick'"
+                    @toggle="toggleModMenu('kick')"
+                    @select="kickUser"
+                />
                 <button
                     type="button"
                     class="kiwi-userbox-mod-btn btn-cta"
@@ -223,15 +223,15 @@
                     <i class="fa fa-ban" aria-hidden="true" />
                     {{ $t('user_ban') }}
                 </button>
-                <button
+                <mod-reason-menu
                     v-if="isUserOnBuffer"
-                    type="button"
-                    class="kiwi-userbox-mod-btn btn-cta"
-                    @click="kickbanUser"
-                >
-                    <i class="fa fa-exclamation-triangle" aria-hidden="true" />
-                    {{ $t('user_kickban') }}
-                </button>
+                    :label="$t('user_kickban')"
+                    icon="fa-exclamation-triangle"
+                    :reasons="kickbanReasons"
+                    :open="openModMenu === 'kickban'"
+                    @toggle="toggleModMenu('kickban')"
+                    @select="kickbanUser"
+                />
             </div>
         </div>
         <!-- no protection actions against the services: reporting them helps nobody, and
@@ -290,6 +290,8 @@ import * as ipRegex from 'ip-regex';
 import * as config from '../config.js';
 import * as utils from '../libs/utils.js';
 import * as reportCooldown from '../libs/reportCooldown.js';
+import * as modAliases from '../libs/modAliases.js';
+import ModReasonMenu from './ModReasonMenu.vue';
 
 let TextFormatting = kiwi.require('helpers/TextFormatting');
 let IrcdDiffs = kiwi.require('helpers/IrcdDiffs');
@@ -301,6 +303,7 @@ let UserAvatar = kiwi.require('components/UserAvatar');
 export default {
     components: {
         UserAvatar,
+        ModReasonMenu,
     },
     props: ['buffer', 'network', 'user'],
     data: function data() {
@@ -308,6 +311,7 @@ export default {
             self: this,
             whoisRequested: false,
             whoisLoading: false,
+            openModMenu: '',
             pluginUiButtonElements: GlobalApi.singleton().userboxButtonPlugins,
         };
     },
@@ -316,6 +320,12 @@ export default {
         // store drops the entry when the cooldown expires)
         reportOnCooldown() {
             return reportCooldown.isActive(this.network, this.user.nick);
+        },
+        kickReasons() {
+            return modAliases.listReasons(this.$state.setting('aliases'), 'k');
+        },
+        kickbanReasons() {
+            return modAliases.listReasons(this.$state.setting('aliases'), 'kb');
         },
         reportCooldownHint() {
             return TextFormatting.t('plugin-asl:report_cooldown_hint');
@@ -548,7 +558,14 @@ export default {
             // Reset the whois view since the user is now different
             this.whoisRequested = false;
             this.whoisLoading = false;
+            this.openModMenu = '';
         },
+    },
+    mounted: function mounted() {
+        document.addEventListener('click', this.onModMenuDocClick);
+    },
+    beforeDestroy: function beforeDestroy() {
+        document.removeEventListener('click', this.onModMenuDocClick);
     },
     methods: {
         userModeOnThisBuffer: function userModeOnBuffer(user) {
@@ -594,9 +611,25 @@ export default {
                 trigger: document.activeElement,
             });
         },
-        kickUser: function kickUser() {
-            let reason = this.$state.setting('buffers.default_kick_reason');
-            this.network.ircClient.raw('KICK', this.buffer.name, this.user.nick, reason);
+        toggleModMenu: function toggleModMenu(name) {
+            this.openModMenu = this.openModMenu === name ? '' : name;
+        },
+        onModMenuDocClick: function onModMenuDocClick(e) {
+            if (!this.openModMenu) {
+                return;
+            }
+            if (e.target.closest && (
+                e.target.closest('.kiwi-userbox-mod-menu-wrap') ||
+                e.target.closest('.kiwi-userbox-mod-menu')
+            )) {
+                return;
+            }
+            this.openModMenu = '';
+        },
+        kickUser: function kickUser(reason) {
+            let r = reason || this.$state.setting('buffers.default_kick_reason');
+            this.network.ircClient.raw('KICK', this.buffer.name, this.user.nick, r);
+            this.openModMenu = '';
         },
         createBanMask: function createBanMask() {
             // try to ban via user account first
@@ -648,15 +681,16 @@ export default {
             let banMask = this.createBanMask();
             this.network.ircClient.raw('MODE', this.buffer.name, '+b', banMask);
         },
-        kickbanUser: function kickbanuser() {
+        kickbanUser: function kickbanuser(reason) {
+            this.openModMenu = '';
             if (!this.user.username || !this.user.host) {
                 return;
             }
 
             let banMask = this.createBanMask();
-            let reason = this.$state.setting('buffers.default_kick_reason');
+            let r = reason || this.$state.setting('buffers.default_kick_reason');
             this.network.ircClient.raw('MODE', this.buffer.name, '+b', banMask);
-            this.network.ircClient.raw('KICK', this.buffer.name, this.user.nick, reason);
+            this.network.ircClient.raw('KICK', this.buffer.name, this.user.nick, r);
         },
         // Bloquer depuis la fiche → délègue au host partagé (toggle + toast réversible)
         onBlockClick: function onBlockClick() {

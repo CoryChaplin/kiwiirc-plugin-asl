@@ -57,6 +57,8 @@
     "unblock_confirm": "{{nick}} can message you again, and you'll see their messages.",
     "undo": "Undo",
     "mod_title": "Moderation",
+    "mod_reason_placeholder": "Custom reason",
+    "mod_reason_apply": "Apply",
     "protect_title": "You're in control",
     "protect_intro": "You choose who can message you. If {{nick}} bothers you, it's your call:",
     "protect_hint": "You can report <em>and</em> block in one go.",

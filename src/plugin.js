@@ -15,10 +15,12 @@ import * as config from './config.js';
 import * as utils from './libs/utils.js';
 import * as nickGlyphObserver from './libs/nickGlyphObserver.js';
 import * as reportEcho from './libs/reportEcho.js';
+import * as modAliases from './libs/modAliases.js';
 
 // eslint-disable-next-line no-undef
 kiwi.plugin('asl', (kiwi) => {
     config.setDefaults();
+    modAliases.inject();
     nickGlyphObserver.start();
 
     // setup the plugins locales

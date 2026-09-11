@@ -11,5 +11,7 @@
     "select": "Seleziona",
     "topics_placeholder": "Ho voglia di...",
     "channel_empty": "Nessun canale trovato. Premi Invio per aggiungere.",
-    "accept_terms": "Accetta i termini e le condizioni"
+    "accept_terms": "Accetta i termini e le condizioni",
+    "mod_reason_placeholder": "Motivo personalizzato",
+    "mod_reason_apply": "Conferma"
 }
