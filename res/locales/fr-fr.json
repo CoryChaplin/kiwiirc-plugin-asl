@@ -57,6 +57,8 @@
     "unblock_confirm": "{{nick}} peut de nouveau t'écrire, et tu reverras ses messages.",
     "undo": "Annuler",
     "mod_title": "Modération",
+    "mod_reason_placeholder": "Motif personnalisé",
+    "mod_reason_apply": "Valider",
     "protect_title": "Tu gardes le contrôle",
     "protect_intro": "Tu choisis qui peut t'écrire. Si {{nick}} te dérange, c'est à ta main :",
     "protect_hint": "Tu peux signaler <em>et</em> bloquer d'un coup.",

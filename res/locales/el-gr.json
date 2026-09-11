@@ -11,5 +11,7 @@
     "select": "Επιλογή",
     "topics_placeholder": "Έχω όρεξη για...",
     "channel_empty": "Δεν βρέθηκε κανάλι. Πατήστε Enter για προσθήκη.",
-    "accept_terms": "Αποδοχή όρων και προϋποθέσεων"
+    "accept_terms": "Αποδοχή όρων και προϋποθέσεων",
+    "mod_reason_placeholder": "Προσαρμοσμένος λόγος",
+    "mod_reason_apply": "Εφαρμογή"
 }
