@@ -15,8 +15,8 @@ function hasAlias(aliases, name) {
     });
 }
 
-// Append the /kickban helper and one /kN + /kbN pair per modReasons entry.
-// Idempotent: existing names (including user-customised ones) are not rewritten.
+// Seed /kN and /kbN from modReasons. /kbN expands to core /kickban (never
+// redefine /kickban itself). Idempotent: existing names are not rewritten.
 export function inject() {
     let reasons = config.getSetting('modReasons') || [];
     let aliases = kiwi.state.setting('aliases');
@@ -25,10 +25,6 @@ export function inject() {
     }
 
     let toAdd = [];
-    if (!hasAlias(aliases, '/kickban')) {
-        toAdd.push('/kickban /lines /ban $1 | /kick $channel $1 $2+');
-    }
-
     reasons.forEach((reason, i) => {
         let n = i + 1;
         let kName = '/k' + n;
