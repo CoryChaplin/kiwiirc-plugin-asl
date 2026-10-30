@@ -208,7 +208,11 @@ export default {
             return TextFormatting.t('plugin-asl:' + key);
         },
         kickbanReasons() {
-            return modAliases.listReasons(this.$state.setting('aliases'), 'kb');
+            return modAliases.listReasons(
+                this.$state.setting('aliases'),
+                'kb',
+                config.getSetting('modReasons')
+            );
         },
         reportReasons: function reportReasons() {
             return [

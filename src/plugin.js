@@ -21,6 +21,9 @@ import * as modAliases from './libs/modAliases.js';
 kiwi.plugin('asl', (kiwi) => {
     config.setDefaults();
     modAliases.inject();
+    kiwi.once('ready', () => {
+        modAliases.inject();
+    });
     nickGlyphObserver.start();
 
     // setup the plugins locales

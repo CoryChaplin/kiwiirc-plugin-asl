@@ -322,10 +322,18 @@ export default {
             return reportCooldown.isActive(this.network, this.user.nick);
         },
         kickReasons() {
-            return modAliases.listReasons(this.$state.setting('aliases'), 'k');
+            return modAliases.listReasons(
+                this.$state.setting('aliases'),
+                'k',
+                config.getSetting('modReasons')
+            );
         },
         kickbanReasons() {
-            return modAliases.listReasons(this.$state.setting('aliases'), 'kb');
+            return modAliases.listReasons(
+                this.$state.setting('aliases'),
+                'kb',
+                config.getSetting('modReasons')
+            );
         },
         reportCooldownHint() {
             return TextFormatting.t('plugin-asl:report_cooldown_hint');

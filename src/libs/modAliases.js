@@ -2,71 +2,27 @@
 
 import * as config from '../config.js';
 
-// True when `name` is already a first-token alias (so /k1 does not match /kb1,
-// and a user-edited /k1 is left alone).
-function hasAlias(aliases, name) {
-    let needle = name.charAt(0) === '/' ? name : '/' + name;
-    return String(aliases).split(/\r?\n/).some((line) => {
-        let trimmed = line.trim();
-        if (!trimmed || trimmed.charAt(0) === '#') {
-            return false;
-        }
-        return trimmed.split(/\s+/)[0] === needle;
-    });
-}
-
-// Seed /kN and /kbN from modReasons. /kbN expands to core /kickban (never
-// redefine /kickban itself). Idempotent: existing names are not rewritten.
-export function inject() {
-    let reasons = config.getSetting('modReasons') || [];
-    let aliases = kiwi.state.setting('aliases');
-    if (typeof aliases !== 'string') {
-        aliases = '';
-    }
-
-    let toAdd = [];
-    reasons.forEach((reason, i) => {
-        let n = i + 1;
-        let kName = '/k' + n;
-        let kbName = '/kb' + n;
-        if (!hasAlias(aliases, kName)) {
-            toAdd.push(kName + ' /kick $channel $1 ' + reason);
-        }
-        if (!hasAlias(aliases, kbName)) {
-            toAdd.push(kbName + ' /kickban $1 ' + reason);
-        }
-    });
-
-    if (!toAdd.length) {
-        return;
-    }
-
-    let next = aliases;
-    if (next && next.charAt(next.length - 1) !== '\n') {
-        next += '\n';
-    }
-    kiwi.state.setting('aliases', next + toAdd.join('\n'));
-}
-
 const KICK_NAME = /^\/k(\d+)$/;
 const KICKBAN_NAME = /^\/kb(\d+)$/;
 
-function reasonFromExpansion(expansion) {
-    let match = String(expansion).match(/.*\$(?:1\+?|2\+)\s+(.+)$/);
-    if (match) {
-        return match[1].trim();
+function configuredReasons() {
+    let reasons = config.getSetting('modReasons');
+    if (!Array.isArray(reasons)) {
+        return [];
     }
-    let lastSeg = String(expansion).split('|').pop().trim();
-    let tokens = lastSeg.split(/\s+/);
-    while (tokens.length && (/^\/[a-z]+$/i.test(tokens[0]) || /^\$/.test(tokens[0]))) {
-        tokens.shift();
-    }
-    return tokens.join(' ').trim();
+    return reasons.map((reason) => String(reason || '').trim()).filter(Boolean);
 }
 
-// kind: 'k' (Éjecter) or 'kb' (Bannir et éjecter). Reads /kN or /kbN lines from
-// the Kiwi alias list so a user-added /kb3 appears next to the seeded /kb1 /kb2.
-export function listReasons(aliases, kind) {
+function readAliases() {
+    let aliases = kiwi.state.setting('aliases');
+    if (typeof aliases === 'string') {
+        return aliases;
+    }
+    aliases = kiwi.state.getSetting('settings.aliases');
+    return typeof aliases === 'string' ? aliases : null;
+}
+
+function parseNumbered(aliases, kind) {
     let nameRe = kind === 'kb' ? KICKBAN_NAME : KICK_NAME;
     let out = [];
     String(aliases || '').split(/\r?\n/).forEach((line) => {
@@ -93,6 +49,85 @@ export function listReasons(aliases, kind) {
             reason: reason,
         });
     });
-    out.sort((a, b) => a.n - b.n);
     return out;
+}
+
+function nextFreeNumber(used) {
+    let n = 1;
+    while (used[n]) {
+        n++;
+    }
+    return n;
+}
+
+function appendMissingReasons(existing, reasons, kind) {
+    let prefix = kind === 'kb' ? '/kb' : '/k';
+    let command = kind === 'kb' ?
+        (n, reason) => prefix + n + ' /kickban $1 ' + reason :
+        (n, reason) => prefix + n + ' /kick $channel $1 ' + reason;
+    let used = Object.create(null);
+    let texts = Object.create(null);
+    existing.forEach((item) => {
+        used[item.n] = true;
+        texts[item.reason.toLowerCase()] = true;
+    });
+    let toAdd = [];
+    reasons.forEach((reason) => {
+        if (texts[reason.toLowerCase()]) {
+            return;
+        }
+        let n = nextFreeNumber(used);
+        used[n] = true;
+        texts[reason.toLowerCase()] = true;
+        toAdd.push({
+            n: n,
+            alias: prefix + n,
+            reason: reason,
+            line: command(n, reason),
+        });
+    });
+    return toAdd;
+}
+
+export function inject() {
+    let reasons = configuredReasons();
+    let aliases = readAliases();
+    if (!reasons.length || aliases === null) {
+        return;
+    }
+
+    let addedK = appendMissingReasons(parseNumbered(aliases, 'k'), reasons, 'k');
+    let addedKb = appendMissingReasons(parseNumbered(aliases, 'kb'), reasons, 'kb');
+    let toAdd = addedK.concat(addedKb).map((item) => item.line);
+
+    if (!toAdd.length) {
+        return;
+    }
+
+    let next = aliases;
+    if (next && next.charAt(next.length - 1) !== '\n') {
+        next += '\n';
+    }
+    kiwi.state.setting('aliases', next + toAdd.join('\n'));
+}
+
+function reasonFromExpansion(expansion) {
+    let match = String(expansion).match(/.*\$(?:1\+?|2\+)\s+(.+)$/);
+    if (match) {
+        return match[1].trim();
+    }
+    let lastSeg = String(expansion).split('|').pop().trim();
+    let tokens = lastSeg.split(/\s+/);
+    while (tokens.length && (/^\/[a-z]+$/i.test(tokens[0]) || /^\$/.test(tokens[0]))) {
+        tokens.shift();
+    }
+    return tokens.join(' ').trim();
+}
+
+export function listReasons(aliases, kind, configReasons) {
+    let existing = parseNumbered(aliases, kind);
+    let seeded = Array.isArray(configReasons) ? configReasons : configuredReasons();
+    seeded = seeded.map((reason) => String(reason || '').trim()).filter(Boolean);
+    let extra = appendMissingReasons(existing, seeded, kind);
+    return existing.concat(extra).sort((a, b) => a.n - b.n);
 }
