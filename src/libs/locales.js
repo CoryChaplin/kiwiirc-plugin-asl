@@ -6,15 +6,22 @@ export default class Locales {
         this.localesPath = '';
         this.nameSpace = '';
         this.testKey = '';
+        this.onLoaded = () => {};
+        this.pendingLocales = 0;
     }
 
-    init(localesPath, nameSpace, testKey) {
+    // onLoaded runs once the locales being loaded are all applied, and on each language change
+    init(localesPath, nameSpace, testKey, onLoaded) {
         this.localesPath = localesPath;
         this.nameSpace = nameSpace;
         this.testKey = testKey;
+        this.onLoaded = onLoaded || this.onLoaded;
 
         kiwi.i18n.on('languageChanged', (lang) => {
             if (kiwi.i18n.getResource(lang, this.nameSpace, this.testKey)) {
+                if (!this.pendingLocales) {
+                    this.onLoaded();
+                }
                 return;
             }
             this.loadLocale(lang);
@@ -32,13 +39,21 @@ export default class Locales {
     loadLocale(_lang) {
         let lang = _lang.toLowerCase();
         let xhttp = new XMLHttpRequest();
+        this.pendingLocales++;
+        xhttp.onerror = (event) => {
+            this.applyLocale(lang, null);
+        };
         xhttp.onload = (event) => {
-            if (xhttp.status !== 200) {
-                // Failed to load the locale so apply fallback
-                this.applyLocale(lang, null);
-                return;
+            let localeData = null;
+            if (xhttp.status === 200) {
+                try {
+                    localeData = JSON.parse(xhttp.responseText);
+                } catch (err) {
+                    // Not a locale file, eg. a server answering with its index page
+                }
             }
-            this.applyLocale(lang, JSON.parse(xhttp.responseText));
+            // A null locale applies the fallback
+            this.applyLocale(lang, localeData);
         };
         xhttp.open('GET', this.localesPath + '/' + lang + '.json');
         xhttp.send();
@@ -49,5 +64,10 @@ export default class Locales {
             this.fallbackLocale = localeData;
         }
         kiwi.i18n.addResourceBundle(lang, this.nameSpace, localeData || this.fallbackLocale);
+
+        this.pendingLocales--;
+        if (!this.pendingLocales) {
+            this.onLoaded();
+        }
     }
 }

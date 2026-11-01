@@ -155,6 +155,11 @@ const defaultConfig = {
 
     // Origin ID sent to the irception API (identifies this client/site)
     irceptionOrigin: 1,
+
+    // Preset kick / kickban reasons, used to feed the /kN and /kbN aliases when there are
+    // none. The menus list the reasons of these aliases, after the default kick reason
+    // when this is empty.
+    modReasons: [],
 };
 
 export function setDefaults() {
