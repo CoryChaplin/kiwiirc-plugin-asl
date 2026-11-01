@@ -13,5 +13,8 @@
     "channel_empty": "Nessun canale trovato. Premi Invio per aggiungere.",
     "accept_terms": "Accetta i termini e le condizioni",
     "mod_reason_placeholder": "Motivo personalizzato",
-    "mod_reason_apply": "Conferma"
+    "mod_reason_apply": "Conferma",
+    "mod_aliases_title": "Motivi di moderazione: una riga per motivo, con un numero libero",
+    "mod_aliases_reason": "Il tuo motivo",
+    "mod_aliases_format": "Rispetta questo formato. Il motivo è un testo fisso, senza variabili ($1, $channel...)"
 }

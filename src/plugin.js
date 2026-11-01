@@ -20,16 +20,20 @@ import * as modAliases from './libs/modAliases.js';
 // eslint-disable-next-line no-undef
 kiwi.plugin('asl', (kiwi) => {
     config.setDefaults();
-    modAliases.inject();
-    kiwi.once('ready', () => {
-        modAliases.inject();
-    });
     nickGlyphObserver.start();
 
     // setup the plugins locales
     let localesPath = kiwi.state.getSetting('settings.plugin-asl.localesPath');
     let locales = new Locales();
-    locales.init(localesPath, 'plugin-asl', 'age');
+    locales.init(localesPath, 'plugin-asl', 'age', modAliases.seed);
+
+    // The kiwibnc plugin replaces user_settings with the account's settings once connected.
+    // Only a replacement counts: seeding on each change would fight with a user editing aliases.
+    kiwi.state.$watch('user_settings', (settings, previous) => {
+        if (settings !== previous) {
+            modAliases.seed();
+        }
+    });
 
     // add the custom welcome screen and replace userbox
     kiwi.addStartup('plugin-asl', CustomWelcome);

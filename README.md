@@ -108,6 +108,23 @@ note: the variables starting with _ are treated as translation keys
 | `welcomeUsesLocalStorage` | boolean | `true` | Restore last ASL values from previous session |
 | `reportChannel` | string | `"#abuse"` | Channel for abuse reports |
 | `browseAllUsers` | boolean | `false` | Show all users from common channels in User Browser |
+| `modReasons` | array | `[]` | Preset kick / kickban reasons, used to feed the `/kN` and `/kbN` aliases when there are none |
+
+##### Kick and kickban reasons
+
+The Kick and Kickban menus list the reasons of the numbered aliases. `buffers.default_kick_reason` comes first when `modReasons` is empty:
+
+```
+/k3 /kick $channel $1 Your reason
+/kb3 /kickban $1 Your reason
+```
+
+Keep this format: the menus send the reason as fixed text, without replacing variables. Typing one of these aliases without a nick makes the first word of the reason the target.
+
+`modReasons` feeds these aliases, separately for `/kN` and `/kbN`, whenever a user has none of them:
+
+- A user without their own aliases gets them in the default aliases: nothing is persisted and they follow the config.
+- A user with their own aliases gets them added once to their list, which remains theirs afterwards. Removing some of them is permanent; removing all of them brings them back on the next load.
 
 ##### Startup options (`startupOptions`)
 

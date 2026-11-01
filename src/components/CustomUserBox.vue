@@ -325,14 +325,14 @@ export default {
             return modAliases.listReasons(
                 this.$state.setting('aliases'),
                 'k',
-                config.getSetting('modReasons')
+                this.$state.setting('buffers.default_kick_reason')
             );
         },
         kickbanReasons() {
             return modAliases.listReasons(
                 this.$state.setting('aliases'),
                 'kb',
-                config.getSetting('modReasons')
+                this.$state.setting('buffers.default_kick_reason')
             );
         },
         reportCooldownHint() {
@@ -568,12 +568,21 @@ export default {
             this.whoisLoading = false;
             this.openModMenu = '';
         },
+        buffer: function watchBuffer() {
+            this.openModMenu = '';
+        },
+        isUserOnBuffer: function watchIsUserOnBuffer(isOnBuffer) {
+            if (!isOnBuffer) {
+                this.openModMenu = '';
+            }
+        },
     },
     mounted: function mounted() {
-        document.addEventListener('click', this.onModMenuDocClick);
+        // Capture phase: the sidebar stops the propagation of clicks inside the userbox
+        document.addEventListener('click', this.onModMenuDocClick, true);
     },
     beforeDestroy: function beforeDestroy() {
-        document.removeEventListener('click', this.onModMenuDocClick);
+        document.removeEventListener('click', this.onModMenuDocClick, true);
     },
     methods: {
         userModeOnThisBuffer: function userModeOnBuffer(user) {

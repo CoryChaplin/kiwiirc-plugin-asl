@@ -33,7 +33,7 @@
                 </button>
             </div>
             <button
-                v-for="item in reasonItems"
+                v-for="item in reasons"
                 :key="item.alias || item.reason"
                 type="button"
                 class="kiwi-userbox-mod-menu-item"
@@ -57,19 +57,6 @@ export default {
         return {
             customReason: '',
         };
-    },
-    computed: {
-        reasonItems() {
-            return (this.reasons || []).map((item) => {
-                if (item && typeof item === 'object') {
-                    return {
-                        alias: item.alias || '',
-                        reason: item.reason || '',
-                    };
-                }
-                return { alias: '', reason: String(item) };
-            }).filter((item) => item.reason);
-        },
     },
     watch: {
         open: function watchOpen(isOpen) {
@@ -95,8 +82,15 @@ export default {
     methods: {
         bindPlace: function bindPlace() {
             this.onPlace = () => this.placeMenu();
+            this.onEscape = (e) => {
+                if (e.key === 'Escape') {
+                    this.$emit('toggle');
+                    this.$refs.trigger.focus();
+                }
+            };
             window.addEventListener('resize', this.onPlace);
             window.addEventListener('scroll', this.onPlace, true);
+            document.addEventListener('keydown', this.onEscape);
         },
         unbindPlace: function unbindPlace() {
             if (!this.onPlace) {
@@ -104,7 +98,9 @@ export default {
             }
             window.removeEventListener('resize', this.onPlace);
             window.removeEventListener('scroll', this.onPlace, true);
+            document.removeEventListener('keydown', this.onEscape);
             this.onPlace = null;
+            this.onEscape = null;
         },
         mountMenu: function mountMenu() {
             let menu = this.$refs.menu;
@@ -142,7 +138,11 @@ export default {
             menu.style.width = width + 'px';
         },
         submitCustom: function submitCustom() {
-            this.$emit('select', this.customReason.trim());
+            let reason = this.customReason.trim();
+            if (!reason) {
+                return;
+            }
+            this.$emit('select', reason);
             this.customReason = '';
         },
         pick: function pick(reason) {
@@ -179,11 +179,12 @@ export default {
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
-    max-height: min(16rem, calc(100vh - 1rem));
+    max-height: ~"min(16rem, calc(100vh - 1rem))";
     padding: 0.5rem;
     overflow-y: auto;
     border-radius: 0.75rem;
     background: var(--color-surface, #fff);
+    color: var(--color-text-primary, #222);
     border: 1px solid var(--color-border-strong, rgba(127, 127, 127, 0.45));
     box-shadow: 0 0.6rem 1.6rem rgba(0, 30, 60, 0.28);
     box-sizing: border-box;

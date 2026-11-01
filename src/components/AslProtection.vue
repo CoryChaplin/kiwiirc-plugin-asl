@@ -135,7 +135,12 @@
                     :aria-label="t('plugin-asl:mod_reason_placeholder')"
                     @keydown.enter="confirmKickban"
                 >
-                <div v-if="kickbanReasons.length" class="kiwi-asl-kb-reasons">
+                <div
+                    v-if="kickbanReasons.length"
+                    class="kiwi-asl-kb-reasons"
+                    @wheel.stop
+                    @touchmove.stop
+                >
                     <button
                         v-for="item in kickbanReasons"
                         :key="item.alias"
@@ -144,7 +149,10 @@
                         @click="confirmKickban(item.reason)"
                     >
                         <span class="kiwi-asl-kb-reason-text">{{ item.reason }}</span>
-                        <span class="kiwi-asl-kb-reason-alias">{{ item.alias }}</span>
+                        <span
+                            v-if="item.alias"
+                            class="kiwi-asl-kb-reason-alias"
+                        >{{ item.alias }}</span>
                     </button>
                 </div>
                 <div class="kiwi-asl-kb-foot">
@@ -211,7 +219,7 @@ export default {
             return modAliases.listReasons(
                 this.$state.setting('aliases'),
                 'kb',
-                config.getSetting('modReasons')
+                this.$state.setting('buffers.default_kick_reason')
             );
         },
         reportReasons: function reportReasons() {
@@ -903,6 +911,7 @@ export default {
     max-height: 12rem;
     margin-bottom: 0.6rem;
     overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .kiwi-asl-kb-reason {
