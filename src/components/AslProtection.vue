@@ -564,15 +564,23 @@ export default {
                 .join('\r\n');
         },
         // Where to send the report: a private message to the moderation bot when it is
-        // online, otherwise the fallback channel. A WHOIS would notify the target; WHO is
-        // silent and its callback returns an empty user list when the nick is offline. A
-        // timeout guarantees the report still goes out (channel fallback) if WHO stalls.
+        // online, otherwise the fallback channel. A WHOIS would notify the target; ISON is
+        // silent and always answered (RPL_ISON, with an empty list when the nick is
+        // offline). It is sent raw on purpose: ircClient.who() goes through irc-framework's
+        // serial WHO queue, where it waits behind core's per-channel WHOs (on join, and the
+        // 30s who_loop) and routinely outlived the timeout, sending reports to the channel
+        // while the bot was online. A timeout still guarantees the report goes out (channel
+        // fallback) if the reply never comes.
         resolveReportTarget: function resolveReportTarget(network) {
             let channel = config.getSetting('reportChannel');
             let bot = config.getSetting('reportBot');
             if (!bot) {
                 return Promise.resolve(channel);
             }
+            let client = network.ircClient;
+            let isBot = (nick) => (client.caseCompare ?
+                client.caseCompare(nick, bot) :
+                String(nick).toLowerCase() === String(bot).toLowerCase());
             return new Promise((resolve) => {
                 let settled = false;
                 let finish = (target) => {
@@ -581,12 +589,16 @@ export default {
                     }
                     settled = true;
                     clearTimeout(timer);
+                    client.removeListener('users online', onIson);
                     resolve(target);
                 };
+                // irc-framework emits RPL_ISON as 'users online' { nicks }
+                let onIson = (event) => {
+                    finish((event.nicks || []).some(isBot) ? bot : channel);
+                };
                 let timer = setTimeout(() => finish(channel), 4000);
-                network.ircClient.who(bot, (event) => {
-                    finish(event.users && event.users.length ? bot : channel);
-                });
+                client.on('users online', onIson);
+                client.raw('ISON', bot);
             });
         },
         submitReportForm: async function submitReportForm() {
