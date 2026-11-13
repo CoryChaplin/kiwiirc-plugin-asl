@@ -563,43 +563,118 @@ export default {
                 .filter(Boolean)
                 .join('\r\n');
         },
-        // Where to send the report: a private message to the moderation bot when it is
-        // online, otherwise the fallback channel. A WHOIS would notify the target; ISON is
-        // silent and always answered (RPL_ISON, with an empty list when the nick is
-        // offline). It is sent raw on purpose: ircClient.who() goes through irc-framework's
-        // serial WHO queue, where it waits behind core's per-channel WHOs (on join, and the
-        // 30s who_loop) and routinely outlived the timeout, sending reports to the channel
-        // while the bot was online. A timeout still guarantees the report goes out (channel
-        // fallback) if the reply never comes.
+        // Nicks returned by RPL_ISON (303). params[0] is our own nick, not part of the
+        // answer; the rest is one trailing list and/or one param per nick.
+        isonNicks: function isonNicks(event) {
+            let params = event && event.params;
+            if (!Array.isArray(params)) {
+                return [];
+            }
+            return params.slice(1)
+                .join(' ')
+                .trim()
+                .split(/\s+/)
+                .map((nick) => nick.replace(/^[:@+%&~]/, ''))
+                .filter(Boolean);
+        },
+        // Where to send the report: a PM to the moderation bot when it is online,
+        // otherwise the fallback channel.
+        //
+        // The bot never shares a channel with the reporter, so the nicklist cannot
+        // tell us it is online. WHO cannot either: an invisible nick we do not share
+        // a channel with comes back as an empty list, and ircClient.who() also waits
+        // behind core's per-channel WHOs until the timeout fires. Both sent the
+        // report to the channel while the bot was online.
+        //
+        // ISON is network-wide and silent. We listen for numeric 303 only — irc-framework
+        // also emits RPL_MONONLINE as 'users online', and the first list without the bot
+        // was treated as "offline". Our own nick is always online, so a 303 that does
+        // not list us is not our reply. No answer in time is not proof the bot is down:
+        // we still try the PM, and a 401 resends to the channel (see armReportFallback).
         resolveReportTarget: function resolveReportTarget(network) {
             let channel = config.getSetting('reportChannel');
-            let bot = config.getSetting('reportBot');
+            let bot = String(config.getSetting('reportBot') || '').trim();
             if (!bot) {
                 return Promise.resolve(channel);
             }
             let client = network.ircClient;
-            let isBot = (nick) => (client.caseCompare ?
-                client.caseCompare(nick, bot) :
-                String(nick).toLowerCase() === String(bot).toLowerCase());
+            let me = (client && client.user && client.user.nick) || network.nick;
+            if (!client || !me) {
+                return Promise.resolve(bot);
+            }
             return new Promise((resolve) => {
                 let settled = false;
+                let timer;
+                let onIson;
                 let finish = (target) => {
                     if (settled) {
                         return;
                     }
                     settled = true;
                     clearTimeout(timer);
-                    client.removeListener('users online', onIson);
+                    kiwi.off('irc.raw.303', onIson);
                     resolve(target);
                 };
-                // irc-framework emits RPL_ISON as 'users online' { nicks }
-                let onIson = (event) => {
-                    finish((event.nicks || []).some(isBot) ? bot : channel);
+                onIson = (command, event, eventNetwork) => {
+                    if (command !== '303' || !eventNetwork || eventNetwork.id !== network.id) {
+                        return;
+                    }
+                    let nicks = this.isonNicks(event);
+                    // Not our ISON: another query, or a reply that omitted us.
+                    if (!nicks.some((nick) => utils.sameName(network, nick, me))) {
+                        return;
+                    }
+                    let online = nicks.some((nick) => utils.sameName(network, nick, bot));
+                    finish(online ? bot : channel);
                 };
-                let timer = setTimeout(() => finish(channel), 4000);
-                client.on('users online', onIson);
-                client.raw('ISON', bot);
+                kiwi.on('irc.raw.303', onIson);
+                // One trailing parameter: UnrealIRCd only reads parv[1] (maxpara 1)
+                // and splits it on spaces. Two raw arguments would drop the bot.
+                timer = setTimeout(() => finish(bot), 4000);
+                try {
+                    client.raw('ISON', me + ' ' + bot);
+                } catch (err) {
+                    // eslint-disable-next-line no-console
+                    console.error('[plugin-asl] ISON failed:', err);
+                    finish(bot);
+                }
             });
+        },
+        // A PM to a missing nick comes back as 401. Resend that report to the channel
+        // and keep the error out of the user's buffer. A live bot never produces a 401,
+        // so a slow ISON can no longer dump the report in the channel by mistake.
+        armReportFallback: function armReportFallback(network, target, text) {
+            let channel = config.getSetting('reportChannel');
+            let bot = String(config.getSetting('reportBot') || '').trim();
+            if (!bot || !channel || !utils.sameName(network, target, bot)) {
+                return;
+            }
+            let settled = false;
+            let timer;
+            let onMissing;
+            let finish = () => {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                clearTimeout(timer);
+                kiwi.off('irc.raw.401', onMissing);
+            };
+            onMissing = (command, event, eventNetwork) => {
+                if (settled || command !== '401' || !eventNetwork || eventNetwork.id !== network.id) {
+                    return;
+                }
+                let missing = event && event.params && event.params[1];
+                if (!utils.sameName(network, missing, bot)) {
+                    return;
+                }
+                event.handled = true;
+                finish();
+                reportEcho.remember(network, channel, text);
+                network.ircClient.say(channel, text);
+            };
+            kiwi.on('irc.raw.401', onMissing);
+            timer = setTimeout(finish, 4000);
         },
         submitReportForm: async function submitReportForm() {
             // capture the gesture's target now: this.target may be repointed by
@@ -688,9 +763,11 @@ export default {
                 if (logUrl) {
                     parts.push('📎 ' + logUrl);
                 }
-                // PM to the moderation bot when online, otherwise fall back to the channel
+                // PM to the moderation bot when it is online, otherwise the channel.
+                // Arm the 401 watcher before say(): the error can come back immediately.
                 const target = await this.resolveReportTarget(network);
                 const reportText = parts.join(' · ');
+                this.armReportFallback(network, target, reportText);
                 // The server echoes our own PRIVMSG back (echo-message), which would open a
                 // query with the bot exposing the report to the user who filed it. Remember
                 // it so the plugin.js listener can absorb that echo.
