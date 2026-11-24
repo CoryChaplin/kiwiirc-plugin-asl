@@ -334,6 +334,7 @@ import * as irceptionApi from '../libs/irceptionApi.js';
 import { loadIdent, generateIdent, storeIdent } from '../libs/irceptionIdent.js';
 import { evaluateRules, isTopicHeld } from '../libs/irceptionRules.js';
 import { readWelcomeState, writeWelcomeState } from '../libs/welcomeStorage.js';
+import * as stateApi from '../libs/stateApi.js';
 
 import TopicChipGroup from './welcome/TopicChipGroup.vue';
 import SuggestionsCloud from './welcome/SuggestionsCloud.vue';
@@ -895,6 +896,8 @@ export default {
                 this.formConfig = formConfigResult;
                 // enrich the official-channels set (userbox Moderator badge) from the same load
                 config.addOfficialChannels(formConfigResult);
+                // keep the adult channels for the universe read-out once connected
+                stateApi.setHotChannels(formConfigResult);
             }
             if (geo) {
                 if (!this.location && geo.city) this.location = geo.city;

@@ -16,11 +16,18 @@ import * as utils from './libs/utils.js';
 import * as nickGlyphObserver from './libs/nickGlyphObserver.js';
 import * as reportEcho from './libs/reportEcho.js';
 import * as modAliases from './libs/modAliases.js';
+import * as stateApi from './libs/stateApi.js';
+import { recordActiveDay } from './libs/activity.js';
 
 // eslint-disable-next-line no-undef
 kiwi.plugin('asl', (kiwi) => {
     config.setDefaults();
+    stateApi.install();
     nickGlyphObserver.start();
+
+    // One active day per local calendar day with at least one registration on the network
+    // (reconnections collapse into the same day). Read back through pluginASL.activity().
+    kiwi.on('irc.registered', () => recordActiveDay());
 
     // setup the plugins locales
     let localesPath = kiwi.state.getSetting('settings.plugin-asl.localesPath');

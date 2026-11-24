@@ -44,16 +44,24 @@ function getOs() {
     return 'o';
 }
 
-function getSexeUnivers(channelNames, formConfig) {
+// Channels of the adult ("hot") topic, bare names without '#'. Shared with the
+// universe read-out of the state API, which needs them after the welcome screen is gone.
+export function getHotChannels(formConfig) {
     const topics = (formConfig && formConfig.topics) || [];
     const hotTopic = topics.find((t) => t.key === 'hot');
     const autoChannels = (hotTopic && hotTopic.autoChannels) || [];
     const suggestions = (hotTopic && hotTopic.suggestions) || [];
-    const hotChannels = new Set(
+    return new Set(
         autoChannels.concat(suggestions).map((c) => c.replace(/^#/, ''))
     );
-    if (channelNames.some((ch) => hotChannels.has(ch.replace(/^#/, '')))) return 's';
-    return 'n';
+}
+
+function isHotUniverse(channelNames, hotChannels) {
+    return channelNames.some((ch) => hotChannels.has(ch.replace(/^#/, '')));
+}
+
+function getSexeUnivers(channelNames, formConfig) {
+    return isHotUniverse(channelNames, getHotChannels(formConfig)) ? 's' : 'n';
 }
 
 export function generateIdent(channelNames, originParam, formConfig) {
