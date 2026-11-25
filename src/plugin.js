@@ -28,6 +28,10 @@ kiwi.plugin('asl', (kiwi) => {
     // One active day per local calendar day with at least one registration on the network
     // (reconnections collapse into the same day). Read back through pluginASL.activity().
     kiwi.on('irc.registered', () => recordActiveDay());
+    // A bouncer session can already be up when plugins load: count today as well.
+    if (kiwi.state.networks.some((n) => n.state === 'connected')) {
+        recordActiveDay();
+    }
 
     // setup the plugins locales
     let localesPath = kiwi.state.getSetting('settings.plugin-asl.localesPath');

@@ -4,7 +4,9 @@
  * Read-only state API on `kiwi.state.pluginASL`, for other plugins (e.g. a survey).
  *
  *   activity() → { activeDays, window }        see libs/activity.js
- *   profile()  → { age, gender } | null         age as a range ('25-34'…), gender 'F' | 'M' | 'U'
+ *   profile()  → { age, gender } | null         age as a range ('25-34'…) or 'nc' when the
+ *                                               declared profile has no usable age;
+ *                                               gender 'F' | 'M' | 'U'. null = unreadable
  *   universe() → 'sexe' | 'generaliste'         from the channels joined right now
  *
  * By design it never returns the exact age, the location, the nick, the ident or the
@@ -24,10 +26,11 @@ const AGE_RANGES = [
     [55, 64, '55-64'],
 ];
 
+// 'nc' (not given) keeps "declared without an age" apart from "profile unreadable" (null).
 function ageRange(value) {
     let age = parseInt(value, 10);
     if (!(age >= 15)) {
-        return null;
+        return 'nc';
     }
     let range = AGE_RANGES.find(([min, max]) => age >= min && age <= max);
     return range ? range[2] : '65+';
@@ -39,12 +42,35 @@ function genderCode(sexKey) {
     return 'U';
 }
 
+// Our own gecos. net.gecos is only set when the welcome form connected us; a network
+// restored from a bouncer account (KiwiBNC) never goes through it, so fall back to what
+// the server told us about ourselves, then to the IRC client's own registration data.
+function ownGecos(net) {
+    if (net.gecos) {
+        return net.gecos;
+    }
+    let me = net.currentUser && net.currentUser();
+    if (me && me.realname) {
+        return me.realname;
+    }
+    let client = net.ircClient;
+    return (client && client.user && client.user.gecos)
+        || (client && client.options && client.options.gecos)
+        || '';
+}
+
 function profile() {
     let net = kiwi.state.getActiveNetwork();
-    if (!net || !net.gecos) {
+    if (!net) {
         return null;
     }
-    let asl = utils.parseGecos(net.gecos).asl;
+    // Parsed on our own JOIN / WHO like any other user's; preferred when present.
+    let me = net.currentUser && net.currentUser();
+    let asl = me && me.asl && (me.asl.a || me.asl.s) ? me.asl : null;
+    if (!asl) {
+        let gecos = ownGecos(net);
+        asl = gecos ? utils.parseGecos(gecos).asl : null;
+    }
     if (!asl) {
         return null;
     }
