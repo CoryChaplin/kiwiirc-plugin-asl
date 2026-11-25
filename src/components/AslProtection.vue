@@ -3,7 +3,7 @@
         <div
             v-if="report_user_display"
             ref="ssOverlay"
-            class="overlay open"
+            class="overlay open kiwi-asl-report-overlay"
             @click.self="closeReport"
         >
             <div
@@ -1014,15 +1014,12 @@ export default {
     margin: 0.5rem 0 0.9rem;
 }
 
-/* Functional floor for themes that do not ship the design-system objects: enough
-   for the dialog to be usable, never its appearance. An unlayered rule always wins
-   over a layered one, so the theme takes over untouched wherever it is active. */
+/* Structure only, for themes that do not ship the design-system objects. Layered, so
+   an unlayered theme rule always wins whatever its specificity.
+   The anchor is .kiwi-asl-report-overlay and not the component host: the overlay is
+   moved to .kiwi-wrap on open (see the report_user_display watch). */
 @layer asl-fallback {
-    /* Structure only: what the dialog needs to be usable when the active theme does
-       not ship the design-system objects. No colours beyond the surfaces that must be
-       opaque to stay legible, and no control drawing — the native inputs show through
-       on their own, since .sr-only is part of the same missing set. */
-    .overlay {
+    .overlay.kiwi-asl-report-overlay {
         position: fixed;
         inset: 0;
         z-index: 9989;
@@ -1033,7 +1030,7 @@ export default {
         background: rgba(8, 24, 44, 0.55);
     }
 
-    .modal {
+    .kiwi-asl-report-overlay .modal {
         display: flex;
         flex-direction: column;
         width: 23.75rem;
@@ -1045,7 +1042,7 @@ export default {
         color: var(--brand-default-fg, #1f2937);
     }
 
-    .modal-head {
+    .kiwi-asl-report-overlay .modal-head {
         display: flex;
         align-items: center;
         gap: 0.625rem;
@@ -1053,7 +1050,7 @@ export default {
         border-bottom: 1px solid var(--comp-border, rgba(127, 127, 127, 0.3));
     }
 
-    .modal-sh {
+    .kiwi-asl-report-overlay .modal-sh {
         flex-shrink: 0;
         display: flex;
         align-items: center;
@@ -1062,13 +1059,13 @@ export default {
         height: 1.875rem;
     }
 
-    .modal-title {
+    .kiwi-asl-report-overlay .modal-title {
         flex: 1;
         min-width: 0;
         font-weight: 700;
     }
 
-    .modal-x {
+    .kiwi-asl-report-overlay .modal-x {
         flex-shrink: 0;
         width: 1.875rem;
         height: 1.875rem;
@@ -1077,42 +1074,39 @@ export default {
         cursor: pointer;
     }
 
-    .modal-body {
+    .kiwi-asl-report-overlay .modal-body {
         padding: 1rem;
     }
 
-    /* The native radio and checkbox show through here, since .sr-only belongs to the
-       same missing set. What does break is the layout: a <label> is inline, so the
-       option rows collapse into one run of prose and the hint joins its label. Fixed
-       on the very properties the theme uses, so an active theme still wins the cascade. */
-    .opt-row {
+    /* Without .sr-only the native controls show through; the labels still need laying
+       out, as a bare <label> is inline. */
+    .kiwi-asl-report-overlay .opt-row {
         display: flex;
         align-items: center;
         gap: 0.625rem;
     }
 
-    .opt-hint {
+    .kiwi-asl-report-overlay .opt-hint {
         display: block;
     }
 
-    /* The native checkbox already carries the state here, so the glyph stays hidden.
-       The theme, unlayered, still wins and lights it when it is active. */
-    .cbx i {
+    /* The native checkbox carries the state, so the glyph stays hidden. */
+    .kiwi-asl-report-overlay .cbx i {
         opacity: 0;
     }
 
-    .btns {
+    .kiwi-asl-report-overlay .btns {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
         gap: 0.625rem;
     }
 
-    .btns.end {
+    .kiwi-asl-report-overlay .btns.end {
         justify-content: flex-end;
     }
 
-    .btn-ghost {
+    .kiwi-asl-report-overlay .btn-ghost {
         height: 2.375rem;
         padding: 0 1.125rem;
         border: 1px solid var(--comp-border, rgba(127, 127, 127, 0.3));
@@ -1122,21 +1116,20 @@ export default {
         cursor: pointer;
     }
 
-    /* The primary action must stay visible: without the design system this button has
-       geometry from the plugin but no fill of its own. */
-    .btn-cta {
+    /* .kiwi-asl-send gives this button its geometry but no fill. */
+    .kiwi-asl-report-overlay .btn-cta {
         background: var(--brand-primary, #1d4ed8);
         color: var(--brand-default-bg, #fff);
         font-weight: 700;
         cursor: pointer;
     }
 
-    .btn-cta.danger {
+    .kiwi-asl-report-overlay .btn-cta.danger {
         background: var(--brand-error, #c0392b);
         color: #fff;
     }
 
-    .toast {
+    .kiwi-asl-toast-host .toast {
         display: flex;
         align-items: center;
         gap: 0.6rem;
@@ -1147,7 +1140,7 @@ export default {
         box-shadow: 0 0.5em 1.5em rgba(0, 0, 0, 0.2);
     }
 
-    .toast .msg {
+    .kiwi-asl-toast-host .toast .msg {
         flex: 1;
     }
 }
