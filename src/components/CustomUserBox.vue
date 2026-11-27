@@ -29,14 +29,13 @@
                 class="kiwi-userbox-asl"
                 :class="{ 'kiwi-userbox-asl--multi': !singleLine }"
             >
-                <template v-for="(part, i) in aslParts">
+                <template v-for="(part, i) in aslParts" :key="i">
                     <span
                         v-if="i > 0 && singleLine"
-                        :key="'s' + i"
                         class="kiwi-userbox-asl-sep"
                     >·</span>
-                    <span :key="i" class="kiwi-userbox-asl-item">
-                        <i :class="'fa ' + part.icon" aria-hidden="true" />
+                    <span class="kiwi-userbox-asl-item">
+                        <svg-icon :icon="part.icon" />
                         {{ part.value }}
                     </span>
                 </template>
@@ -59,7 +58,7 @@
                     class="kiwi-userbox-flag"
                     :class="'kiwi-userbox-flag--' + flag.type"
                 >
-                    <i :class="'fa ' + flag.icon" aria-hidden="true" />
+                    <svg-icon :icon="flag.icon" />
                     {{ $t('plugin-asl:' + flag.label) }}
                 </span>
             </div>
@@ -82,7 +81,7 @@
                 class="kiwi-userbox-action-btn btn-cta"
                 @click="openQuery"
             >
-                <i class="fa fa-comment-o" aria-hidden="true" />
+                <svg-icon icon="fa-regular fa-comment" />
                 {{ $t('plugin-asl:pm_action') }}
             </button>
             <button
@@ -91,7 +90,7 @@
                 class="kiwi-userbox-action-btn"
                 @click="updateWhoisData"
             >
-                <i class="fa fa-question-circle" aria-hidden="true" />
+                <svg-icon icon="fa-solid fa-circle-question" />
                 {{ $t('more_information') }}
             </button>
         </div>
@@ -117,12 +116,12 @@
             class="kiwi-userbox-whois kiwi-userbox-details"
         >
             <template v-if="whoisLoading">
-                <i class="fa fa-spinner" aria-hidden="true" />
+                <svg-icon icon="fa-solid fa-spinner" />
             </template>
             <template v-else>
                 <!-- away only (offline is the presence dot's job, not an away message) -->
                 <div v-if="user.isAway()" class="kiwi-userbox-det-row">
-                    <i class="fa fa-moon-o" aria-hidden="true" />
+                    <svg-icon icon="fa-regular fa-moon" />
                     <span>{{ user.away }}</span>
                 </div>
 
@@ -130,7 +129,7 @@
                 <div v-if="user.account" class="kiwi-userbox-det-block">
                     <span class="kiwi-userbox-label">{{ $t('plugin-asl:whois_account') }}</span>
                     <div class="kiwi-userbox-det-row">
-                        <i class="fa fa-id-card-o" aria-hidden="true" />
+                        <svg-icon icon="fa-regular fa-id-card" />
                         <span class="kiwi-userbox-det-val">{{ user.account }}</span>
                     </div>
                 </div>
@@ -146,7 +145,7 @@
 
                 <!-- network helper (helpop) — whois-only -->
                 <div v-if="user.whois.helpop" class="kiwi-userbox-det-row">
-                    <i class="fa fa-life-ring" aria-hidden="true" />
+                    <svg-icon icon="fa-solid fa-life-ring" />
                     <span>{{ $t('plugin-asl:whois_assistance') }}</span>
                 </div>
 
@@ -157,14 +156,14 @@
                 >
                     <span class="kiwi-userbox-label">{{ $t('plugin-asl:whois_connection') }}</span>
                     <div v-if="user.whois.server" class="kiwi-userbox-det-row">
-                        <i class="fa fa-server" aria-hidden="true" />
+                        <svg-icon icon="fa-solid fa-server" />
                         <span class="kiwi-userbox-det-val">{{ serverLabel }}</span>
                     </div>
                     <div
                         v-if="user.whois.secure"
                         class="kiwi-userbox-det-row kiwi-userbox-det-row--secure"
                     >
-                        <i class="fa fa-lock" aria-hidden="true" />
+                        <svg-icon icon="fa-solid fa-lock" />
                         <span>{{ $t('plugin-asl:whois_secure') }}</span>
                     </div>
                 </div>
@@ -189,7 +188,7 @@
 
         <div v-if="buffer.isChannel() && areWeAnOp && !isSelf" class="kiwi-userbox-mod">
             <div class="kiwi-userbox-mod-head">
-                <i class="fa fa-gavel" aria-hidden="true" />
+                <svg-icon icon="fa-solid fa-gavel" />
                 {{ $t('plugin-asl:mod_title') }}
             </div>
             <label v-if="isUserOnBuffer" class="kiwi-userbox-mod-field">
@@ -209,7 +208,7 @@
                 <mod-reason-menu
                     v-if="isUserOnBuffer"
                     :label="$t('user_kick')"
-                    icon="fa-sign-out"
+                    icon="fa-solid fa-right-from-bracket"
                     :reasons="kickReasons"
                     :open="openModMenu === 'kick'"
                     @toggle="toggleModMenu('kick')"
@@ -220,13 +219,13 @@
                     class="kiwi-userbox-mod-btn btn-cta"
                     @click="banUser"
                 >
-                    <i class="fa fa-ban" aria-hidden="true" />
+                    <svg-icon icon="fa-solid fa-ban" />
                     {{ $t('user_ban') }}
                 </button>
                 <mod-reason-menu
                     v-if="isUserOnBuffer"
                     :label="$t('user_kickban')"
-                    icon="fa-exclamation-triangle"
+                    icon="fa-solid fa-triangle-exclamation"
                     :reasons="kickbanReasons"
                     :open="openModMenu === 'kickban'"
                     @toggle="toggleModMenu('kickban')"
@@ -238,7 +237,7 @@
              blocking one would swallow the user's own login notices -->
         <div v-if="!isSelf && !isExemptSender" class="kiwi-userbox-protect">
             <div class="kiwi-userbox-protect-head">
-                <i class="fa fa-shield" aria-hidden="true" />
+                <svg-icon icon="fa-solid fa-shield-halved" />
                 {{ $t('plugin-asl:protect_title') }}
             </div>
             <p class="kiwi-userbox-protect-text">
@@ -251,7 +250,7 @@
                     :class="{ 'is-on': user.ignore }"
                     @click="onBlockClick"
                 >
-                    <i class="fa" :class="user.ignore ? 'fa-eye' : 'fa-ban'" aria-hidden="true" />
+                    <svg-icon :icon="user.ignore ? 'fa-solid fa-eye' : 'fa-solid fa-ban'" />
                     {{ user.ignore ? $t('plugin-asl:unblock') : $t('plugin-asl:block') }}
                 </button>
                 <!-- report only in a private chat: in a channel there's no specific
@@ -269,7 +268,7 @@
                     :title="reportOnCooldown ? reportCooldownHint : null"
                     @click="toggleReportUser"
                 >
-                    <i class="fa fa-flag" aria-hidden="true" />
+                    <svg-icon icon="fa-solid fa-flag" />
                     {{ $t('plugin-asl:report_action') }}
                 </button>
             </div>
@@ -372,14 +371,14 @@ export default {
             }
             let parts = [];
             if (asl.a) {
-                parts.push({ icon: 'fa-birthday-cake', value: asl.a });
+                parts.push({ icon: 'fa-solid fa-cake-candles', value: asl.a });
             }
             // skip a bare "other" (no glyph) — it means gender was not really declared
             if (asl.s && this.genderClass) {
-                parts.push({ icon: 'fa-venus-mars', value: this.sexLabel });
+                parts.push({ icon: 'fa-solid fa-venus-mars', value: this.sexLabel });
             }
             if (asl.l) {
-                parts.push({ icon: 'fa-map-marker', value: asl.l });
+                parts.push({ icon: 'fa-solid fa-location-dot', value: asl.l });
             }
             return parts;
         },
@@ -396,19 +395,19 @@ export default {
             let wf = user.whoFlags || {};
             let flags = [];
             if (this.isModerator) {
-                flags.push({ type: 'mod', icon: 'fa-shield', label: 'flag_moderator' });
+                flags.push({ type: 'mod', icon: 'fa-solid fa-shield-halved', label: 'flag_moderator' });
             }
             if (ready && wf.operator) {
-                flags.push({ type: 'op', icon: 'fa-shield', label: 'flag_netop' });
+                flags.push({ type: 'op', icon: 'fa-solid fa-shield-halved', label: 'flag_netop' });
             }
             if ((ready && wf.registered) || user.account) {
-                flags.push({ type: 'reg', icon: 'fa-check-circle', label: 'flag_registered' });
+                flags.push({ type: 'reg', icon: 'fa-solid fa-circle-check', label: 'flag_registered' });
             }
             if (ready && wf.bot) {
-                flags.push({ type: 'bot', icon: 'fa-android', label: 'flag_robot' });
+                flags.push({ type: 'bot', icon: 'fa-solid fa-robot', label: 'flag_robot' });
             }
             if (user.isAway()) {
-                flags.push({ type: 'away', icon: 'fa-moon-o', label: 'flag_away' });
+                flags.push({ type: 'away', icon: 'fa-regular fa-moon', label: 'flag_away' });
             }
             return flags;
         },
@@ -581,7 +580,7 @@ export default {
         // Capture phase: the sidebar stops the propagation of clicks inside the userbox
         document.addEventListener('click', this.onModMenuDocClick, true);
     },
-    beforeDestroy: function beforeDestroy() {
+    beforeUnmount: function beforeUnmount() {
         document.removeEventListener('click', this.onModMenuDocClick, true);
     },
     methods: {
@@ -789,21 +788,7 @@ export default {
     word-break: break-word;
 }
 
-/* gender glyph after the nick (identity = colour, gender = form). FA4 (KiwiIRC):
-   venus \f221 · mars \f222 · transgender \f224. No glyph when ASL sex is absent. */
-.kiwi-userbox-nick.g-f::after,
-.kiwi-userbox-nick.g-m::after,
-.kiwi-userbox-nick.g-u::after {
-    /* stylelint-disable-next-line font-family-no-missing-generic-family-keyword */
-    font-family: 'FontAwesome';
-    font-size: 0.72em;
-    opacity: 0.85;
-    margin-left: 0.32rem;
-}
-
-.kiwi-userbox-nick.g-f::after { content: '\f221'; }
-.kiwi-userbox-nick.g-m::after { content: '\f222'; }
-.kiwi-userbox-nick.g-u::after { content: '\f224'; }
+/* The gender glyph after the nick is drawn by libs/icons.js */
 
 /* username@host — IRC plumbing: kept but quiet (faint, small, under the nick) */
 .kiwi-userbox-usermask {
@@ -860,7 +845,7 @@ export default {
     gap: 0.32rem;
 }
 
-.kiwi-userbox-asl-item i {
+.kiwi-userbox-asl-item .svg-inline--fa {
     font-size: 0.85em;
     color: var(--color-text-faint, #9aa6b6);
 }
@@ -940,24 +925,24 @@ export default {
     font-weight: var(--weight-extrabold, 800);
 }
 
-.kiwi-userbox-flag i {
+.kiwi-userbox-flag .svg-inline--fa {
     font-size: 0.95em;
 }
 
-.kiwi-userbox-flag--reg i {
+.kiwi-userbox-flag--reg .svg-inline--fa {
     color: var(--color-success-text, #15803d);
 }
 
-.kiwi-userbox-flag--mod i,
-.kiwi-userbox-flag--op i {
+.kiwi-userbox-flag--mod .svg-inline--fa,
+.kiwi-userbox-flag--op .svg-inline--fa {
     color: var(--color-accent, #004b87);
 }
 
-.kiwi-userbox-flag--bot i {
+.kiwi-userbox-flag--bot .svg-inline--fa {
     color: var(--color-bot, #7c3aed);
 }
 
-.kiwi-userbox-flag--away i {
+.kiwi-userbox-flag--away .svg-inline--fa {
     color: var(--color-presence-away, #b98b52);
 }
 
@@ -1114,7 +1099,7 @@ export default {
     color: var(--color-text-secondary, #56616f);
 }
 
-.kiwi-userbox-det-row i {
+.kiwi-userbox-det-row .svg-inline--fa {
     width: 1rem;
     flex-shrink: 0;
     margin-top: 0.15rem;
@@ -1130,7 +1115,7 @@ export default {
 
 /* « Connexion sécurisée » — green text (AA), matching lock icon */
 .kiwi-userbox-det-row--secure,
-.kiwi-userbox-det-row--secure i {
+.kiwi-userbox-det-row--secure .svg-inline--fa {
     color: var(--color-success-text, #15803d);
     font-weight: var(--weight-bold, 700);
 }

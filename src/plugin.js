@@ -1,6 +1,7 @@
-// Polyfill for Babel-transpiled async/await — Webpack 4 + @babel/preset-env
-// emit calls to regeneratorRuntime that aren't otherwise provided.
-import 'regenerator-runtime/runtime';
+// Vue 3 ES module plugin. Kiwi imports this file and calls its default export like a
+// kiwi.plugin() callback. `vue` and `kiwiirc` are resolved by Kiwi's import map, so this uses
+// Kiwi's own Vue runtime (see src/libs/EsmPlugins.js in Kiwi).
+import { nextTick, watch } from 'vue';
 
 import CustomWelcome from './components/CustomWelcome.vue';
 import CustomUserBox from './components/CustomUserBox.vue';
@@ -18,9 +19,12 @@ import * as reportEcho from './libs/reportEcho.js';
 import * as modAliases from './libs/modAliases.js';
 import * as stateApi from './libs/stateApi.js';
 import { recordActiveDay } from './libs/activity.js';
+import { installIcons } from './libs/icons.js';
 
-// eslint-disable-next-line no-undef
-kiwi.plugin('asl', (kiwi) => {
+export default function aslPlugin(kiwi) {
+    const Misc = kiwi.require('helpers/Misc');
+
+    installIcons();
     config.setDefaults();
     stateApi.install();
     nickGlyphObserver.start();
@@ -38,13 +42,11 @@ kiwi.plugin('asl', (kiwi) => {
     let locales = new Locales();
     locales.init(localesPath, 'plugin-asl', 'age', modAliases.seed);
 
-    // The kiwibnc plugin replaces user_settings with the account's settings once connected.
-    // Only a replacement counts: seeding on each change would fight with a user editing aliases.
-    kiwi.state.$watch('user_settings', (settings, previous) => {
-        if (settings !== previous) {
-            modAliases.seed();
-        }
-    });
+    // Vue 2 Kiwi: the kiwibnc plugin replaced user_settings with the account's settings once
+    // connected, and a watcher re-seeded the aliases on that replacement. In Vue 3 Kiwi the state
+    // root is not reactive, so a replaced user_settings object cannot be watched, and core now
+    // updates it in place. Re-seeding after a kiwibnc settings load belongs with the kiwibnc
+    // plugin's own Vue 3 port.
 
     // add the custom welcome screen and replace userbox
     kiwi.addStartup('plugin-asl', CustomWelcome);
@@ -60,9 +62,9 @@ kiwi.plugin('asl', (kiwi) => {
         if (!wrap) {
             return;
         }
-        let protectionHost = new kiwi.Vue(AslProtection);
-        protectionHost.$mount();
-        wrap.appendChild(protectionHost.$el);
+        // mountComponent renders with Kiwi's app context (i18n, $state, <svg-icon>…)
+        let protectionHost = Misc.mountComponent(AslProtection);
+        wrap.appendChild(protectionHost.element);
     }
     // Core emits 'ready' right after the root app (.kiwi-wrap) mounts; plugins init on
     // 'init' just before, so this fires exactly once with the wrap present — no polling.
@@ -96,14 +98,12 @@ kiwi.plugin('asl', (kiwi) => {
         kiwi.state.setting('buffers.show_message_info_on_hover', enabled);
     }
     applyHoverActionGate();
-    kiwi.state.$watch(() => kiwi.state.setting('theme'), applyHoverActionGate);
+    watch(() => kiwi.state.setting('theme'), applyHoverActionGate);
 
     // show the user browser if its enabled
     if (kiwi.state.getSetting('settings.plugin-asl.showUserBrowser')) {
         // add a button to channel headers to open the sidebar component
-        let browserButton = new kiwi.Vue(UserBrowserButton);
-        browserButton.$mount();
-        kiwi.addUi('header_channel', browserButton.$el);
+        kiwi.addUi('header_channel', UserBrowserButton);
     }
 
     kiwi.state.$on('network.new', (event) => {
@@ -167,10 +167,10 @@ kiwi.plugin('asl', (kiwi) => {
     // We defer with nextTick because this handler runs before core's
     // changeUserNick() in the same synchronous event dispatch.
     kiwi.on('irc.nick', (event, net) => {
-        kiwi.Vue.nextTick(() => {
+        nextTick(() => {
             let userObj = kiwi.state.getUser(net.id, event.new_nick);
             if (userObj && userObj.asl) {
-                kiwi.Vue.set(userObj, 'colour', utils.getColour(userObj.asl));
+                userObj.colour = utils.getColour(userObj.asl);
             }
         });
     });
@@ -178,11 +178,12 @@ kiwi.plugin('asl', (kiwi) => {
     function updateUser(net, user) {
         let userObj = kiwi.state.getUser(net.id, user.nick) || kiwi.state.addUser(net, user);
         let parsedGecos = utils.parseGecos(user.realname);
-        kiwi.Vue.set(userObj, 'asl', parsedGecos.asl);
-        kiwi.Vue.set(userObj, 'aslRealname', parsedGecos.realname);
-        kiwi.Vue.set(userObj, 'colour', utils.getColour(userObj.asl));
+        // Users are reactive in Kiwi's state (UserState), so new properties are tracked too
+        userObj.asl = parsedGecos.asl;
+        userObj.aslRealname = parsedGecos.realname;
+        userObj.colour = utils.getColour(userObj.asl);
         // Messages may already be rendered in the message list before this ASL data arrives
         // (e.g. a late WHO response) — reclassify whatever's already on screen for this nick.
         nickGlyphObserver.reclassifyNick(userObj.nick);
     }
-});
+}

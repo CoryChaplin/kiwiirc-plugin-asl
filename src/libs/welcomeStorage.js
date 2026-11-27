@@ -14,7 +14,6 @@
  * No localStorage key — persistence rides Kiwi's native state save.
  */
 
-/* global kiwi:true */
 
 const SETTINGS_KEY = 'pluginAsl';
 
@@ -40,12 +39,13 @@ export function readWelcomeState(net) {
 
 export function writeWelcomeState(net, state) {
     if (!net) return;
+    // net.settings is reactive in Kiwi's NetworkState: plain assignments are tracked
     if (!net.settings) {
-        kiwi.Vue.set(net, 'settings', {});
+        net.settings = {};
     }
-    kiwi.Vue.set(net.settings, SETTINGS_KEY, {
+    net.settings[SETTINGS_KEY] = {
         topics: (state && state.topics) || [],
         manualChannels: (state && state.manualChannels) || [],
         removedChannels: (state && state.removedChannels) || [],
-    });
+    };
 }

@@ -8,17 +8,18 @@
             ]"
             @click="onClick"
     >
-        <i v-if="pending" class="fa fa-spin fa-spinner kiwi-asl-cta__spinner"/>
+        <svg-icon icon="fa-solid fa-spinner" spin class="kiwi-asl-cta__spinner" v-if="pending" />
         <span class="kiwi-asl-cta__label">{{ label }}</span>
         <span v-if="ready && count > 0 && !pending" class="kiwi-asl-cta__count">
             ({{ countLabel }})
         </span>
-        <i v-if="!pending" class="fa fa-arrow-right kiwi-asl-cta__arrow" aria-hidden="true"/>
+        <svg-icon icon="fa-solid fa-arrow-right" class="kiwi-asl-cta__arrow" v-if="!pending" />
     </button>
 </template>
 
 <script>
 export default {
+    emits: ['submit'],
     props: {
         ready: {
             type: Boolean,

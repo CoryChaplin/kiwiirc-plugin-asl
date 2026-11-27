@@ -16,7 +16,7 @@
             >
                 <div class="modal-head">
                     <span class="modal-sh danger">
-                        <i class="fa fa-flag" aria-hidden="true" />
+                        <svg-icon icon="fa-solid fa-flag" />
                     </span>
                     <span class="modal-title">
                         {{ t('plugin-asl:report_title', { nick: targetNick }) }}
@@ -27,7 +27,7 @@
                         :aria-label="t('plugin-asl:report_close')"
                         @click="closeReport"
                     >
-                        <i class="fa fa-times" aria-hidden="true" />
+                        <svg-icon icon="fa-solid fa-xmark" />
                     </button>
                 </div>
                 <div class="modal-body">
@@ -61,7 +61,7 @@
                             class="sr-only"
                         >
                         <span class="cbx">
-                            <i class="fa fa-check" aria-hidden="true" />
+                            <svg-icon icon="fa-solid fa-check" />
                         </span>
                         <span class="opt-label">
                             {{ t('plugin-asl:report_block_too', { nick: targetNick }) }}
@@ -71,7 +71,7 @@
                         </span>
                     </label>
                     <div class="inline-note bare kiwi-asl-log-note">
-                        <i class="fa fa-paperclip" aria-hidden="true" />
+                        <svg-icon icon="fa-solid fa-paperclip" />
                         {{ logNote }}
                     </div>
                     <div class="btns end">
@@ -84,13 +84,9 @@
                             :disabled="!report_reasons || report_sending"
                             @click="submitReportForm"
                         >
-                            <i
-                                v-if="report_sending"
-                                class="fa fa-spinner fa-spin"
-                                aria-hidden="true"
-                            />
+                            <svg-icon icon="fa-solid fa-spinner" spin v-if="report_sending" />
                             <template v-else>
-                                <i class="fa fa-flag" aria-hidden="true" />
+                                <svg-icon icon="fa-solid fa-flag" />
                                 {{ t('plugin-asl:report_send') }}
                             </template>
                         </button>
@@ -100,7 +96,7 @@
         </div>
         <div v-if="toast_visible" class="kiwi-asl-toast-host">
             <div class="toast">
-                <i class="ic fa" :class="toast_icon" aria-hidden="true" />
+                <svg-icon v-if="toast_icon" :icon="toast_icon" class="ic" />
                 <span class="msg">{{ toast_message }}</span>
                 <button
                     v-if="toast_has_undo"
@@ -267,7 +263,7 @@ export default {
     mounted: function mounted() {
         document.addEventListener('keydown', this.onKeydown);
     },
-    beforeDestroy: function beforeDestroy() {
+    beforeUnmount: function beforeUnmount() {
         if (this.toastTimer) {
             clearTimeout(this.toastTimer);
         }
@@ -295,7 +291,7 @@ export default {
                     TextFormatting.t('plugin-asl:report_cooldown_toast', {
                         nick: payload.user.nick,
                     }),
-                    'fa-flag',
+                    'fa-solid fa-flag',
                     null
                 );
                 return;
@@ -316,14 +312,14 @@ export default {
                 this.notifyBlocked(payload);
                 this.showToast(
                     TextFormatting.t('plugin-asl:block_toast', { nick: payload.user.nick }),
-                    'fa-ban',
+                    'fa-solid fa-ban',
                     () => this.undoBlockAction(payload)
                 );
             } else {
                 this.notifyUnblocked(payload);
                 this.showToast(
                     TextFormatting.t('plugin-asl:unblock_toast', { nick: payload.user.nick }),
-                    'fa-eye',
+                    'fa-solid fa-eye',
                     () => this.undoUnblockAction(payload)
                 );
             }
@@ -803,7 +799,7 @@ export default {
                         type: 'notice',
                     });
 
-                this.showToast(TextFormatting.t('plugin-asl:report_toast'), 'fa-flag', null);
+                this.showToast(TextFormatting.t('plugin-asl:report_toast'), 'fa-solid fa-flag', null);
             } finally {
                 // never leave the send button dead if say()/addMessage throws
                 this.report_sending = false;
@@ -1168,7 +1164,7 @@ export default {
     }
 
     /* The native checkbox carries the state, so the glyph stays hidden. */
-    .kiwi-asl-report-overlay .cbx i {
+    .kiwi-asl-report-overlay .cbx .svg-inline--fa {
         opacity: 0;
     }
 

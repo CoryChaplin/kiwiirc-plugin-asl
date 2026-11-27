@@ -39,7 +39,7 @@ const defaultConfig = {
     showGenderGlyph: true,
 
     // What icon to use for User Browser
-    userBrowserIcon: 'fa-heart',
+    userBrowserIcon: 'fa-solid fa-heart',
 
     // What colour to use if user did not provide sex
     // 'default' is css default colour

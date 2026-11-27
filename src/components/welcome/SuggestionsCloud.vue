@@ -188,7 +188,7 @@ export default {
     transition: opacity 0.12s;
 }
 
-.kiwi-asl-fade-enter,
+.kiwi-asl-fade-enter-from,
 .kiwi-asl-fade-leave-to {
     opacity: 0;
 }

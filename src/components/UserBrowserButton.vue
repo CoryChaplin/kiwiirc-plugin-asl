@@ -1,7 +1,7 @@
 <template id="user-browser">
     <div :class="[active ? 'kiwi-header-option--active': '']" class="kiwi-header-option">
         <a @click.prevent="toggleUserBrowser">
-            <i :class="icon" class="fa" aria-hidden="true"/>
+            <svg-icon :icon="icon" />
             <span class="kiwi-header-user-browser-span">Chatteurs</span>
             <!-- {{ $t('plugin-asl:user_button_label') }} -->
         </a>

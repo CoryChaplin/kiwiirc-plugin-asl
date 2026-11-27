@@ -95,7 +95,7 @@
                         <!-- 1. Nick -->
                         <div class="kiwi-input-wrapper">
                             <div class="kiwi-input-icon">
-                                <i class="fa fa-user"/>
+                                <svg-icon icon="fa-solid fa-user" />
                             </div>
                             <input v-model="nick" type="text" required
                                    :placeholder="$t('nick')"
@@ -127,7 +127,7 @@
                              class="kiwi-input-wrapper animate-slide-down"
                         >
                             <div class="kiwi-input-icon">
-                                <i class="fa fa-key"/>
+                                <svg-icon icon="fa-solid fa-key" />
                             </div>
                             <input v-model="password" type="password"
                                    :placeholder="$t('password')"
@@ -142,7 +142,7 @@
                         <div class="kiwi-asl-age-ville-row">
                             <div class="kiwi-input-wrapper kiwi-asl-age-ville-row__age">
                                 <div class="kiwi-input-icon">
-                                    <i class="fa fa-calendar"/>
+                                    <svg-icon icon="fa-solid fa-calendar" />
                                 </div>
                                 <input v-model="age" type="number" min="15" max="99"
                                        :placeholder="$t('plugin-asl:age')"
@@ -157,7 +157,7 @@
                                  class="kiwi-input-wrapper kiwi-asl-age-ville-row__ville"
                             >
                                 <div class="kiwi-input-icon">
-                                    <i class="fa fa-map-marker"/>
+                                    <svg-icon icon="fa-solid fa-location-dot" />
                                 </div>
                                 <input v-model="location" type="text"
                                        :placeholder="$t('plugin-asl:location')"
@@ -169,17 +169,16 @@
                                         :title="$t('plugin-asl:gps_locate')"
                                         @click="requestGps"
                                 >
-                                    <i :class="[
-                                        'fa',
-                                        gpsLoading ? 'fa-spin fa-spinner' : 'fa-crosshairs'
-                                    ]"
+                                    <svg-icon
+                                        :icon="gpsLoading ? 'fa-solid fa-spinner' : 'fa-solid fa-crosshairs'"
+                                        :spin="gpsLoading"
                                     />
                                 </button>
                             </div>
                         </div>
                         <!-- Age hint — under the age field, mirrors irception #age-hint -->
                         <p v-if="ageTooYoung" class="kiwi-asl-age-hint">
-                            <i class="fa fa-exclamation-triangle fa-xs" aria-hidden="true"/>
+                            <svg-icon icon="fa-solid fa-triangle-exclamation" size="xs" />
                             {{ $t('plugin-asl:age_hint', { min: ageMin }) }}
                         </p>
 
@@ -197,9 +196,9 @@
                                     :class="['kiwi-gender-btn', sex === 'F' ? 'active-f' : '']"
                                     @click="sex = 'F'"
                             >
-                                <i :class="[
-                                    'fa mr-1.5', sex === 'F' ? 'fa-check-circle' : 'fa-circle-o'
-                                ]"
+                                <svg-icon
+                                    :icon="sex === 'F' ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'"
+                                    class="mr-1.5"
                                 />
                                 <span>&nbsp;{{ $t('plugin-asl:female') }}</span>
                             </button>
@@ -207,9 +206,9 @@
                                     :class="['kiwi-gender-btn', sex === 'M' ? 'active-m' : '']"
                                     @click="sex = 'M'"
                             >
-                                <i :class="[
-                                    'fa mr-1.5', sex === 'M' ? 'fa-check-circle' : 'fa-circle-o'
-                                ]"
+                                <svg-icon
+                                    :icon="sex === 'M' ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'"
+                                    class="mr-1.5"
                                 />
                                 <span>&nbsp;{{ $t('plugin-asl:male') }}</span>
                             </button>
@@ -217,9 +216,9 @@
                                     :class="['kiwi-gender-btn', sex === 'U' ? 'active-u' : '']"
                                     @click="sex = 'U'"
                             >
-                                <i :class="[
-                                    'fa mr-1.5', sex === 'U' ? 'fa-check-circle' : 'fa-circle-o'
-                                ]"
+                                <svg-icon
+                                    :icon="sex === 'U' ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'"
+                                    class="mr-1.5"
                                 />
                                 <span>&nbsp;{{ $t('plugin-asl:other') }}</span>
                             </button>
@@ -240,7 +239,7 @@
                             <p v-for="msg in topicErrors" :key="msg"
                                class="kiwi-asl-topic-error"
                             >
-                                <i class="fa fa-exclamation-triangle" aria-hidden="true"/>
+                                <svg-icon icon="fa-solid fa-triangle-exclamation" />
                                 {{ msg }}
                             </p>
                         </div>
@@ -306,7 +305,7 @@
                             !nick ? 'is-visible' : 'is-hidden'
                         ]"
                         >
-                            <i class="fa fa-arrow-up" aria-hidden="true"/>
+                            <svg-icon icon="fa-solid fa-arrow-up" />
                             {{ $t('plugin-asl:nick_hint') }}
                         </p>
 
@@ -328,6 +327,7 @@
 /* global _:true */
 /* global kiwi:true */
 
+import { reactive } from 'vue';
 import * as config from '../config.js';
 import * as utils from '../libs/utils.js';
 import * as irceptionApi from '../libs/irceptionApi.js';
@@ -687,11 +687,11 @@ export default {
                 return (s && s[key]) || null;
             },
             set(key, value) {
-                if (!previousNet.settings) kiwi.Vue.set(previousNet, 'settings', {});
+                if (!previousNet.settings) previousNet.settings = {};
                 if (!previousNet.settings.pluginAsl) {
-                    kiwi.Vue.set(previousNet.settings, 'pluginAsl', {});
+                    previousNet.settings.pluginAsl = reactive({});
                 }
-                kiwi.Vue.set(previousNet.settings.pluginAsl, key, value);
+                previousNet.settings.pluginAsl[key] = value;
             },
         } : null;
 
@@ -866,7 +866,7 @@ export default {
             this.chatNowMode = true;
         }
     },
-    beforeDestroy() {
+    beforeUnmount() {
         if (this.debouncedRecommend) this.debouncedRecommend.cancel();
         if (this.debouncedReverseGeocode) this.debouncedReverseGeocode.cancel();
     },

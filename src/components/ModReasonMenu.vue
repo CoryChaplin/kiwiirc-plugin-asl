@@ -7,9 +7,9 @@
             :aria-expanded="open ? 'true' : 'false'"
             @click="$emit('toggle')"
         >
-            <i :class="'fa ' + icon" aria-hidden="true" />
+            <svg-icon :icon="icon" />
             {{ label }}
-            <i class="fa fa-caret-down kiwi-userbox-mod-caret" aria-hidden="true" />
+            <svg-icon icon="fa-solid fa-caret-down" class="kiwi-userbox-mod-caret" />
         </button>
         <div v-if="open" ref="menu" class="kiwi-userbox-mod-menu">
             <div class="kiwi-userbox-mod-menu-input">
@@ -29,7 +29,7 @@
                     :aria-label="$t('plugin-asl:mod_reason_apply')"
                     @click="submitCustom"
                 >
-                    <i class="fa fa-check" aria-hidden="true" />
+                    <svg-icon icon="fa-solid fa-check" />
                 </button>
             </div>
             <button
@@ -50,6 +50,7 @@
 </template>
 
 <script>
+
 
 export default {
     props: ['label', 'icon', 'reasons', 'open'],
@@ -75,7 +76,7 @@ export default {
             this.bindPlace();
         },
     },
-    beforeDestroy: function beforeDestroy() {
+    beforeUnmount: function beforeUnmount() {
         this.unbindPlace();
         this.unmountMenu();
     },

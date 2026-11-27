@@ -1,12 +1,11 @@
-/* global kiwi:true */
-
+import { reactive } from 'vue';
 import * as config from '../config.js';
 
 // Reactive so the Report buttons re-render on their own when a cooldown starts or
-// expires: { key => expiry timestamp }. Keys are added/removed with Vue.set/delete.
+// expires: { key => expiry timestamp }.
 // Session-only: a reload clears it, which is fine — this guards against repeat clicks,
 // not against a determined user.
-const store = kiwi.Vue.observable({ until: {} });
+const store = reactive({ until: {} });
 
 // key => timeout id, so an expiring entry drops out of the reactive store
 const timers = {};
@@ -33,13 +32,13 @@ export function start(network, nick) {
     }
 
     let key = entryKey(network, nick);
-    kiwi.Vue.set(store.until, key, Date.now() + seconds * 1000);
+    store.until[key] = Date.now() + seconds * 1000;
     if (timers[key]) {
         clearTimeout(timers[key]);
     }
     timers[key] = setTimeout(() => {
         delete timers[key];
-        kiwi.Vue.delete(store.until, key);
+        delete store.until[key];
     }, seconds * 1000);
 }
 

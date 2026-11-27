@@ -44,7 +44,7 @@
                     :placeholder="$t('nick')"
                     @change="updateUserFilter()"
                 >
-                <i v-if="filter !== ''" class="fa fa-undo" aria-hidden="true" @click="filter = ''"/>
+                <svg-icon icon="fa-solid fa-rotate-left" v-if="filter !== ''" @click="filter = ''" />
             </div>
             <div class="plugin-asl-userbrowser-scope">
                 {{ $t('plugin-asl:global_list') }} <label class="switch">
@@ -207,7 +207,8 @@ export default {
             kiwi.on('irc.wholist', onUpdate);
             kiwi.on('irc.names', onUpdate);
 
-            this.$once('hook:beforeDestroy', () => {
+            // Vue 3 has no hook: events, so beforeUnmount() calls this
+            this.unbindIrcEvents = () => {
                 kiwi.off('irc.join', onUpdate);
                 kiwi.off('irc.part', onUpdate);
                 kiwi.off('irc.quit', onUpdate);
@@ -215,7 +216,7 @@ export default {
                 kiwi.off('irc.nick', onUpdate);
                 kiwi.off('irc.wholist', onUpdate);
                 kiwi.off('irc.names', onUpdate);
-            });
+            };
         }
 
         this.sexes = config.setting('sexes');
@@ -224,7 +225,10 @@ export default {
         this.selectedSexes = this.$state.pluginASL.selectedSexes;
         this.filter = this.$state.pluginASL.userFilter;
     },
-    beforeDestroy() {
+    beforeUnmount() {
+        if (this.unbindIrcEvents) {
+            this.unbindIrcEvents();
+        }
         this.$state.$emit('plugin-asl.userbrowser.close');
     },
     methods: {
@@ -323,7 +327,7 @@ export default {
     width: 300px;
 }
 
-.plugin-asl-userbrowser-filter i {
+.plugin-asl-userbrowser-filter .svg-inline--fa {
     margin-left: 10px;
 }
 

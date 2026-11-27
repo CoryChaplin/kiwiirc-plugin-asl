@@ -1,56 +1,50 @@
-<template functional>
+<template>
     <div
         :class="[
-            props.nicklist.userMode(props.user) ?
-                'kiwi-nicklist-user--mode-' + props.nicklist.userMode(props.user) :
-                '',
-            props.user.away ? 'kiwi-nicklist-user--away' : '',
-            props.user.ignore ? 'kiwi-nicklist-user--ignore' : '',
-            data.staticClass,
+            userMode ? 'kiwi-nicklist-user--mode-' + userMode : '',
+            user.away ? 'kiwi-nicklist-user--away' : '',
+            user.ignore ? 'kiwi-nicklist-user--ignore' : '',
         ]"
-        :data-nick="(props.user.nick||'').toLowerCase()"
+        :data-nick="(user.nick||'').toLowerCase()"
         class="kiwi-nicklist-user"
-        @mouseover="props.m().toggleTooltip($event)"
-        @mouseout="props.m().toggleTooltip($event)"
-        @click="props.nicklist.openUserbox(props.user); props.m().toggleTooltip($event)"
+        @mouseover="toggleTooltip($event)"
+        @mouseout="toggleTooltip($event)"
+        @click="nicklist.openUserbox(user); toggleTooltip($event)"
     >
-        <div v-if="props.m().shouldShowAvatars()" class="kiwi-avatar-container">
-            <component
-                :is="injections.components.Avatar"
-                v-if="props.user"
-                :user="props.user"
+        <div v-if="shouldShowAvatars" class="kiwi-avatar-container">
+            <UserAvatar
+                v-if="user"
+                :user="user"
+                :network="network"
                 size="small"
             />
-            <component
-                :is="injections.components.AwayStatusIndicator"
-                :network="props.network"
-                :user="props.user"
+            <AwayStatusIndicator
+                :network="network"
+                :user="user"
                 :toggle="false"
             />
         </div>
         <div v-else>
-            <component
-                :is="injections.components.AwayStatusIndicator"
-                :network="props.network"
-                :user="props.user"
+            <AwayStatusIndicator
+                :network="network"
+                :user="user"
                 :toggle="false"
             />
         </div>
         <span class="kiwi-nicklist-user-prefix">
-            {{ props.nicklist.userModePrefix(props.user) }}
+            {{ nicklist.buffer.userModePrefix(user) }}
         </span><span
-            :style="{ 'color': props.m().userColour() }"
-            :class="props.m().genderClass()"
+            :style="{ 'color': userColour }"
+            :class="genderClass"
             class="kiwi-nicklist-user-nick"
-        >{{ props.user.nick }}
+        >{{ user.nick }}
         </span>
-        <span class="kiwi-nicklist-messageuser" @click.stop="props.nicklist.openQuery(props.user)">
-            <i class="fa fa-comment" aria-hidden="true" />
+        <span class="kiwi-nicklist-messageuser" @click.stop="nicklist.openQuery(user)">
+            <svg-icon icon="fa-solid fa-comment" />
         </span>
-        <component
-            :is="injections.components.TypingStatusIndicator"
-            :user="props.user"
-            :buffer="props.nicklist.buffer"
+        <TypingStatusIndicator
+            :user="user"
+            :buffer="nicklist.buffer"
         />
     </div>
 </template>
@@ -58,111 +52,97 @@
 <script>
 
 /* global kiwi:true */
-/* 'kiwi public'; */
 
 import * as utils from '../libs/utils.js';
 import { getSetting } from '../config.js';
 
 let AwayStatusIndicator = kiwi.require('components/AwayStatusIndicator');
 let TypingStatusIndicator = kiwi.require('components/TypingStatusIndicator');
-let Avatar = kiwi.require('components/Avatar');
+let UserAvatar = kiwi.require('components/UserAvatar');
 let TextFormatting = kiwi.require('helpers/TextFormatting');
 
-const methods = {
-    props: {},
-    genderClass() {
-        if (!getSetting('showGenderGlyph')) return '';
-        return utils.getGenderClass(this.props.user.asl);
-    },
-    userColour() {
-        let props = this.props;
-        if (props.nicklist.useColouredNicks) {
-            return props.user.getColour();
-        }
-        return '';
-    },
-    shouldShowAvatars() {
-        let props = this.props;
-        return props.nicklist.buffer.setting('nicklist_avatars');
-    },
-    aslString(asl) {
-        let parts = kiwi.state.getSetting('settings.plugin-asl.singleLineString');
-        let out = [];
-        if (asl.s) {
-            let sex = asl.s[0] === '_' ?
-                TextFormatting.t('plugin-asl:' + asl.s.substr(1)) :
-                asl.s;
-            out.push(parts.sex.replace('%s', sex));
-            if (asl.a) out.push('<br>');
-        }
-        if (asl.a) {
-            let ageTpl = parts.age[0] === '_' ?
-                TextFormatting.t('plugin-asl:' + parts.age.substr(1)) :
-                parts.age;
-            out.push(ageTpl.replace('%a', asl.a));
-        }
-        if (asl.l) {
-            out.push(parts.location.replace('%l', asl.l));
-        }
-        return out.join(parts.separator);
-    },
-    toggleTooltip(event) {
-        let props = this.props;
-        let tooltip;
-
-        if (props.user.asl === undefined) return;
-
-        // Create parent div
-        if (!document.querySelector('.kiwi-nicklist-user-tooltip')) {
-            tooltip = document.createElement('div');
-            tooltip.setAttribute('class', 'kiwi-nicklist-user-tooltip');
-            document.querySelector('.kiwi-wrap').appendChild(tooltip);
-        } else {
-            tooltip = document.querySelector('.kiwi-nicklist-user-tooltip');
-        }
-
-        if (event.type === 'mouseover') {
-            // Don't go below bottom of the screen
-            let topOffset = (event.clientY + 150 > window.innerHeight) ?
-                window.innerHeight - 150 : event.clientY;
-
-            tooltip.setAttribute('style', 'right:' +
-                document.querySelector('.kiwi-nicklist').offsetWidth +
-                'px; visibility: visible; opacity: 1; top: ' + topOffset + 'px;');
-            tooltip.innerHTML += '<div class="kiwi-tooltipNick">' + props.user.nick +
-                '</div><div class="kiwi-tooltipInfo">' + props.m().aslString(props.user.asl) + '</div>';
-        } else {
-            tooltip.setAttribute('style', '');
-            tooltip.innerHTML = '';
-        }
-    },
-};
-
+// Replaces Kiwi's components/NicklistUser (see plugin.js), so it keeps the same props:
+// network, user and nicklist (the parent Nicklist instance)
 export default {
-    inject: {
-        components: {
-            default: {
-                AwayStatusIndicator,
-                TypingStatusIndicator,
-                Avatar,
-            },
-        },
+    components: {
+        AwayStatusIndicator,
+        TypingStatusIndicator,
+        UserAvatar,
     },
     props: {
         network: Object,
         user: Object,
         nicklist: Object,
-        m: {
-            default: function m() {
-                // vue uses this function to generate the prop. `this`==null Return our own function
-                return function n() {
-                    // Give our methods some props context before its function is called.
-                    // This is only safe because the function on the methods object is called on
-                    // the same js tick
-                    methods.props = this;
-                    return methods;
-                };
-            },
+    },
+    computed: {
+        // Vue 3 Kiwi moved userMode()/userModePrefix() from the Nicklist to its buffer
+        userMode() {
+            return this.nicklist.buffer.userMode(this.user);
+        },
+        genderClass() {
+            if (!getSetting('showGenderGlyph')) return '';
+            return utils.getGenderClass(this.user.asl);
+        },
+        userColour() {
+            if (this.nicklist.useColouredNicks) {
+                return this.user.getColour();
+            }
+            return '';
+        },
+        shouldShowAvatars() {
+            return this.nicklist.buffer.setting('nicklist_avatars');
+        },
+    },
+    methods: {
+        aslString(asl) {
+            let parts = kiwi.state.getSetting('settings.plugin-asl.singleLineString');
+            let out = [];
+            if (asl.s) {
+                let sex = asl.s[0] === '_' ?
+                    TextFormatting.t('plugin-asl:' + asl.s.substr(1)) :
+                    asl.s;
+                out.push(parts.sex.replace('%s', sex));
+                if (asl.a) out.push('<br>');
+            }
+            if (asl.a) {
+                let ageTpl = parts.age[0] === '_' ?
+                    TextFormatting.t('plugin-asl:' + parts.age.substr(1)) :
+                    parts.age;
+                out.push(ageTpl.replace('%a', asl.a));
+            }
+            if (asl.l) {
+                out.push(parts.location.replace('%l', asl.l));
+            }
+            return out.join(parts.separator);
+        },
+        toggleTooltip(event) {
+            let tooltip;
+
+            if (this.user.asl === undefined) return;
+
+            // Create parent div
+            if (!document.querySelector('.kiwi-nicklist-user-tooltip')) {
+                tooltip = document.createElement('div');
+                tooltip.setAttribute('class', 'kiwi-nicklist-user-tooltip');
+                document.querySelector('.kiwi-wrap').appendChild(tooltip);
+            } else {
+                tooltip = document.querySelector('.kiwi-nicklist-user-tooltip');
+            }
+
+            if (event.type === 'mouseover') {
+                // Don't go below bottom of the screen
+                let topOffset = (event.clientY + 150 > window.innerHeight) ?
+                    window.innerHeight - 150 : event.clientY;
+
+                tooltip.setAttribute('style', 'right:' +
+                    document.querySelector('.kiwi-nicklist').offsetWidth +
+                    'px; visibility: visible; opacity: 1; top: ' + topOffset + 'px;');
+                tooltip.innerHTML += '<div class="kiwi-tooltipNick">' + this.user.nick +
+                    '</div><div class="kiwi-tooltipInfo">' + this.aslString(this.user.asl) + '</div>';
+            } else {
+                tooltip.setAttribute('style', '');
+                tooltip.innerHTML = '';
+            }
         },
     },
 };
@@ -196,9 +176,7 @@ export default {
 
 .kiwi-nicklist-messageuser {
     position: absolute;
-    content: '\f075';
     right: -1em;
-    font-family: fontAwesome, sans-serif;
     line-height: 26px;
     opacity: 0;
 }
@@ -277,33 +255,5 @@ export default {
     opacity: 1;
 }
 
-.kiwi-messagelist-nick.g-f::after,
-.kiwi-nicklist-user-nick.g-f::after,
-.kiwi-messagelist-nick.g-m::after,
-.kiwi-nicklist-user-nick.g-m::after,
-.kiwi-messagelist-nick.g-u::after,
-.kiwi-nicklist-user-nick.g-u::after {
-    font-family: fontAwesome, Helvetica, Arial, Verdana, Tahoma, sans-serif;
-    font-size: 1em;
-    font-weight: bold;
-    opacity: 0.85;
-    margin-left: 0.1em;
-}
-
-.kiwi-messagelist-nick.g-f::after,
-.kiwi-nicklist-user-nick.g-f::after {
-    content: "\f221";
-}
-
-.kiwi-messagelist-nick.g-m::after,
-.kiwi-nicklist-user-nick.g-m::after {
-    content: "\f222";
-}
-
-/* \f224 is fa-transgender in Font Awesome 4, the version KiwiIRC loads — not \f225, which
-   is fa-transgender-alt, a different icon. */
-.kiwi-messagelist-nick.g-u::after,
-.kiwi-nicklist-user-nick.g-u::after {
-    content: "\f224";
-}
+/* The gender glyph after the nick is drawn by libs/icons.js */
 </style>

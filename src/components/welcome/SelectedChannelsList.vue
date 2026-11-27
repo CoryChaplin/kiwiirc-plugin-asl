@@ -15,14 +15,14 @@
                         :aria-label="$t('plugin-asl:channel_remove', { channel: entry.name })"
                         @click="onRemove(entry)"
                 >
-                    <i class="fa fa-times" aria-hidden="true"/>
+                    <svg-icon icon="fa-solid fa-xmark" />
                 </button>
             </span>
             <span v-if="full" class="kiwi-asl-channels__full">
                 {{ $t('plugin-asl:channels_full', { max: maxChannels }) }}
             </span>
             <span v-else ref="addWrapper" class="kiwi-asl-channels__add">
-                <i class="fa fa-search kiwi-asl-channels__add-icon" aria-hidden="true"/>
+                <svg-icon icon="fa-solid fa-magnifying-glass" class="kiwi-asl-channels__add-icon" />
                 <input ref="input" v-model="inputValue" type="text"
                        :placeholder="$t('plugin-asl:channel_add_placeholder')"
                        class="kiwi-asl-channels__input"
@@ -41,9 +41,8 @@
                     :class="['kiwi-asl-channels__suggest', suggestAbove ? 'is-above' : '']"
                     role="listbox"
                 >
-                    <template v-for="cat in filteredCategories">
-                        <li :key="'cat-' + cat.label"
-                            class="kiwi-asl-channels__suggest-cat"
+                    <template v-for="cat in filteredCategories" :key="'cat-' + cat.label">
+                        <li class="kiwi-asl-channels__suggest-cat"
                             role="presentation"
                         >
                             {{ cat.label }}
@@ -141,7 +140,7 @@ export default {
     mounted() {
         document.addEventListener('mousedown', this.onDocClick);
     },
-    beforeDestroy() {
+    beforeUnmount() {
         document.removeEventListener('mousedown', this.onDocClick);
     },
     methods: {

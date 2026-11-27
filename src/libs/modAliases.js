@@ -1,5 +1,6 @@
 /* global kiwi:true */
 
+import { nextTick } from 'vue';
 import * as config from '../config.js';
 
 let TextFormatting = kiwi.require('helpers/TextFormatting');
@@ -79,7 +80,7 @@ function appendLines(aliases, lines) {
 // again without leaving anything in the user's settings.
 function reloadInputAliases(aliases) {
     kiwi.state.setSetting('user_settings.aliases', aliases);
-    kiwi.Vue.nextTick(() => {
+    nextTick(() => {
         kiwi.state.setSetting('user_settings.aliases', null);
     });
 }
